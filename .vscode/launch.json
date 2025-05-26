@@ -1,0 +1,41 @@
+{
+    // IntelliSense를 사용하여 가능한 특성에 대해 알아보세요.
+    // 기존 특성에 대한 설명을 보려면 가리킵니다.
+    // 자세한 내용을 보려면 https://go.microsoft.com/fwlink/?linkid=830387을(를) 방문하세요.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // 이 구성이 확장 프로그램을 디버그 모드로 실행합니다.
+            "type": "extensionHost", // <-- 핵심: 확장 호스트 타입
+            "request": "launch",
+            "name": "Run Extension", // <-- 핵심: 이 이름이 디버그 드롭다운에 표시됨
+            "runtimeExecutable": "${execPath}", // 현재 VS Code 실행 경로 사용
+            "args": [
+                // 현재 워크스페이스의 확장을 로드하도록 VS Code에 지시
+                "--extensionDevelopmentPath=${workspaceFolder}"
+            ],
+            "outFiles": [
+                // 디버거가 소스 맵을 찾을 컴파일된 JavaScript 파일 경로
+                "${workspaceFolder}/dist/**/*.js" // package.json에 정의된 Webpack 출력 경로 사용
+            ],
+            // 이 구성이 실행되기 전에 기본 빌드 태스크를 실행하도록 설정 (tasks.json 필요)
+            // npm run watch를 이미 실행 중이거나 자동 빌드가 필요 없는 경우 제거 가능
+            "preLaunchTask": "${defaultBuildTask}"
+        },
+        {
+            // 이 구성은 확장 테스트를 실행합니다. (선택 사항)
+            "type": "extensionHost",
+            "request": "launch",
+            "name": "Extension Tests",
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}",
+                "--extensionTestsPath=${workspaceFolder}/out/test" // 테스트 코드 경로
+            ],
+            "outFiles": [
+                "${workspaceFolder}/out/test/**/*.js"
+            ],
+             "preLaunchTask": "${defaultBuildTask}" // 테스트 전에 기본 빌드 태스크 실행
+        }
+    ]
+}
