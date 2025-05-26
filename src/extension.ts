@@ -1,15 +1,15 @@
+// --- START OF FILE extension.ts (Modified) ---
+
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs'; // 파일 시스템 모듈 임포트
+import * as fs from 'fs';
 
 // 채팅 뷰를 제공하는 WebviewViewProvider 구현 클래스
-// 이 클래스는 Activity Bar 아이콘 클릭 시 사용되지만,
-// 'Open Banya Chat' 명령에서는 이제 사용하지 않습니다. (package.json의 contributes.views 설정은 그대로 유지)
 class ChatViewProvider implements vscode.WebviewViewProvider {
 
-    public static readonly viewId = 'codepilot.chatView'; // Chat 뷰의 고유 ID
+    public static readonly viewId = 'codepilot.chatView';
 
-    private _view?: vscode.WebviewView; // 현재 활성화된 WebviewView 인스턴스
+    private _view?: vscode.WebviewView;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -24,7 +24,8 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
             enableScripts: true,
             localResourceRoots: [
                 this._extensionUri,
-                vscode.Uri.joinPath(this._extensionUri, 'webview')
+                vscode.Uri.joinPath(this._extensionUri, 'webview'),
+                vscode.Uri.joinPath(this._extensionUri, 'media')
             ]
         };
 
@@ -34,12 +35,33 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
             switch (data.command) {
                 case 'sendMessage':
                     console.log('Received message from chat view:', data.text);
+                    // 사용자가 보낸 메시지를 UI에 바로 표시하도록 Webview에 알림
+                    this._view?.webview.postMessage({
+                        command: 'displayUserMessage', // 사용자 메시지 표시를 위한 새로운 커맨드
+                        text: data.text
+                    });
+
                     // TODO: 여기에 실제 LLM 호출 또는 채팅 로직 구현
                     const response = `Echo: "${data.text}"`;
+                    // LLM 응답을 받으면 CodePilot 메시지로 UI에 표시하도록 메시지 전송
                     this._view?.webview.postMessage({
                         command: 'receiveMessage',
-                        text: response
+                        text: response,
+                        sender: 'CodePilot', // 누가 보냈는지 명확히 전달 (여전히 유용할 수 있음)
+                        // <-- 수정: title 제거 -->
+                        // title: `Echo for "${data.text.substring(0, 50)}..."` // 타이틀로 사용할 내용
+                        // <-- 수정 끝 -->
                     });
+                    break;
+                case 'openPanel':
+                    console.log(`Received open panel command from chat view: ${data.panel}`);
+                    if (data.panel === 'settings') {
+                        openBlankPanel(this._extensionUri, 'Settings', 'CodePilot Settings');
+                    } else if (data.panel === 'license') {
+                        openBlankPanel(this._extensionUri, 'License', 'CodePilot License Information');
+                    } else if (data.panel === 'customizing') {
+                        openBlankPanel(this._extensionUri, 'Customizing', 'CodePilot Customization Options');
+                    }
                     break;
             }
         });
@@ -49,7 +71,7 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
             this._view = undefined;
         });
 
-        console.log('Chat View resolved (via sidebar or openView command if it worked)');
+        console.log('Chat View resolved (via sidebar)');
     }
 
     private _getHtmlForWebview(webview: vscode.Webview): string {
@@ -57,6 +79,16 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
          let htmlContent = '';
          try {
              htmlContent = fs.readFileSync(htmlFilePath.fsPath, 'utf8');
+
+             const settingsIconUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'settings-gear.svg')); // $(settings-gear)
+             const licenseIconUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'book.svg')); // $(book)
+             const customizingIconUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'paintbrush.svg')); // $(paintbrush)
+
+             htmlContent = htmlContent
+                 .replace('{{settingsIconUri}}', settingsIconUri.toString())
+                 .replace('{{licenseIconUri}}', licenseIconUri.toString())
+                 .replace('{{customizingIconUri}}', customizingIconUri.toString());
+
          } catch (error: unknown) {
              console.error('Error reading chat.html:', error);
              const errorMessage = (typeof error === 'object' && error !== null && 'message' in error)
@@ -66,8 +98,6 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
          }
         return htmlContent;
     }
-    // sendMessageToWebview 함수는 이제 'Open Banya Chat' 명령에서 직접 사용되지 않음
-    // public sendMessageToWebview(command: string, text: string) { ... }
 }
 
 
@@ -76,15 +106,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     console.log('Congratulations, your extension "codepilot" is now active!');
 
-    // 1. Chat Webview View Provider 등록 (Activity Bar 아이콘 클릭 시 작동)
-    // 'vscode.openView'가 작동하지 않더라도 이 등록 자체는 유효하며,
-    // Activity Bar 아이콘을 클릭하거나 탐색기에 뷰가 추가된 경우 이 프로바이더가 사용됩니다.
     const chatViewProvider = new ChatViewProvider(context.extensionUri);
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, chatViewProvider)
     );
-
-    // 2. Command 등록 (package.json의 contributes.commands[]에 정의된 명령어들)
 
     const openSettingsPanelCommand = vscode.commands.registerCommand('codepilot.openSettingsPanel', () => {
         openBlankPanel(context.extensionUri, 'Settings', 'CodePilot Settings');
@@ -106,15 +131,11 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(helloWorldCommand);
 
-    // <-- 수정: 'Open Banya Chat' 명령어 핸들러를 createWebviewPanel 사용으로 변경 -->
     const openBanyaChatCommand = vscode.commands.registerCommand('codepilot.openChatView', () => {
         console.log('Executing command: Open Banya Chat (using createWebviewPanel)');
-        // 이제 vscode.openView 대신 새로운 패널 생성 함수 호출
         openChatPanel(context.extensionUri, 'Chat', 'CodePilot Chat');
     });
     context.subscriptions.push(openBanyaChatCommand);
-    // <-- 수정 끝 -->
-
 
      // TODO: 필요한 다른 기능 구현
 }
@@ -135,7 +156,8 @@ function openBlankPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTi
              enableScripts: true,
              localResourceRoots: [
                  extensionUri,
-                 vscode.Uri.joinPath(extensionUri, 'webview')
+                 vscode.Uri.joinPath(extensionUri, 'webview'),
+                 vscode.Uri.joinPath(extensionUri, 'media')
              ]
          }
      );
@@ -162,29 +184,37 @@ function openBlankPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTi
       // TODO: 필요하다면 blank panel과 확장 간의 메시지 통신 로직 구현
 }
 
-// <-- 추가: Chat UI를 가진 새로운 Webview 패널을 생성하는 헬퍼 함수 -->
+// <-- 수정: Chat UI를 가진 새로운 Webview 패널을 생성하는 헬퍼 함수 -->
 function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTitle: string) {
-    // 이미 열린 채팅 패널이 있는지 확인하고 재활용 (선택 사항)
-    // 이 예시에서는 매번 새로운 패널을 엽니다.
     const panel = vscode.window.createWebviewPanel(
-        `codepilot.${panelIdSuffix.toLowerCase()}`, // 고유 ID (예: codepilot.chat)
-        panelTitle, // 패널 제목 (예: CodePilot Chat)
-        vscode.ViewColumn.One, // 패널 열 위치 (예: 현재 에디터 그룹)
+        `codepilot.${panelIdSuffix.toLowerCase()}`,
+        panelTitle,
+        vscode.ViewColumn.One,
         {
-            enableScripts: true, // 스크립트 허용
-            localResourceRoots: [ // 리소스 접근 허용 범위
+            enableScripts: true,
+            localResourceRoots: [
                 extensionUri,
-                vscode.Uri.joinPath(extensionUri, 'webview')
+                vscode.Uri.joinPath(extensionUri, 'webview'),
+                 vscode.Uri.joinPath(extensionUri, 'media')
             ]
         }
     );
 
-    // webview 폴더 내의 chat.html 파일 경로
     const htmlFilePath = vscode.Uri.joinPath(extensionUri, 'webview', 'chat.html');
     let htmlContent = '';
 
     try {
         htmlContent = fs.readFileSync(htmlFilePath.fsPath, 'utf8');
+
+        const settingsIconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'settings-gear.svg'));
+        const licenseIconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'book.svg'));
+        const customizingIconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'paintbrush.svg'));
+
+        htmlContent = htmlContent
+             .replace('{{settingsIconUri}}', settingsIconUri.toString())
+             .replace('{{licenseIconUri}}', licenseIconUri.toString())
+             .replace('{{customizingIconUri}}', customizingIconUri.toString());
+
     } catch (error: unknown) {
         console.error(`Error reading chat.html for ${panelTitle} panel:`, error);
         const errorMessage = (typeof error === 'object' && error !== null && 'message' in error)
@@ -195,26 +225,50 @@ function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTit
 
     panel.webview.html = htmlContent;
 
-    // 패널 닫힐 때 호출될 리스너 등록 (필요하다면 정리 작업 수행)
     panel.onDidDispose(() => {
         console.log(`${panelTitle} panel closed`);
     }, null, []);
 
-    // TODO: 필요하다면 chat panel과 확장 간의 메시지 통신 로직 구현 (WebviewView 방식과 유사)
+    // <-- 수정: chat panel과 확장 간의 메시지 통신 로직 구현 -->
     panel.webview.onDidReceiveMessage(data => {
         switch (data.command) {
             case 'sendMessage':
                 console.log('Received message from chat panel:', data.text);
-                 // TODO: 여기에 실제 LLM 호출 또는 채팅 로직 구현 (WebviewView 방식과 동일)
+                 // 사용자가 보낸 메시지를 UI에 바로 표시하도록 Webview에 알림
+                 panel.webview.postMessage({
+                     command: 'displayUserMessage', // 사용자 메시지 표시를 위한 새로운 커맨드
+                     text: data.text
+                 });
+
+                 // TODO: 여기에 실제 LLM 호출 또는 채팅 로직 구현
                  const response = `Panel Echo: "${data.text}"`;
-                 // 패널 Webview로 응답 전송
+                 // LLM 응답을 받으면 CodePilot 메시지로 UI에 표시하도록 메시지 전송
                  panel.webview.postMessage({
                      command: 'receiveMessage',
-                     text: response
+                     text: response,
+                     sender: 'CodePilot', // 누가 보냈는지 명확히 전달
+                     // <-- 수정: title 제거 -->
+                     // title: `Echo for "${data.text.substring(0, 50)}..."` // 타이틀로 사용할 내용
+                     // <-- 수정 끝 -->
                  });
                 break;
+             case 'openPanel':
+                 console.log(`Received open panel command from chat panel: ${data.panel}`);
+                 if (data.panel === 'settings') {
+                     openBlankPanel(extensionUri, 'Settings', 'CodePilot Settings');
+                 } else if (data.panel === 'license') {
+                     openBlankPanel(extensionUri, 'License', 'CodePilot License Information');
+                 } else if (data.panel === 'customizing') {
+                     openBlankPanel(extensionUri, 'Customizing', 'CodePilot Customization Options');
+                 } else {
+                      console.warn('Unknown panel command received:', data.panel);
+                 }
+                 break;
+            // TODO: 필요한 다른 메시지 타입 처리 추가
         }
     });
      console.log(`Chat panel '${panelTitle}' created.`);
 }
-// <-- 추가 끝 -->
+// <-- 수정 끝 -->
+
+// --- END OF FILE extension.ts (Modified) ---
