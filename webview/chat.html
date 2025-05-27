@@ -1,274 +1,113 @@
-<!-- --- START OF FILE chat.html (Modified) --- -->
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodePilot Chat</title>
-    <style>
-        /* (이전과 동일한 스타일 유지) */
-        body {
-            margin: 0;
-            padding: 0;
-            color: var(--vscode-foreground);
-            background-color: var(--vscode-editor-background);
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CodePilot Chat</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      color: var(--vscode-foreground);
+      background-color: var(--vscode-editor-background);
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
 
-        #chat-container {
-             padding: 10px;
-             padding-top: 10px;
-             overflow-y: auto;
-             flex-grow: 1;
-             display: flex;
-             flex-direction: column;
-             align-items: flex-start;
-             width: 100%;
-             box-sizing: border-box;
-        }
+    #chat-container {
+      padding: 10px 10px 130px; /* 하단 입력창 충분한 공간 확보 */
+      overflow-y: auto;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      height: 100%;
+    }
 
-         #chat-messages {
-             display: flex;
-             flex-direction: column;
-             width: 100%;
-             align-items: flex-start;
-         }
+    #chat-messages {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      align-items: flex-start;
+    }
 
-        .user-plain-message {
-            margin-bottom: 0;
-            word-wrap: break-word;
-            align-self: flex-start;
-            max-width: 100%;
-             color: var(--vscode-descriptionForeground);
-             padding: 0 10px;
-             box-sizing: border-box;
-             width: 100%;
-        }
+    #chat-input-area {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      align-items: flex-start; /* 위쪽 정렬 */
+      padding: 10px;
+      border-top: 1px solid var(--vscode-panel-border);
+      background-color: var(--vscode-editor-background);
+      box-sizing: border-box;
+      z-index: 10;
+    }
 
-        .message-separator {
-            width: 100%;
-            border: none;
-            border-top: 1px solid var(--vscode-panel-border);
-            margin-top: 5px;
-            margin-bottom: 15px;
-             flex-shrink: 0;
-        }
+    #chat-input {
+      flex-grow: 1;
+      padding: 8px;
+      border: 1px solid var(--vscode-input-border);
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      margin-right: 8px;
+      outline: none;
+      resize: vertical; /* 높이 조절 가능 */
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      line-height: var(--vscode-editor-lineHeight);
+      min-height: calc(1.5em * 4 + 16px); /* 4줄 최소 높이 + padding */
+      max-height: 150px; /* 최대 높이 제한 */
+      overflow-y: auto; /* 넘치면 스크롤 */
+      box-sizing: border-box;
+    }
 
-        .codepilot-message-container {
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-             max-width: 100%;
-             width: 100%;
-             box-sizing: border-box;
-             flex-shrink: 0;
-        }
+    #chat-input:focus {
+      border-color: var(--vscode-focusBorder);
+    }
 
-        .message-bubble {
-            background-color: var(--vscode-sideBar-background);
-            color: var(--vscode-foreground);
-            padding: 10px 15px;
-            border-radius: 10px;
-            word-wrap: break-word;
-            max-width: 100%;
-            width: 100%;
-            box-sizing: border-box;
-             flex-shrink: 0;
-             align-self: flex-start;
-        }
+    #send-button {
+      padding: 0 15px;
+      background-color: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      height: calc(1.5em * 4 + 16px); /* 입력창과 동일 높이 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      user-select: none;
+      flex-shrink: 0;
+    }
 
-        #chat-input-area {
-            display: flex;
-            align-items: flex-end;
-            padding: 10px;
-            border-top: 1px solid var(--vscode-panel-border);
-            background-color: var(--vscode-editor-background);
-            z-index: 1;
-             flex-shrink: 0;
-        }
-
-         #chat-input {
-             flex-grow: 1;
-             padding: 8px;
-             border: 1px solid var(--vscode-input-border);
-             background-color: var(--vscode-input-background);
-             color: var(--vscode-input-foreground);
-             margin-right: 8px;
-             outline: none;
-             resize: none;
-             font-family: var(--vscode-font-family);
-             font-size: var(--vscode-font-size);
-             line-height: var(--vscode-editor-lineHeight);
-         }
-
-         #chat-input:focus {
-              border-color: var(--vscode-focusBorder);
-         }
-
-         #send-button {
-             padding: 0 15px;
-             background-color: var(--vscode-button-background);
-             color: var(--vscode-button-foreground);
-             border: none;
-             cursor: pointer;
-             border-radius: 5px;
-             height: 100%;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-         }
-
-         #send-button:hover {
-             background-color: var(--vscode-button-hoverBackground);
-         }
-
-    </style>
+    #send-button:hover {
+      background-color: var(--vscode-button-hoverBackground);
+    }
+  </style>
 </head>
 <body>
-    <div id="chat-container">
-        <div id="chat-messages">
-        </div>
-    </div>
+  <div id="chat-container">
+    <div id="chat-messages"></div>
+  </div>
+  <div id="chat-input-area">
+    <textarea id="chat-input" rows="4" placeholder="메시지를 입력하세요..."></textarea>
+    <button id="send-button">Send</button>
+  </div>
 
-     <div id="chat-input-area">
-        <textarea id="chat-input" rows="4" placeholder="Ask CodePilot..."></textarea>
-        <button id="send-button">Send</button>
-     </div>
-
-    <script>
-        const vscode = acquireVsCodeApi();
-
-        const sendButton = document.getElementById('send-button');
-        const chatInput = document.getElementById('chat-input');
-        const chatMessages = document.getElementById('chat-messages');
-
-        if (sendButton && chatInput) {
-            sendButton.addEventListener('click', handleSendMessage);
-
-             chatInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault(); // 기본 동작 (줄바꿈) 방지
-
-                    // <-- 수정: handleSendMessage 호출을 setTimeout으로 감쌈 -->
-                    // IME 입력 완료 및 이벤트 처리를 위한 미세한 지연
-                    setTimeout(() => {
-                        handleSendMessage();
-                    }, 0); // 지연 시간을 0으로 설정하면 현재 실행 컨텍스트가 완료된 후 다음 이벤트 루프 틱에 실행됩니다.
-                    // <-- 수정 끝 -->
-                }
-             });
-
-            chatInput.addEventListener('input', autoResizeTextarea);
-        }
-
-        function handleSendMessage() {
-            const text = chatInput.value.trim();
-            if (text) {
-                 // 사용자 메시지를 UI에 바로 표시
-                 displayUserMessage(text);
-
-                 // 사용자 메시지를 확장 프로그램으로 전송
-                vscode.postMessage({
-                    command: 'sendMessage',
-                    text: text
-                });
-
-                chatInput.value = '';
-                // 메시지 전송 후 textarea의 높이 초기화 및 자동 조절
-                 chatInput.style.height = 'auto';
-                 // autoResizeTextarea 호출 (비워진 상태에 맞춰 높이 조절)
-                 autoResizeTextarea(); // 비워진 후 높이 조절
-
-                chatInput.focus();
-            }
-        }
-
-        // Textarea 입력 시 높이 자동 조절 함수
-        function autoResizeTextarea() {
-             chatInput.style.height = 'auto'; // 높이 초기화
-             // scrollHeight는 요소의 최소 높이(컨텐츠가 넘치지 않을 때) 또는 컨텐츠 전체를 표시하는 데 필요한 높이(스크롤바 포함)를 반환합니다.
-             // 따라서 비어있거나 한 줄일 때는 적절한 최소 높이를, 여러 줄일 때는 그 높이를 계산합니다.
-             // 기본 padding, border 포함해서 정확한 높이를 계산하려면 좀 더 복잡해질 수 있습니다.
-             // 여기서는 scrollHeight + 약간의 추가 여백을 주는 방식을 사용합니다.
-             const border = parseInt(getComputedStyle(chatInput).borderTopWidth) + parseInt(getComputedStyle(chatInput).borderBottomWidth);
-             const padding = parseInt(getComputedStyle(chatInput).paddingTop) + parseInt(getComputedStyle(chatInput).paddingBottom);
-             chatInput.style.height = (chatInput.scrollHeight - padding) + 'px'; // 패딩 제외 높이 + 다시 패딩 추가
-
-             // VS Code 테마의 line-height를 고려한 정확한 4줄 높이 계산 (선택 사항)
-             // const lineHeight = parseFloat(getComputedStyle(chatInput).lineHeight);
-             // const rows = 4;
-             // const baseHeight = (lineHeight * rows) + padding + border;
-             // chatInput.style.minHeight = baseHeight + 'px';
-             // chatInput.style.height = 'auto'; // min-height가 적용되도록 auto 설정
-             // chatInput.style.height = chatInput.scrollHeight + 'px';
-        }
-
-        // DOM 로드 후 초기 높이 설정
-         window.addEventListener('load', autoResizeTextarea);
-         // 또는 패널이 처음 표시될 때 (하지만 webview가 로드된 후 바로 발생할 가능성 높음)
-         // document.addEventListener('DOMContentLoaded', autoResizeTextarea);
-
-
-        // 확장 프로그램으로부터 메시지 받는 로직
-        window.addEventListener('message', event => {
-            const message = event.data;
-
-            switch (message.command) {
-                // displayUserMessage 커맨드 처리 로직은 extension.ts에서 제거되었으므로 이제 필요 없음
-                /*
-                case 'displayUserMessage':
-                    console.log('Received command to display user message:', message.text);
-                    displayUserMessage(message.text);
-                    break;
-                */
-
-                case 'receiveMessage':
-                    console.log('Received message from extension:', message.text);
-                    if (message.sender === 'CodePilot') {
-                         displayCodePilotMessage(message.text);
-                    }
-                    break;
-            }
-        });
-
-        // 사용자 메시지를 일반 텍스트와 구분선으로 표시하는 함수
-        function displayUserMessage(text) {
-            const userMessageElement = document.createElement('div');
-            userMessageElement.classList.add('user-plain-message');
-            userMessageElement.textContent = 'You: ' + text;
-
-            const separatorElement = document.createElement('hr');
-            separatorElement.classList.add('message-separator');
-
-            chatMessages.appendChild(userMessageElement);
-            chatMessages.appendChild(separatorElement);
-
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // CodePilot 메시지를 타이틀 없이 버블만 표시하는 함수
-        function displayCodePilotMessage(text) {
-            const messageContainer = document.createElement('div');
-            messageContainer.classList.add('codepilot-message-container');
-
-            const bubbleElement = document.createElement('div');
-            bubbleElement.classList.add('message-bubble');
-            bubbleElement.textContent = text;
-
-            messageContainer.appendChild(bubbleElement);
-
-            chatMessages.appendChild(messageContainer);
-
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-    </script>
+  <script>
+    console.log("✅ chat.html loaded");
+  </script>
+  <script src="{{scriptUri}}"></script>
 </body>
 </html>
-<!-- --- END OF FILE chat.html (Modified) --- -->
