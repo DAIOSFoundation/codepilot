@@ -47,15 +47,15 @@
       },
       {
         "command": "codepilot.openSettingsPanel",
-        "title": "Open Settings"
+        "title": "Setting"
       },
       {
         "command": "codepilot.openLicensePanel",
-        "title": "Open License"
+        "title": "License"
       },
       {
         "command": "codepilot.openCustomizingPanel",
-        "title": "Open Customizing"
+        "title": "Customizing"
       },
       {
         "command": "codepilot.openChatView",
@@ -69,21 +69,24 @@
           "when": "view == codepilot.chatView",
           "group": "navigation",
           "order": 1,
-          "icon": "$(settings-gear)"
+          "icon": "$(settings-gear)",
+          "title": "Setting"
         },
         {
           "command": "codepilot.openLicensePanel",
           "when": "view == codepilot.chatView",
           "group": "navigation",
           "order": 2,
-          "icon": "$(book)"
+          "icon": "$(book)",
+          "title": "License"
         },
         {
           "command": "codepilot.openCustomizingPanel",
           "when": "view == codepilot.chatView",
           "group": "navigation",
           "order": 3,
-          "icon": "$(paintbrush)"
+          "icon": "$(paintbrush)",
+          "title": "Customizing"
         }
       ]
     }
