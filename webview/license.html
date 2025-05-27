@@ -1,0 +1,156 @@
+<!-- --- START OF FILE webview/license.html --- -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodePilot License Information</title>
+    <style>
+        body {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        h1 {
+            color: var(--vscode-textLink-foreground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        #api-key-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--vscode-panel-border);
+        }
+
+        #api-key-section h2 {
+             margin-bottom: 10px;
+             color: var(--vscode-textLink-foreground);
+        }
+
+        #api-key-form {
+             display: flex;
+             align-items: flex-end; /* 입력 필드와 버튼 하단 정렬 */
+             gap: 10px; /* 입력 필드와 버튼 사이 간격 */
+        }
+
+        #api-key-input {
+            flex-grow: 1; /* 남은 공간 차지 */
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            outline: none;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+        }
+
+        #api-key-input:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+
+         #save-api-key-button {
+             padding: 8px 15px;
+             background-color: var(--vscode-button-background);
+             color: var(--vscode-button-foreground);
+             border: none;
+             cursor: pointer;
+             border-radius: 5px;
+             /* 버튼 높이 자동 맞춤 */
+             height: auto; /* 또는 flexbox에 맞춰 늘어나도록 설정 */
+         }
+
+         #save-api-key-button:hover {
+             background-color: var(--vscode-button-hoverBackground);
+         }
+
+        /* 추가적인 라이선스 정보 스타일 (선택 사항) */
+         .license-info {
+             margin-top: 20px;
+             font-style: italic;
+             color: var(--vscode-descriptionForeground);
+         }
+    </style>
+</head>
+<body>
+    <h1>CodePilot License Information</h1>
+
+    <p>This is where you can find license details for CodePilot and its dependencies.</p>
+
+    <div class="license-info">
+        <p>Example License Info (replace with actual details):</p>
+        <p>CodePilot is released under the MIT License.</p>
+        <p>Dependency X: Apache License 2.0</p>
+        <p>Dependency Y: MIT License</p>
+    </div>
+
+
+    <div id="api-key-section">
+        <h2>Gemini API Key Configuration</h2>
+        <p>Enter your Google Gemini API Key to enable AI features. You can get a key from the <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>.</p>
+
+        <div id="api-key-form">
+            <input type="password" id="api-key-input" placeholder="Enter your Gemini API Key...">
+            <button id="save-api-key-button">Save API Key</button>
+        </div>
+         <p id="api-key-status" style="margin-top: 10px;"></p>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveButton = document.getElementById('save-api-key-button');
+        const statusElement = document.getElementById('api-key-status');
+
+        // "Save API Key" 버튼 클릭 이벤트
+        saveButton.addEventListener('click', () => {
+            const apiKey = apiKeyInput.value.trim();
+            if (apiKey) {
+                // API Key와 함께 확장 프로그램으로 메시지 전송
+                vscode.postMessage({
+                    command: 'saveApiKey',
+                    apiKey: apiKey
+                });
+                statusElement.textContent = 'Saving API Key...';
+                statusElement.style.color = ''; // 색상 초기화
+            } else {
+                 statusElement.textContent = 'Please enter your API Key.';
+                 statusElement.style.color = 'orange'; // 경고 색상
+            }
+        });
+
+        // 확장 프로그램으로부터 메시지 받기 (저장 결과 등)
+        window.addEventListener('message', event => {
+            const message = event.data;
+
+            switch (message.command) {
+                case 'apiKeySaved':
+                    statusElement.textContent = 'API Key saved successfully!';
+                    statusElement.style.color = 'green'; // 성공 색상
+                    apiKeyInput.value = ''; // 입력 필드 비우기
+                    // 저장 후 입력 필드를 비우지만, 불러오기 기능은 별도로 구현 필요 (보안상 로드 시 자동 채우기 비권장)
+                    console.log('API Key saved confirmation received.');
+                    break;
+                case 'apiKeySaveError':
+                     statusElement.textContent = `Failed to save API Key: ${message.error}`;
+                     statusElement.style.color = 'red'; // 오류 색상
+                     console.error('API Key save error received:', message.error);
+                     break;
+                // TODO: 필요하다면 초기 로드 시 저장된 API Key 상태를 표시하는 로직 추가
+            }
+        });
+
+         // 초기 로드 시점에 저장된 API Key가 있는지 확인하는 메시지를 확장으로 보낼 수도 있습니다.
+         // vscode.postMessage({ command: 'checkApiKeyStatus' });
+         // 그리고 extension.ts에서 이 명령을 받아 storage.getApiKey() 결과를 다시 Webview로 보내면 됩니다.
+
+    </script>
+</body>
+</html>
+<!-- --- END OF FILE webview/license.html --- -->
