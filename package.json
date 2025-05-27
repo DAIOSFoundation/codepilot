@@ -47,15 +47,15 @@
       },
       {
         "command": "codepilot.openSettingsPanel",
-        "title": "Open Settings"
+        "title": "Setting"
       },
       {
         "command": "codepilot.openLicensePanel",
-        "title": "Open License"
+        "title": "License"
       },
       {
         "command": "codepilot.openCustomizingPanel",
-        "title": "Open Customizing"
+        "title": "Customizing"
       },
       {
         "command": "codepilot.openChatView",
