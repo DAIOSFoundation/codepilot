@@ -1,3 +1,5 @@
+// --- START OF FILE extension.ts (Modified) ---
+
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -47,10 +49,7 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
             ]
         };
 
-        // <-- 수정: 실제 chat.html 파일을 읽도록 변경 -->
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-        // <-- 수정 끝 -->
-
 
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.command) {
@@ -58,26 +57,27 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
                     console.log('Received message from chat view:', data.text);
                     const userText = data.text.trim(); // 사용자 입력 텍스트 트림
 
-                    // 사용자가 보낸 메시지를 UI에 바로 표시하도록 Webview에 알림
-                    this._view?.webview.postMessage({
-                        command: 'displayUserMessage',
-                        text: data.text
-                    });
+                    // <-- 삭제: 사용자가 보낸 메시지를 UI에 바로 표시하라고 웹뷰에 알리는 로직 제거 -->
+                    // this._view?.webview.postMessage({
+                    //     command: 'displayUserMessage',
+                    //     text: data.text
+                    // });
+                    // <-- 삭제 끝 -->
 
-                    // <-- 추가: 터미널 실행 로직 및 Echo 응답 -->
+                    // 터미널 실행 로직 및 Echo 응답
                     if (userText === '앱 실행') {
                         console.log('Executing npm start...');
                         const terminal = getCodePilotTerminal();
                         terminal.show(); // 터미널은 활성 열에 표시
-                        terminal.sendText('npm start', true); // <-- 오류 수정: 두 번째 인자를 true로 -->
+                        terminal.sendText('npm start', true);
 
                     } else if (userText === '깃 푸쉬') {
                         console.log('Executing git push...');
                         const terminal = getCodePilotTerminal();
                         terminal.show(); // 터미널은 활성 열에 표시
-                        terminal.sendText('git add -A', true); // <-- 오류 수정: 두 번째 인자를 true로 -->
-                        terminal.sendText('git commit -m "n/a"', true); // <-- 오류 수정: 두 번째 인자를 true로 -->
-                        terminal.sendText('git push', true); // <-- 오류 수정: 두 번째 인자를 true로 -->
+                        terminal.sendText('git add -A', true);
+                        terminal.sendText('git commit -m "n/a"', true);
+                        terminal.sendText('git push', true);
 
                     } else {
                         console.log('Echoing message:', data.text);
@@ -88,7 +88,6 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
                             sender: 'CodePilot',
                         });
                     }
-                    // <-- 추가 끝 -->
                     break;
                 case 'openPanel':
                     console.log(`Received open panel command from chat view: ${data.panel}`);
@@ -101,9 +100,6 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
                         openBlankPanel(this._extensionUri, 'Customizing', 'CodePilot Customization Options');
                     }
                     break;
-                 // TODO: 필요한 다른 메시지 타입 처리 추가
-                 // Note: chat.html에서 runCommand/runCommandWithConfirm 메시지를 보내지 않으므로 해당 핸들러는 ChatViewProvider에서는 제거 또는 무시 가능.
-                 // 이전 코드에 있던 runCommand/runCommandWithConfirm 핸들러는 삭제합니다.
             }
         });
 
@@ -115,23 +111,16 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
         console.log('Chat View resolved (via sidebar)');
     }
 
-    // <-- 수정: chat.html 파일을 읽어오는 함수 -->
     private _getHtmlForWebview(webview: vscode.Webview): string {
          const htmlFilePath = vscode.Uri.joinPath(this._extensionUri, 'webview', 'chat.html');
          let htmlContent = '';
          try {
              htmlContent = fs.readFileSync(htmlFilePath.fsPath, 'utf8');
 
-             // Webview에서 사용할 리소스 경로를 VS Code URI 형식으로 변환하여 HTML에 삽입
-             // chat.html에서 사용할 CSS, JS, 이미지 등의 경로를 여기서 동적으로 생성하여 HTML에 넣어줍니다.
-             // chat.html에 아이콘 이미지를 직접 사용한다면 이 치환 로직이 필요합니다.
              const settingsIconUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'settings-gear.svg')); // $(settings-gear)
              const licenseIconUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'book.svg')); // $(book)
              const customizingIconUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'paintbrush.svg')); // $(paintbrush)
 
-             // HTML 템플릿에 동적으로 생성된 URI 삽입 (chat.html에 placeholder 필요)
-             // Note: 현재 chat.html에는 아이콘 헤더가 삭제되어 이 치환이 사용되지 않지만,
-             // 만약 다시 아이콘 헤더를 추가한다면 필요할 수 있습니다.
              htmlContent = htmlContent
                  .replace('{{settingsIconUri}}', settingsIconUri.toString())
                  .replace('{{licenseIconUri}}', licenseIconUri.toString())
@@ -148,7 +137,6 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
          }
         return htmlContent;
     }
-    // <-- 수정 끝 -->
 }
 
 
@@ -164,15 +152,15 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, chatViewProvider)
     );
 
-    // 확장이 활성화될 때 터미널에 메시지 출력 (기존 코드에서 가져옴)
+    // 확장이 활성화될 때 터미널에 메시지 출력
     const terminal = getCodePilotTerminal();
     terminal.show(); // 활성 열에 터미널 표시
-    terminal.sendText("echo CodePilot activated!", true); // <-- 오류 수정: 두 번째 인자를 true로 -->
+    terminal.sendText("echo CodePilot activated!", true);
 
 
     // 2. Command 등록 (package.json의 contributes.commands[]에 정의된 명령어들)
 
-    // Open Settings, License, Customizing 패널 명령어 등록 (이름 변경은 package.json에서)
+    // Open Settings, License, Customizing 패널 명령어 등록
     const openSettingsPanelCommand = vscode.commands.registerCommand('codepilot.openSettingsPanel', () => {
         // 이 명령어는 Activity Bar 뷰의 메뉴에서도 사용되므로 ViewColumn.One에 열도록 openBlankPanel이 고정되어 있음
         openBlankPanel(context.extensionUri, 'Settings', 'CodePilot Settings');
@@ -190,21 +178,19 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(openCustomizingPanelCommand);
 
     const helloWorldCommand = vscode.commands.registerCommand('codepilot.helloWorld', () => {
-        // helloWorld 명령어 실행 시 터미널에 메시지 출력 (기존 코드에서 가져옴)
+        // helloWorld 명령어 실행 시 터미널에 메시지 출력
         const terminal = getCodePilotTerminal();
-        terminal.sendText("echo Hello from CodePilot!", true); // <-- 오류 수정: 두 번째 인자를 true로 -->
+        terminal.sendText("echo Hello from CodePilot!", true);
         terminal.show(); // 활성 열에 터미널 표시
     });
     context.subscriptions.push(helloWorldCommand);
 
-    // <-- 추가: 'Open Banya Chat' 명령어 핸들러 등록 -->
     const openBanyaChatCommand = vscode.commands.registerCommand('codepilot.openChatView', () => {
         console.log('Executing command: Open Banya Chat (using createWebviewPanel in ViewColumn.Two)');
         // ViewColumn.Two를 사용하여 현재 활성 에디터 그룹의 우측에 패널을 엽니다.
         openChatPanel(context.extensionUri, 'Chat', 'CodePilot Chat', vscode.ViewColumn.Two);
     });
     context.subscriptions.push(openBanyaChatCommand);
-    // <-- 추가 끝 -->
 
 
      // TODO: 필요한 다른 기능 구현
@@ -218,7 +204,7 @@ export function deactivate() {
 }
 
 
-// <-- 추가: 빈 Webview 패널을 생성하고 HTML 파일을 로드하는 헬퍼 함수 -->
+// 빈 Webview 패널을 생성하고 HTML 파일을 로드하는 헬퍼 함수
 // Info 패널들은 기본 ViewColumn.One에 열도록 고정
 function openBlankPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTitle: string) {
      const panel = vscode.window.createWebviewPanel(
@@ -256,7 +242,6 @@ function openBlankPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTi
 
       // TODO: 필요하다면 blank panel과 확장 간의 메시지 통신 로직 구현
 }
-// <-- 추가 끝 -->
 
 // <-- 추가: Chat UI를 가진 새로운 Webview 패널을 생성하는 헬퍼 함수 (ViewColumn 인자 추가) -->
 function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTitle: string, viewColumn: vscode.ViewColumn = vscode.ViewColumn.One) {
@@ -311,26 +296,28 @@ function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTit
                 console.log('Received message from chat panel:', data.text);
                 const userText = data.text.trim(); // 사용자 입력 텍스트 트림
 
-                 // 사용자가 보낸 메시지를 UI에 바로 표시하도록 Webview에 알림
-                 panel.webview.postMessage({
-                     command: 'displayUserMessage',
-                     text: data.text
-                 });
+                 // <-- 삭제: 사용자가 보낸 메시지를 UI에 바로 표시하라고 웹뷰에 알리는 로직 제거 -->
+                 // panel.webview.postMessage({
+                 //     command: 'displayUserMessage',
+                 //     text: data.text
+                 // });
+                 // <-- 삭제 끝 -->
+
 
                  // 명령어 실행 로직
                  if (userText === '앱 실행') {
                      console.log('Executing npm start...');
                      const terminal = getCodePilotTerminal();
-                     terminal.show(); // 터미널은 활성 열에 표시
-                     terminal.sendText('npm start', true); // <-- 오류 수정: 두 번째 인자를 true로 -->
+                     terminal.show();
+                     terminal.sendText('npm start', true);
 
                  } else if (userText === '깃 푸쉬') {
                      console.log('Executing git push...');
                      const terminal = getCodePilotTerminal();
-                     terminal.show(); // 터미널은 활성 열에 표시
-                     terminal.sendText('git add -A', true); // <-- 오류 수정: 두 번째 인자를 true로 -->
-                     terminal.sendText('git commit -m "n/a"', true); // <-- 오류 수정: 두 번째 인자를 true로 -->
-                     terminal.sendText('git push', true); // <-- 오류 수정: 두 번째 인자를 true로 -->
+                     terminal.show();
+                     terminal.sendText('git add -A', true);
+                     terminal.sendText('git commit -m "n/a"', true);
+                     terminal.sendText('git push', true);
 
                  } else {
                      console.log('Echoing message:', data.text);
@@ -361,3 +348,6 @@ function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTit
     });
      console.log(`Chat panel '${panelTitle}' created.`);
 }
+// <-- 추가 끝 -->
+
+// --- END OF FILE extension.ts (Modified) ---
