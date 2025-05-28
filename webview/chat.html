@@ -19,6 +19,27 @@
             overflow: hidden;
         }
 
+        /* 아이콘 헤더 스타일 (이전 단계에서 추가된 경우 포함) */
+        .chat-header-icons {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            background-color: var(--vscode-editor-background);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+        .icon-button { /* 아이콘 버튼 스타일 */
+             background: none; border: none; padding: 0; margin-left: 10px; cursor: pointer;
+             color: var(--vscode-foreground); font-size: 18px;
+        }
+        .icon-button:hover { color: var(--vscode-textLink-activeForeground); }
+         .icon-button img { width: 18px; height: 18px; vertical-align: middle; filter: var(--vscode-icon-foreground-filter); }
+
+
         #chat-container {
             padding: 10px 10px 130px; /* 하단 입력창 충분한 공간 확보 */
             overflow-y: auto;
@@ -40,13 +61,13 @@
         }
 
         #chat-input-area {
-            position: fixed;
+            position: fixed; /* 고정 위치 */
             bottom: 0;
             left: 0;
             width: 100%;
             max-width: 100%;
-            display: flex;
-            align-items: flex-start; /* 위쪽 정렬 */
+            display: flex; /* <-- 필수: Textarea와 Button을 가로로 배치 */
+            align-items: flex-start; /* <-- 필수: 항목들을 위쪽으로 정렬 (Textarea와 Button 상단 라인 맞춤) */
             padding: 10px;
             border-top: 1px solid var(--vscode-panel-border);
             background-color: var(--vscode-editor-background);
@@ -54,6 +75,7 @@
             z-index: 10;
         }
 
+        /* <-- chatInput 스타일 (기존 스타일 유지하며 자동조절 속성 추가) --> */
         #chat-input {
             flex-grow: 1;
             padding: 8px;
@@ -62,20 +84,25 @@
             color: var(--vscode-input-foreground);
             margin-right: 8px;
             outline: none;
-            resize: vertical; /* 높이 조절 가능 */
+            resize: none; /* 사용자 리사이즈 방지 (JS 자동 조절 사용) */
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
             line-height: 1.5em; /* line-height 명시 */
-            min-height: calc(1.5em * 4 + 16px + 2px); /* 4줄 최소 높이 + padding + border */
+            min-height: calc(1.5em * 1 + 16px + 2px); /* 최소 1줄 높이 (스크린샷 고려 4줄에서 1줄로 변경) */
             max-height: 150px; /* 최대 높이 제한 */
             overflow-y: auto; /* 넘치면 스크롤 */
             box-sizing: border-box;
+             /* 자동조절을 위해 필요한 속성 (스크롤바 숨김) */
+            overflow: hidden; /* 기본 스크롤바 숨김 */
         }
+        /* <-- 수정 끝 --> */
+
 
         #chat-input:focus {
             border-color: var(--vscode-focusBorder);
         }
 
+        /* <-- send-button 스타일 (기존 스타일 유지하며 높이 자동 계산 추가) --> */
         #send-button {
             padding: 0 15px;
             background-color: var(--vscode-button-background);
@@ -83,8 +110,8 @@
             border: none;
             cursor: pointer;
             border-radius: 5px;
-             /* 입력창의 min-height를 기준으로 높이 계산 */
-            height: calc(1.5em * 4 + 16px + 2px);
+             /* 입력창의 min-height를 기준으로 높이 계산 (원래 4줄 계산 로직 - JS 자동조절 시 필요 없음) */
+            /* height: calc(1.5em * 4 + 16px + 2px); */ /* JS 자동조절 시 필요 없음 */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -92,9 +119,17 @@
             user-select: none;
             flex-shrink: 0;
         }
+        /* <-- 수정 끝 -->
+
+         /* 입력창 높이가 늘어나면 버튼 높이도 따라가도록 (자동 높이) */
+         /* chat-input-area가 flex 컨테이너일 때 button의 height: auto가 flex item을 늘립니다. */
+         #chat-input-area > #send-button {
+            height: auto; /* 부모 flex container의 cross-axis stretch에 따라 자동 높이 */
+         }
+
 
         #send-button:hover {
-            background-color: var(--vscode-button-hoverBackground);
+            background-color: var(--vscode-button-secondary-hoverBackground);
         }
 
         /* (기존 메시지 관련 스타일 유지) */
@@ -129,6 +164,7 @@
             flex-shrink: 0;
         }
 
+        /* <-- 수정: message-bubble 스타일 (flexbox 추가) --> */
         .message-bubble {
             background-color: var(--vscode-sideBar-background);
             color: var(--vscode-foreground);
@@ -140,7 +176,15 @@
             box-sizing: border-box;
             flex-shrink: 0;
             align-self: flex-start;
+             /* <-- 추가: 버블 내부 콘텐츠를 위한 flexbox 설정 --> */
+             /* Markdown 렌더링 결과 요소들 (pre, p 등)과 복사 버튼을 세로로 쌓고 정렬 */
+             display: flex; /* <-- 필수 */
+             flex-direction: column; /* <-- 필수 */
+             /* 내부 flex item의 align-self에 따라 정렬되므로 여기 align-items는 필요 없을 수 있음 */
+             /* align-items: flex-start; */
         }
+        /* <-- 수정 끝 --> */
+
 
         /* <-- 추가: thinking 버블 스타일 및 애니메이션 --> */
         .thinking-bubble {
@@ -178,10 +222,6 @@
             animation: bounce 1.4s infinite ease-in-out both;
         }
 
-        .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
-        .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
-        .thinking-dots span:nth-child(3) { animation-delay: 0s; }
-
         @keyframes bounce {
             0%, 80%, 100% { transform: scale(0); }
             40% { transform: scale(1); }
@@ -189,54 +229,97 @@
         /* <-- 추가 끝 -->
 
 
-        /* (기존 마크다운 렌더링 결과 스타일 유지) */
+        /* <-- 추가: 마크다운 렌더링 결과 스타일 --> */
+        /* 코드 블록 (<pre>) 스타일 */
         .message-bubble pre {
-            background-color: var(--vscode-textCodeBlock-background);
-            color: var(--vscode-editor-foreground);
+            /* background-color: var(--vscode-textCodeBlock-background); */
+            /* syntax highlighting 라이브러리 사용 시 .hljs 또는 해당 클래스 사용 */
+            background-color: var(--vscode-editorWidget-background);
+            color: var(--vscode-editor-foreground); /* 또는 syntax highlighting 색상 */
             padding: 10px;
             border-radius: 5px;
-            overflow-x: auto;
+            overflow-x: auto; /* 가로 스크롤 */
             margin-top: 10px;
-            margin-bottom: 10px;
-            white-space: pre-wrap;
-            word-break: break-all;
+            /* margin-bottom은 버튼이 올 위치를 고려하여 조정 */
+            margin-bottom: 0; /* 버튼을 pre 바로 뒤에 삽입하고 버튼에 마진을 줍니다 */
+            white-space: pre-wrap; /* 긴 줄 자동 줄바꿈 */
+            word-break: break-all; /* 단어가 길어도 강제 줄바꿈 */
+
+             /* flex item 설정 (버블 내에서 전체 너비 사용) */
+             width: 100%; /* <-- 필수 */
+             box-sizing: border-box;
+             flex-shrink: 0;
         }
 
-        .message-bubble code {
-            background-color: var(--vscode-textCodeBlock-background);
-            color: var(--vscode-textPreformat-foreground);
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-family: var(--vscode-editor-font-family);
-            font-size: 0.9em;
-        }
+         /* 코드 블록 내부 <code> 태그 스타일 (선택 사항) */
+         .message-bubble pre code {
+             font-family: var(--vscode-editor-font-family);
+             font-size: var(--vscode-editor-font-size);
+         }
 
-        .message-bubble a {
-            color: var(--vscode-textLink-foreground);
-            text-decoration: underline;
-        }
-        .message-bubble a:hover {
-            color: var(--vscode-textLink-activeForeground);
-        }
+        /* <-- 추가: 코드 블록 아래 복사 버튼 스타일 --> */
+         .copy-code-button {
+             /* flex item으로 설정 */
+             display: flex;
+             justify-content: center; /* 내부 텍스트 가운데 정렬 */
+             align-items: center; /* 내부 세로 가운데 정렬 */
+
+             /* <pre> 요소 바로 뒤에 삽입되므로 align-self는 필요 없음. flex-item으로 동작 */
+             /* align-self: flex-end; */
+             margin-top: 5px; /* <pre>와의 간격 */
+             margin-bottom: 10px; /* 다음 요소와의 간격 */
+             margin-left: auto; /* 컨테이너 내에서 우측 정렬 (Flexbox 사용 시 유용) */
+
+             /* 버튼 크기 및 모양 */
+             padding: 2px 8px; /* 작은 패딩 */
+             font-size: 11px; /* 작은 글씨 */
+             line-height: 1; /* 라인 높이 */
+             background-color: var(--vscode-button-secondary-background); /* 보조 버튼 색상 */
+             color: var(--vscode-button-secondary-foreground); /* 보조 버튼 텍스트 색상 */
+             border: none;
+             border-radius: 3px;
+             cursor: pointer;
+             opacity: 0; /* 기본 숨김 */
+             transition: opacity 0.2s ease-in-out; /* 부드러운 전환 */
+             z-index: 2; /* 다른 요소 위에 표시 */
+         }
+
+         /* CodePilot 메시지 컨테이너 또는 버블에 마우스 오버 시 버튼 표시 */
+         /* 버튼이 <pre>의 형제가 되므로, .codepilot-message-container:hover .copy-code-button 사용 */
+         /* .message-bubble:hover .copy-code-button 도 유지하여 버블 내 마우스 오버 감지 */
+         .codepilot-message-container:hover .copy-code-button,
+         .message-bubble:hover .copy-code-button {
+             opacity: 1;
+         }
+
+         .copy-code-button:hover {
+             background-color: var(--vscode-button-secondary-hoverBackground);
+         }
+
+         .copy-code-button:active {
+             background-color: var(--vscode-button-background);
+             color: var(--vscode-button-foreground);
+         }
+
+         .copy-code-button:focus {
+             outline: 1px solid var(--vscode-focusBorder);
+             outline-offset: -1px;
+         }
+         /* <-- 추가 끝 --> */
+
+
+        /* <-- 추가: 다른 마크다운 요소 스타일 --> */
+        /* Note: These styles were already present in your last provided chat.html */
+        /* Leaving them here for completeness of "added markdown styles" */
+        .message-bubble p { margin-top: 0; margin-bottom: 10px; }
+        .message-bubble p:last-child { margin-bottom: 0; } /* 마지막 단락 하단 마진 제거 */
 
         .message-bubble ul, .message-bubble ol {
             padding-left: 20px;
             margin-top: 10px;
             margin-bottom: 10px;
         }
-
-        .message-bubble li {
-            margin-bottom: 5px;
-        }
-
-        .message-bubble p {
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-
-        .message-bubble p:last-child {
-            margin-bottom: 0;
-        }
+        .message-bubble li { margin-bottom: 5px; word-wrap: break-word; } /* 긴 목록 항목 줄바꿈 */
 
         .message-bubble h1, .message-bubble h2, .message-bubble h3, .message-bubble h4, .message-bubble h5, .message-bubble h6 {
             margin-top: 15px;
@@ -251,10 +334,12 @@
         .message-bubble h5 { font-size: 1.1em; }
         .message-bubble h6 { font-size: 1em; }
 
-        .message-bubble table {
+         .message-bubble table {
             border-collapse: collapse;
             margin: 10px 0;
             width: 100%;
+            overflow-x: auto; /* 테이블이 너무 넓을 경우 스크롤 */
+            display: block; /* overflow 적용을 위해 block 요소로 */
         }
         .message-bubble th, .message-bubble td {
             border: 1px solid var(--vscode-panel-border);
@@ -266,20 +351,38 @@
             font-weight: bold;
         }
 
+        .message-bubble a {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: underline;
+        }
+        .message-bubble a:hover {
+            color: var(--vscode-textLink-activeForeground);
+        }
+        /* <-- 추가 끝 --> */
+
+
     </style>
 </head>
 <body>
+    <!-- 아이콘 헤더 (이전 단계에서 추가된 경우 여기에 있어야 함) -->
+    <!-- <div class="chat-header-icons">...</div> -->
+
     <div id="chat-container">
         <div id="chat-messages"></div>
     </div>
+
     <div id="chat-input-area">
+        <!-- rows="4"는 초기 높이만 결정합니다. 자동 조절은 JS가 담당합니다. -->
         <textarea id="chat-input" rows="4" placeholder="메시지를 입력하세요..."></textarea>
         <button id="send-button">Send</button>
     </div>
 
     <script>
         console.log("✅ chat.html loaded");
+        // acquireVsCodeApi는 VS Code Webview 환경에서 전역으로 제공됩니다.
+        // webpack 설정에 따라 chat.js에 포함되거나 전역으로 사용됩니다.
     </script>
     <script src="{{scriptUri}}"></script>
+    <script src="{{codeCopyScriptUri}}"></script>
 </body>
 </html>

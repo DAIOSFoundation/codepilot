@@ -1,5 +1,3 @@
-// --- START OF FILE extension.ts ---
-
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -39,7 +37,7 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
         this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,
-             // localResourceRoots에 dist/webview도 추가 (chat.js 로드용)
+             // localResourceRoots에 dist/webview도 추가 (chat.js 및 codeCopy.js 로드용)
             localResourceRoots: [ this._extensionUri, vscode.Uri.joinPath(this._extensionUri, 'webview'), vscode.Uri.joinPath(this._extensionUri, 'media'), vscode.Uri.joinPath(this._extensionUri, 'dist', 'webview') ]
         };
 
@@ -87,7 +85,9 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
                          catch (error: any) { console.error("Gemini API Call Failed:", error); geminiResponse = `Error: Failed to get response from AI. ${error.message || ''}`; }
                          finally {
                              // <-- 추가: Gemini API 호출 완료 (성공/실패) 후에 로딩 표시 제거 메시지 전송 -->
-                             this._view?.webview.postMessage({ command: 'hideLoading' });
+                             // 응답과 함께 receiveMessage를 보내거나, 별도로 hideLoading을 보낼 수 있습니다.
+                             // 여기서는 receiveMessage 처리 시 Webview에서 hideLoading을 호출하도록 구현했습니다.
+                             // this._view?.webview.postMessage({ command: 'hideLoading' });
                              // <-- 추가 끝 -->
                          }
 
@@ -197,24 +197,38 @@ function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, 
             .replace('{{licenseIconUri}}', licenseIconUri.toString())
             .replace('{{customizingIconUri}}', customizingIconUri.toString());
 
-        // chat.js 파일의 Webview URI 생성 및 치환
+        // chat.js 및 codeCopy.js 파일의 Webview URI 생성 및 치환
         if (htmlFileName === 'chat') {
-            // 3. scriptPathInExtension 변수에 실제 번들 파일 경로가 올바르게 구성되는지 확인
             // webpack.config.js의 output 설정 (path, filename)과 일치해야 함
-            const scriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'chat.js');
-            console.log(`[URI Debug] Script path in extension (vscode.Uri): ${scriptPathInExtension.toString()}`);
-            console.log(`[URI Debug] Script path in extension (fsPath): ${scriptPathInExtension.fsPath}`);
+            const chatScriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'chat.js');
+            const codeCopyScriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'codeCopy.js'); // <-- codeCopy.js 경로
 
-            const scriptUri = webview.asWebviewUri(scriptPathInExtension);
-            console.log(`[URI Debug] Generated script URI (webview.asWebviewUri): ${scriptUri.toString()}`);
+            const chatScriptUri = webview.asWebviewUri(chatScriptPathInExtension);
+            const codeCopyScriptUri = webview.asWebviewUri(codeCopyScriptPathInExtension); // <-- codeCopy.js URI
 
-            const placeholder = '{{scriptUri}}';
-            if (htmlContent.includes(placeholder)) {
-                htmlContent = htmlContent.replace(placeholder, scriptUri.toString());
-                console.log(`[URI Debug] Successfully replaced "${placeholder}" with "${scriptUri.toString()}".`);
+            console.log(`[URI Debug] Generated chat script URI: ${chatScriptUri.toString()}`);
+            console.log(`[URI Debug] Generated codeCopy script URI: ${codeCopyScriptUri.toString()}`);
+
+
+            // {{scriptUri}} 치환
+            const chatPlaceholder = '{{scriptUri}}';
+            if (htmlContent.includes(chatPlaceholder)) {
+                htmlContent = htmlContent.replace(chatPlaceholder, chatScriptUri.toString());
+                console.log(`[URI Debug] Successfully replaced "${chatPlaceholder}".`);
             } else {
-                console.warn(`[URI Debug] Placeholder "${placeholder}" not found in ${htmlFileName}.html content.`);
+                console.warn(`[URI Debug] Placeholder "${chatPlaceholder}" not found in ${htmlFileName}.html content.`);
             }
+
+            // <-- 추가: {{codeCopyScriptUri}} 치환 -->
+            const codeCopyPlaceholder = '{{codeCopyScriptUri}}';
+            if (htmlContent.includes(codeCopyPlaceholder)) {
+               htmlContent = htmlContent.replace(codeCopyPlaceholder, codeCopyScriptUri.toString());
+               console.log(`[URI Debug] Successfully replaced "${codeCopyPlaceholder}".`);
+            } else {
+               console.warn(`[URI Debug] Placeholder "${codeCopyPlaceholder}" not found in ${htmlFileName}.html content.`);
+            }
+            // <-- 추가 끝 -->
+
 
             console.log('[URI Debug] Checking localResourceRoots set for this webview:');
             const roots = webview.options.localResourceRoots;
@@ -255,7 +269,7 @@ function createWebviewPanelWithHtml(
          `codepilot.${panelIdSuffix.toLowerCase()}`, panelTitle, viewColumn,
          {
              enableScripts: true,
-             // localResourceRoots에 dist/webview도 추가 (chat.js 로드용)
+             // localResourceRoots에 dist/webview도 추가 (chat.js 및 codeCopy.js 로드용)
              localResourceRoots: [ extensionUri, vscode.Uri.joinPath(extensionUri, 'webview'), vscode.Uri.joinPath(extensionUri, 'media'), vscode.Uri.joinPath(extensionUri, 'dist', 'webview') ]
          }
      );
