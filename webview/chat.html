@@ -92,8 +92,7 @@
             max-height: 150px; /* 최대 높이 제한 */
             overflow-y: auto; /* 넘치면 스크롤 */
             box-sizing: border-box;
-             /* 자동조절을 위해 필요한 속성 (스크롤바 숨김) */
-            overflow: hidden; /* 기본 스크롤바 숨김 */
+            overflow-y: visible;
         }
         /* <-- 수정 끝 --> */
 
@@ -110,8 +109,7 @@
             border: none;
             cursor: pointer;
             border-radius: 5px;
-             /* 입력창의 min-height를 기준으로 높이 계산 (원래 4줄 계산 로직 - JS 자동조절 시 필요 없음) */
-            /* height: calc(1.5em * 4 + 16px + 2px); */ /* JS 자동조절 시 필요 없음 */
+            height: calc(1.5em * 4 + 16px + 2px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -119,14 +117,6 @@
             user-select: none;
             flex-shrink: 0;
         }
-        /* <-- 수정 끝 -->
-
-         /* 입력창 높이가 늘어나면 버튼 높이도 따라가도록 (자동 높이) */
-         /* chat-input-area가 flex 컨테이너일 때 button의 height: auto가 flex item을 늘립니다. */
-         #chat-input-area > #send-button {
-            height: auto; /* 부모 flex container의 cross-axis stretch에 따라 자동 높이 */
-         }
-
 
         #send-button:hover {
             background-color: var(--vscode-button-secondary-hoverBackground);
