@@ -1,113 +1,285 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CodePilot Chat</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      color: var(--vscode-foreground);
-      background-color: var(--vscode-editor-background);
-      font-family: var(--vscode-font-family);
-      font-size: var(--vscode-font-size);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CodePilot Chat</title>
+    <style>
+        /* (기존 스타일 유지) */
+        body {
+            margin: 0;
+            padding: 0;
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-    #chat-container {
-      padding: 10px 10px 130px; /* 하단 입력창 충분한 공간 확보 */
-      overflow-y: auto;
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
-      height: 100%;
-    }
+        #chat-container {
+            padding: 10px 10px 130px; /* 하단 입력창 충분한 공간 확보 */
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            height: 100%;
+        }
 
-    #chat-messages {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      align-items: flex-start;
-    }
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            align-items: flex-start;
+        }
 
-    #chat-input-area {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      max-width: 100%;
-      display: flex;
-      align-items: flex-start; /* 위쪽 정렬 */
-      padding: 10px;
-      border-top: 1px solid var(--vscode-panel-border);
-      background-color: var(--vscode-editor-background);
-      box-sizing: border-box;
-      z-index: 10;
-    }
+        #chat-input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            max-width: 100%;
+            display: flex;
+            align-items: flex-start; /* 위쪽 정렬 */
+            padding: 10px;
+            border-top: 1px solid var(--vscode-panel-border);
+            background-color: var(--vscode-editor-background);
+            box-sizing: border-box;
+            z-index: 10;
+        }
 
-    #chat-input {
-      flex-grow: 1;
-      padding: 8px;
-      border: 1px solid var(--vscode-input-border);
-      background-color: var(--vscode-input-background);
-      color: var(--vscode-input-foreground);
-      margin-right: 8px;
-      outline: none;
-      resize: vertical; /* 높이 조절 가능 */
-      font-family: var(--vscode-font-family);
-      font-size: var(--vscode-font-size);
-      line-height: var(--vscode-editor-lineHeight);
-      min-height: calc(1.5em * 4 + 16px); /* 4줄 최소 높이 + padding */
-      max-height: 150px; /* 최대 높이 제한 */
-      overflow-y: auto; /* 넘치면 스크롤 */
-      box-sizing: border-box;
-    }
+        #chat-input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            margin-right: 8px;
+            outline: none;
+            resize: vertical; /* 높이 조절 가능 */
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            line-height: 1.5em; /* line-height 명시 */
+            min-height: calc(1.5em * 4 + 16px + 2px); /* 4줄 최소 높이 + padding + border */
+            max-height: 150px; /* 최대 높이 제한 */
+            overflow-y: auto; /* 넘치면 스크롤 */
+            box-sizing: border-box;
+        }
 
-    #chat-input:focus {
-      border-color: var(--vscode-focusBorder);
-    }
+        #chat-input:focus {
+            border-color: var(--vscode-focusBorder);
+        }
 
-    #send-button {
-      padding: 0 15px;
-      background-color: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-      height: calc(1.5em * 4 + 16px); /* 입력창과 동일 높이 */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-sizing: border-box;
-      user-select: none;
-      flex-shrink: 0;
-    }
+        #send-button {
+            padding: 0 15px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+             /* 입력창의 min-height를 기준으로 높이 계산 */
+            height: calc(1.5em * 4 + 16px + 2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            user-select: none;
+            flex-shrink: 0;
+        }
 
-    #send-button:hover {
-      background-color: var(--vscode-button-hoverBackground);
-    }
-  </style>
+        #send-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        /* (기존 메시지 관련 스타일 유지) */
+        .user-plain-message {
+            margin-bottom: 0;
+            word-wrap: break-word;
+            align-self: flex-start;
+            max-width: 100%;
+            color: var(--vscode-descriptionForeground);
+            padding: 0 10px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .message-separator {
+            width: 100%;
+            border: none;
+            border-top: 1px solid var(--vscode-panel-border);
+            margin-top: 5px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .codepilot-message-container {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            max-width: 100%;
+            width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .message-bubble {
+            background-color: var(--vscode-sideBar-background);
+            color: var(--vscode-foreground);
+            padding: 10px 15px;
+            border-radius: 10px;
+            word-wrap: break-word;
+            max-width: 100%;
+            width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+
+        /* <-- 추가: thinking 버블 스타일 및 애니메이션 --> */
+        .thinking-bubble {
+            background-color: var(--vscode-sideBar-background); /* CodePilot 버블과 동일 */
+            color: var(--vscode-foreground);
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px; /* 메시지 간 간격 */
+            align-self: flex-start;
+            display: inline-block; /* 내용에 맞게 너비 조절 */
+            max-width: 50%; /* 너무 길어지지 않도록 제한 */
+             min-width: 60px; /* 최소 너비 */
+            /* 애니메이션 */
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* thinking dots (선택 사항, CSS로 점 3개 애니메이션 구현) */
+        .thinking-dots {
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .thinking-dots span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin: 0 2px;
+            background-color: var(--vscode-foreground);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        /* <-- 추가 끝 -->
+
+
+        /* (기존 마크다운 렌더링 결과 스타일 유지) */
+        .message-bubble pre {
+            background-color: var(--vscode-textCodeBlock-background);
+            color: var(--vscode-editor-foreground);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .message-bubble code {
+            background-color: var(--vscode-textCodeBlock-background);
+            color: var(--vscode-textPreformat-foreground);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: var(--vscode-editor-font-family);
+            font-size: 0.9em;
+        }
+
+        .message-bubble a {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: underline;
+        }
+        .message-bubble a:hover {
+            color: var(--vscode-textLink-activeForeground);
+        }
+
+        .message-bubble ul, .message-bubble ol {
+            padding-left: 20px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .message-bubble li {
+            margin-bottom: 5px;
+        }
+
+        .message-bubble p {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .message-bubble p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-bubble h1, .message-bubble h2, .message-bubble h3, .message-bubble h4, .message-bubble h5, .message-bubble h6 {
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: var(--vscode-textLink-foreground);
+        }
+        .message-bubble h1 { font-size: 1.5em; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 5px; }
+        .message-bubble h2 { font-size: 1.4em; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 4px; }
+        .message-bubble h3 { font-size: 1.3em; }
+        .message-bubble h4 { font-size: 1.2em; }
+        .message-bubble h5 { font-size: 1.1em; }
+        .message-bubble h6 { font-size: 1em; }
+
+        .message-bubble table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            width: 100%;
+        }
+        .message-bubble th, .message-bubble td {
+            border: 1px solid var(--vscode-panel-border);
+            padding: 8px;
+            text-align: left;
+        }
+        .message-bubble th {
+            background-color: var(--vscode-sideBar-background);
+            font-weight: bold;
+        }
+
+    </style>
 </head>
 <body>
-  <div id="chat-container">
-    <div id="chat-messages"></div>
-  </div>
-  <div id="chat-input-area">
-    <textarea id="chat-input" rows="4" placeholder="메시지를 입력하세요..."></textarea>
-    <button id="send-button">Send</button>
-  </div>
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+    </div>
+    <div id="chat-input-area">
+        <textarea id="chat-input" rows="4" placeholder="메시지를 입력하세요..."></textarea>
+        <button id="send-button">Send</button>
+    </div>
 
-  <script>
-    console.log("✅ chat.html loaded");
-  </script>
-  <script src="{{scriptUri}}"></script>
+    <script>
+        console.log("✅ chat.html loaded");
+    </script>
+    <script src="{{scriptUri}}"></script>
 </body>
 </html>

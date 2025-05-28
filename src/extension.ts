@@ -62,33 +62,33 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
 
                     // 터미널 명령 우선 처리
                     if (userText === '앱 실행') {
-                        console.log('Executing npm start...');
-                        const terminal = getCodePilotTerminal();
-                        terminal.show();
-                        terminal.sendText('npm start', true);
-                        this._view?.webview.postMessage({ command: 'receiveMessage', text: "Running `npm start` in terminal...", sender: 'CodePilot' });
+                         const terminal = getCodePilotTerminal();
+                         terminal.show();
+                         terminal.sendText('npm start', true);
+                         this._view?.webview.postMessage({ command: 'receiveMessage', text: "Running `npm start` in terminal...", sender: 'CodePilot' });
 
                     } else if (userText === '깃 푸쉬') {
-                        console.log('Executing git push...');
-                        const terminal = getCodePilotTerminal();
-                        terminal.show();
-                        terminal.sendText('git add -A', true);
-                        terminal.sendText('git commit -m "n/a"', true);
-                        terminal.sendText('git push', true);
+                         const terminal = getCodePilotTerminal();
+                         terminal.show();
+                         terminal.sendText('git add -A', true);
+                         terminal.sendText('git commit -m "n/a"', true);
+                         terminal.sendText('git push', true);
                          this._view?.webview.postMessage({ command: 'receiveMessage', text: "Executing Git commands in terminal...", sender: 'CodePilot' });
 
                     } else {
+                         // <-- 추가: Gemini API 호출 전에 로딩 표시 메시지 전송 -->
+                         this._view?.webview.postMessage({ command: 'showLoading' });
+                         // <-- 추가 끝 -->
+
                          // Gemini API 호출
                          console.log('Sending message to Gemini...');
-                         // TODO: 로딩 표시 시작 메시지 보내기
-                         // this._view?.webview.postMessage({ command: 'showLoading' });
-
                          let geminiResponse = "Error sending message to CodePilot AI.";
                          try { geminiResponse = await geminiApi.sendMessage(userText); }
                          catch (error: any) { console.error("Gemini API Call Failed:", error); geminiResponse = `Error: Failed to get response from AI. ${error.message || ''}`; }
                          finally {
-                             // TODO: 로딩 표시 종료 메시지 보내기
-                             // this._view?.webview.postMessage({ command: 'hideLoading' });
+                             // <-- 추가: Gemini API 호출 완료 (성공/실패) 후에 로딩 표시 제거 메시지 전송 -->
+                             this._view?.webview.postMessage({ command: 'hideLoading' });
+                             // <-- 추가 끝 -->
                          }
 
                          // CodePilot 응답을 UI에 표시 (Gemini 응답 사용)
@@ -183,13 +183,11 @@ function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, 
 
     try {
         // 1. chat.html 파일을 제대로 읽어오는지 확인
-        // fs.readFileSync는 동기 함수입니다. 오류가 발생하면 catch 블록으로 이동합니다.
         htmlContent = fs.readFileSync(htmlFilePath.fsPath, 'utf8');
         console.log(`Successfully read ${htmlFileName}.html. Content length: ${htmlContent.length}`);
 
 
         // 아이콘 경로 치환 (필요하다면)
-        // 이 부분은 현재 디버깅의 주 대상이 아니므로 그대로 유지합니다.
         const settingsIconUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'settings-gear.svg'));
         const licenseIconUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'book.svg'));
         const customizingIconUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'paintbrush.svg'));
@@ -199,62 +197,46 @@ function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, 
             .replace('{{licenseIconUri}}', licenseIconUri.toString())
             .replace('{{customizingIconUri}}', customizingIconUri.toString());
 
-
-        // 2. chat.js 파일의 Webview URI 생성 및 치환 로직 확인 (chat.html에만 해당)
+        // chat.js 파일의 Webview URI 생성 및 치환
         if (htmlFileName === 'chat') {
             // 3. scriptPathInExtension 변수에 실제 번들 파일 경로가 올바르게 구성되는지 확인
             // webpack.config.js의 output 설정 (path, filename)과 일치해야 함
             const scriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'chat.js');
-             console.log(`[URI Debug] Script path in extension (vscode.Uri): ${scriptPathInExtension.toString()}`); // vscode.Uri 문자열 형태 로그
-             console.log(`[URI Debug] Script path in extension (fsPath): ${scriptPathInExtension.fsPath}`); // 파일 시스템 경로 형태 로그
+            console.log(`[URI Debug] Script path in extension (vscode.Uri): ${scriptPathInExtension.toString()}`);
+            console.log(`[URI Debug] Script path in extension (fsPath): ${scriptPathInExtension.fsPath}`);
 
-
-            // 4. asWebviewUri 함수가 유효한 URI를 생성하는지 확인
             const scriptUri = webview.asWebviewUri(scriptPathInExtension);
-             console.log(`[URI Debug] Generated script URI (webview.asWebviewUri): ${scriptUri.toString()}`); // 최종 Webview URI 형태 로그
+            console.log(`[URI Debug] Generated script URI (webview.asWebviewUri): ${scriptUri.toString()}`);
 
-
-            // 5. replace 함수가 {{scriptUri}} 플레이스홀더를 제대로 치환하는지 확인
             const placeholder = '{{scriptUri}}';
-             if (htmlContent.includes(placeholder)) {
+            if (htmlContent.includes(placeholder)) {
                 htmlContent = htmlContent.replace(placeholder, scriptUri.toString());
-                 console.log(`[URI Debug] Successfully replaced "${placeholder}" with "${scriptUri.toString()}".`); // 치환 성공 로그
-             } else {
-                 // 만약 플레이스홀더가 없다면 경고를 출력
-                 console.warn(`[URI Debug] Placeholder "${placeholder}" not found in ${htmlFileName}.html content.`);
-             }
-        }
-
-        // <-- 추가: localResourceRoots 확인 로직 -->
-        // WebviewViewOptions 또는 WebviewPanelOptions에 설정된 localResourceRoots를 가져와 로그 출력
-        // 이 정보는 webviewView.webview.options 또는 panel.webview.options 에서 가져올 수 있습니다.
-        // getHtmlContentWithUris 함수는 webview 인스턴스만 받으므로, webview.options를 통해 접근합니다.
-        // localResourceRoots는 resolveWebviewView 또는 createWebviewPanelWithHtml에서 설정됩니다.
-        // 따라서 이 로그는 해당 설정이 완료된 후에 출력될 때 가장 유용합니다.
-        // 현재 이 함수는 HTML을 생성할 때 호출되므로, localResourceRoots 설정이 이미 완료되었다고 가정합니다.
-        console.log('[URI Debug] Checking localResourceRoots set for this webview:');
-        const roots = webview.options.localResourceRoots;
-        if (roots && Array.isArray(roots)) {
-            for (const root of roots) {
-                 if (root instanceof vscode.Uri) {
-                    console.log(`- Root: ${root.toString()} (fsPath: ${root.fsPath})`);
-                 } else {
-                    console.log(`- Root: Invalid URI type`);
-                 }
+                console.log(`[URI Debug] Successfully replaced "${placeholder}" with "${scriptUri.toString()}".`);
+            } else {
+                console.warn(`[URI Debug] Placeholder "${placeholder}" not found in ${htmlFileName}.html content.`);
             }
-        } else {
-            console.log('- No localResourceRoots set.');
-        }
-        // <-- 추가 끝 -->
 
+            console.log('[URI Debug] Checking localResourceRoots set for this webview:');
+            const roots = webview.options.localResourceRoots;
+            if (roots && Array.isArray(roots)) {
+                for (const root of roots) {
+                     if (root instanceof vscode.Uri) {
+                        console.log(`- Root: ${root.toString()} (fsPath: ${root.fsPath})`);
+                     } else {
+                        console.log(`- Root: Invalid URI type`);
+                     }
+                }
+            } else {
+                console.log('- No localResourceRoots set.');
+            }
+        }
 
     } catch (error: unknown) {
-        // 파일 읽기 오류 또는 URI 처리 오류 발생 시
         console.error(`[URI Debug] Error during getHtmlContentWithUris for ${htmlFileName}.html:`, error);
         const errorMessage = (typeof error === 'object' && error !== null && 'message' in error)
             ? (error as { message: string }).message
             : String(error);
-        htmlContent = `<h1>Error loading ${htmlFileName} view</h1><p>${errorMessage}</p><p>Check console for details.</p>`; // 사용자에게 오류 메시지 표시
+        htmlContent = `<h1>Error loading ${htmlFileName} view</h1><p>${errorMessage}</p><p>Check console for details.</p>`;
     }
     return htmlContent;
 }
@@ -273,10 +255,8 @@ function createWebviewPanelWithHtml(
          `codepilot.${panelIdSuffix.toLowerCase()}`, panelTitle, viewColumn,
          {
              enableScripts: true,
-             // <-- 필수 확인: localResourceRoots에 dist/webview 포함 -->
              // localResourceRoots에 dist/webview도 추가 (chat.js 로드용)
              localResourceRoots: [ extensionUri, vscode.Uri.joinPath(extensionUri, 'webview'), vscode.Uri.joinPath(extensionUri, 'media'), vscode.Uri.joinPath(extensionUri, 'dist', 'webview') ]
-             // <-- 필수 확인 끝 -->
          }
      );
 
@@ -348,7 +328,6 @@ function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTit
 
                      // 터미널 명령 우선 처리
                      if (userText === '앱 실행') {
-                         console.log('Executing npm start...');
                          const terminal = getCodePilotTerminal();
                          terminal.show();
                          terminal.sendText('npm start', true);
@@ -356,7 +335,6 @@ function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTit
                           panel.webview.postMessage({ command: 'receiveMessage', text: "Running `npm start` in terminal...", sender: 'CodePilot' });
 
                      } else if (userText === '깃 푸쉬') {
-                         console.log('Executing git push...');
                          const terminal = getCodePilotTerminal();
                          terminal.show();
                          terminal.sendText('git add -A', true);
@@ -366,11 +344,12 @@ function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTit
                           panel.webview.postMessage({ command: 'receiveMessage', text: "Executing Git commands in terminal...", sender: 'CodePilot' });
 
                      } else {
+                          // <-- 추가: Gemini API 호출 전에 로딩 표시 메시지 전송 -->
+                          panel.webview.postMessage({ command: 'showLoading' });
+                          // <-- 추가 끝 -->
+
                           // Gemini API 호출
                           console.log('Sending message to Gemini...');
-                          // TODO: 로딩 표시 시작 메시지 보내기
-                          // panel.webview.postMessage({ command: 'showLoading' });
-
                           let geminiResponse = "Error sending message to CodePilot AI.";
                           try {
                               geminiResponse = await geminiApi.sendMessage(userText);
@@ -378,8 +357,9 @@ function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTit
                                console.error("Gemini API Call Failed:", error);
                                geminiResponse = `Error: Failed to get response from AI. ${error.message || ''}`;
                           } finally {
-                              // TODO: 로딩 표시 종료 메시지 보내기
-                              // panel.webview.postMessage({ command: 'hideLoading' });
+                              // <-- 추가: Gemini API 호출 완료 (성공/실패) 후에 로딩 표시 제거 메시지 전송 -->
+                              panel.webview.postMessage({ command: 'hideLoading' });
+                              // <-- 추가 끝 -->
                           }
 
 
