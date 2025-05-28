@@ -1,8 +1,4 @@
-// --- START OF FILE webview/chat.js ---
-
-// dompurify 임포트
 import DOMPurify from 'dompurify';
-console.log("✅ chat.js loaded");
 
 // acquireVsCodeApi는 웹뷰 환경에서 전역으로 사용 가능합니다.
 const vscode = acquireVsCodeApi();
@@ -42,7 +38,6 @@ function handleSendMessage() {
         // 확장 프로그램에서 로딩 상태를 관리하므로, 여기서는 확장으로 로딩 표시를 요청하는 메시지를 보낼 필요 없습니다.
         // 확장 프로그램이 Gemini 호출 전에 showLoading 메시지를 Webview로 보낼 것입니다.
         // showLoading(); // 이 함수는 확장으로부터 메시지를 받아 호출됩니다.
-        // <-- 추가 끝 -->
 
 
         vscode.postMessage({
@@ -133,17 +128,13 @@ function showLoading() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
     thinkingBubbleElement = messageContainer; // 엘리먼트 참조 저장
 }
-// <-- 추가 끝 -->
-
-// <-- 추가: 로딩 버블 제거 함수 -->
+// <-- 로딩 버블 제거 함수 -->
 function hideLoading() {
     if (thinkingBubbleElement && chatMessages) {
         chatMessages.removeChild(thinkingBubbleElement);
         thinkingBubbleElement = null; // 참조 초기화
     }
 }
-// <-- 추가 끝 -->
-
 
 // 마크다운 렌더링 함수 (자체 구현)
 function renderBasicMarkdown(markdownText) {
