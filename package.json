@@ -3,7 +3,7 @@
   "displayName": "codepilot",
   "description": "Coding assistant with customizable LLM",
   "version": "0.5.0",
-  "publisher": "tony@banya.ai",
+  "publisher": "banya.ai",
   "engines": {
     "vscode": "^1.85.0"
   },
