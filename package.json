@@ -2,15 +2,21 @@
   "name": "codepilot",
   "displayName": "codepilot",
   "description": "Coding assistant with customizable LLM",
-  "version": "0.0.1",
-  "publisher": "tonymustbegreat@gmail.com",
+  "version": "0.5.0",
+  "publisher": "tony@banya.ai",
   "engines": {
     "vscode": "^1.85.0"
   },
+  "repository": {
+  "type": "git",
+  "url": "https://github.com/DAIOSFoundation/codepilot"
+},
   "categories": [
-    "Other",
+    "LLM",
     "AI",
-    "Chat"
+    "Chat",
+    "Code Editor",
+    "VSCode Plugin"
   ],
   "activationEvents": [
     "onView:codepilot.chatView",
