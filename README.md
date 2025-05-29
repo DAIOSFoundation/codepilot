@@ -1,20 +1,25 @@
 # codepilot README
 
-This is the README for your extension "codepilot". After writing up a brief description, we recommend including the following sections.
+VSCode base code assistant plugin with LLM and LM support.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+<img src="https://drive.google.com/uc?export=view&id=1qV7VZvm806HlfrpBSi7BdQxyBlBKnNt7" width="700" height="500"/>
 
-For example if there is an image subfolder under your extension project workspace:
+> TBD...
 
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- No internet installation package support
+- Custom LLM support
+- User define code generation support
+- Natural language commands support
+- Code block indicator in response
+- Project scope codes watching and auto debug by LLM
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- nvm 0.39.1
+- node v21.7.1
+- npm install
 
 ## Extension Settings
 
@@ -29,23 +34,22 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+Not yet
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.5b
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+- Settings, License, Custom menu
+- Gemini API registration
+- CHAT panel
+  - Webview implementation with javascript bundle(Look over webpack configuration webpack.config.js)
+  - Gemini response
+  - Loading animation while LLM responses
+  - Multiline message input with scroll
+  - Markdown read and view wigh Gemini response
+  - Code block indicator
+  - Code block copy with cliipboard
 
 ---
 
