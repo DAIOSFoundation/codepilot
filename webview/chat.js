@@ -1,42 +1,27 @@
-// --- START OF FILE chat.js ---
-
 import DOMPurify from 'dompurify';
 import { addCopyButtonsToCodeBlocks } from './codeCopy.js';
-import markdownit from 'markdown-it'; // <-- 추가: markdown-it 임포트
+import markdownit from 'markdown-it';
 
 
 console.log("✅ chat.js loaded");
 
-// acquireVsCodeApi는 웹뷰 환경에서 전역으로 사용 가능합니다.
 const vscode = acquireVsCodeApi();
 
 
-// DOM 요소 참조
 const sendButton = document.getElementById('send-button');
 const chatInput = document.getElementById('chat-input');
-const chatMessages = document.getElementById('chat-messages');
+const chatMessages = document.getElementById('chat-messages'); // 스크롤 컨테이너
 
-// 로딩 버블 엘리먼트를 저장할 변수
+
 let thinkingBubbleElement = null;
 
-// <-- 추가: Markdown 파서 인스턴스 생성 -->
 const md = markdownit({
-    html: false, // HTML 삽입 방지 (보안)
-    linkify: true, // 링크 자동 인식
-    typographer: true, // 타이포그래피 개선
-    // highlight: function (str, lang) { // Syntax highlighting (선택 사항, 필요 시 highlight.js 등 추가)
-    //    if (lang && window.hljs && hljs.getLanguage(lang)) {
-    //        try {
-    //            return hljs.highlight(str, { language: lang }).value;
-    //        } catch (__) {}
-    //    }
-    //    return '';
-    // }
+    html: false,
+    linkify: true,
+    typographer: true,
 });
-// <-- 추가 끝 -->
 
 
-// 메시지 전송 로직 (기존 코드 유지 - 절대 수정 금지 영역)
 if (sendButton && chatInput) {
     sendButton.addEventListener('click', handleSendMessage);
 
@@ -52,13 +37,12 @@ if (sendButton && chatInput) {
     chatInput.addEventListener('input', autoResizeTextarea);
 }
 
-// handleSendMessage 함수
 function handleSendMessage() {
     if (!chatInput) return;
     const text = chatInput.value.trim();
     if (text) {
         window.displayUserMessage(text);
-        window.showLoading();
+        window.showLoading(); // 로딩 애니메이션 표시
 
         vscode.postMessage({
             command: 'sendMessage',
@@ -72,7 +56,6 @@ function handleSendMessage() {
     }
 }
 
-// Textarea 높이 자동 조절 함수
 function autoResizeTextarea() {
     if (!chatInput) return;
     chatInput.style.height = 'auto';
@@ -83,14 +66,12 @@ function autoResizeTextarea() {
     chatInput.style.height = adjustedHeight + 'px';
 }
 
-// DOM 로드 후 초기 높이 설정 (Textarea 자동 조절용)
 document.addEventListener('DOMContentLoaded', () => {
     if (chatInput) {
         autoResizeTextarea();
     }
 });
 
-// 확장 프로그램으로부터 메시지 받는 리스너
 window.addEventListener('message', event => {
     const message = event.data;
 
@@ -141,10 +122,16 @@ function displayUserMessage(text) {
 
     chatMessages.appendChild(userMessageElement);
     chatMessages.appendChild(separatorElement);
-    // 스크롤을 맨 아래로 이동
-    setTimeout(() => { // 스크롤바가 생기거나 내용이 추가되는 DOM 업데이트 후 실행되도록 지연
-        if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-    }, 0);
+    // <-- 수정: 메시지 추가 후 가장 마지막 요소로 스크롤 -->
+    requestAnimationFrame(() => { // DOM 렌더링 직전에 스크롤 요청
+        const lastChild = chatMessages.lastElementChild;
+        if (lastChild) {
+            lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' }); // 부드럽게 맨 아래로 스크롤
+        } else {
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Fallback
+        }
+    });
+    // <-- 수정 끝 -->
 }
 
 // 로딩 버블 생성 함수
@@ -157,11 +144,21 @@ function showLoading() {
     messageContainer.innerHTML = 'thinking <span class="thinking-dots"><span></span><span></span><span></span></span>';
 
     chatMessages.appendChild(messageContainer);
-    // 스크롤을 맨 아래로 이동
-    setTimeout(() => { // 스크롤바가 생기거나 내용이 추가되는 DOM 업데이트 후 실행되도록 지연
-        if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-    }, 0);
-    thinkingBubbleElement = messageContainer;
+    thinkingBubbleElement = messageContainer; // 엘리먼트 참조 저장
+
+    // <-- 수정: showLoading에서는 스크롤 로직 제거 -->
+    // thinking 애니메이션이 뷰포트에 보이도록 스크롤하는 로직은 제거합니다.
+    // 최종 메시지 출력이 끝나고 스크롤하는 로직으로 대체됩니다.
+    /*
+    requestAnimationFrame(() => {
+        if (thinkingBubbleElement) {
+            thinkingBubbleElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        } else if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    });
+    */
+    // <-- 수정 끝 -->
 }
 
 // 로딩 버블 제거 함수
@@ -172,8 +169,7 @@ function hideLoading() {
     }
 }
 
-// <-- 수정: CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시 -->
-// 이제 markdown-it을 사용하여 일반 텍스트 부분을 렌더링합니다.
+// CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시
 function displayCodePilotMessage(markdownText) {
     if (!chatMessages) return;
 
@@ -184,7 +180,6 @@ function displayCodePilotMessage(markdownText) {
     bubbleElement.classList.add('message-bubble');
 
     // --- Markdown 텍스트를 코드 블록 기준으로 분할 및 조합 ---
-    // 코드 블록 정규식 (```언어명\n ... ```)
     const codeBlockRegex = /```(\S*?)\n([\s\S]*?)```/g;
     let lastIndex = 0;
     const tempHtmlElements = document.createElement('div'); // 임시 컨테이너
@@ -198,13 +193,10 @@ function displayCodePilotMessage(markdownText) {
         const codeContent = match[2]; // 코드 내용
 
         // 1. 코드 블록 이전 텍스트 처리 (Markdown 포맷 적용)
-        // markdown-it을 사용하여 일반 텍스트 부분을 렌더링
-        const processedPrecedingHtml = md.render(precedingText); // <-- 수정: md.render() 사용
+        const processedPrecedingHtml = md.render(precedingText); // markdown-it 사용
         tempHtmlElements.innerHTML += DOMPurify.sanitize(processedPrecedingHtml);
 
         // 2. 코드 블록 처리 (Markdown 포맷 미적용, 원본 텍스트 그대로)
-        // <pre> 태그로 감싸되, 내용은 DOMPurify.sanitize의 RETURN_TYPE: 'text'로 순수 텍스트화
-        // Syntax Highlighting을 원치 않으므로 <code> 태그에 language- 클래스를 추가하지 않습니다.
         const preElement = document.createElement('pre');
         const codeElement = document.createElement('code');
         codeElement.textContent = DOMPurify.sanitize(codeContent, { RETURN_TYPE: 'text' });
@@ -219,7 +211,7 @@ function displayCodePilotMessage(markdownText) {
 
     // 3. 마지막 코드 블록 이후의 텍스트 처리 (Markdown 포맷 적용)
     const remainingText = markdownText.substring(lastIndex);
-    const processedRemainingHtml = md.render(remainingText); // <-- 수정: md.render() 사용
+    const processedRemainingHtml = md.render(remainingText); // markdown-it 사용
     tempHtmlElements.innerHTML += DOMPurify.sanitize(processedRemainingHtml);
 
     // tempHtmlElements의 모든 자식 노드를 bubbleElement로 옮깁니다.
@@ -235,24 +227,25 @@ function displayCodePilotMessage(markdownText) {
 
     chatMessages.appendChild(messageContainer);
 
-    // 스크롤을 맨 아래로 이동
-    setTimeout(() => { // 스크롤바가 생기거나 내용이 추가되는 DOM 업데이트 후 실행되도록 지연
-        if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-    }, 0);
+    // <-- 수정: 스크롤을 맨 아래로 이동 (최종 응답 메시지 추가 시) -->
+    requestAnimationFrame(() => { // DOM 렌더링 직전에 스크롤 요청
+        const lastChild = chatMessages.lastElementChild; // chatMessages의 마지막 자식 (즉, 방금 추가된 메시지 컨테이너)
+        if (lastChild) {
+            lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' }); // 부드럽게 맨 아래로 스크롤
+        } else { // Fallback: 마지막 자식이 없으면 (거의 없을 일) 그냥 컨테이너 맨 아래로
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    });
+    // <-- 수정 끝 -->
 }
 
-// <-- 수정: renderBasicMarkdown 함수는 더 이상 사용되지 않습니다. -->
-//         (이 함수는 자체 구현 Markdown 파서였으나, 이제 markdown-it으로 대체됩니다.)
-// 이 함수를 제거하거나, 주석 처리합니다.
-// 그러나 기존 코드를 최대한 유지하라는 지시가 있었으므로, 주석 처리하지 않고 내용을 비워두겠습니다.
-// 하지만 실제로는 더 이상 호출되지 않으며, 호출되더라도 아무런 Markdown 렌더링을 하지 않게 됩니다.
+// 마크다운 렌더링 함수 (자체 구현) - 이제 displayCodePilotMessage에서 사용되지 않습니다.
+// 이 함수는 더 이상 Markdown을 파싱하지 않습니다.
 function renderBasicMarkdown(markdownText) {
-    // 이 함수는 이제 displayCodePilotMessage에서 직접 사용되지 않습니다.
-    // console.warn("renderBasicMarkdown was called but its output is not used in displayCodePilotMessage anymore.");
-    // 이 함수는 더 이상 Markdown을 파싱하지 않습니다.
-    return markdownText; // <-- 수정: 원본 텍스트를 그대로 반환 (사용되지 않음)
+    // 이 함수는 현재 md.render()로 대체되었으므로, 더 이상 사용되지 않습니다.
+    // 하지만 코드 자체는 유지하라는 지시가 있었으므로 비워두겠습니다.
+    return markdownText;
 }
-// <-- 수정 끝 -->
 
 
 // TODO: 필요한 다른 Webview 로직 추가
