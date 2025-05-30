@@ -11,6 +11,7 @@ const vscode = acquireVsCodeApi();
 const sendButton = document.getElementById('send-button');
 const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages'); // 스크롤 컨테이너
+const cleanHistoryButton = document.getElementById('clean-history-button'); // <-- 수정: ID 변경 및 참조
 
 
 let thinkingBubbleElement = null;
@@ -19,9 +20,18 @@ const md = markdownit({
     html: false,
     linkify: true,
     typographer: true,
+    // highlight: function (str, lang) { // Syntax highlighting (선택 사항, 필요 시 highlight.js 등 추가)
+    //    if (lang && window.hljs && hljs.getLanguage(lang)) {
+    //        try {
+    //            return hljs.highlight(str, { language: lang }).value;
+    //        } catch (__) {}
+    //    }
+    //    return '';
+    // }
 });
 
 
+// 메시지 전송 로직 (기존 코드 유지 - 절대 수정 금지 영역)
 if (sendButton && chatInput) {
     sendButton.addEventListener('click', handleSendMessage);
 
@@ -36,6 +46,13 @@ if (sendButton && chatInput) {
 
     chatInput.addEventListener('input', autoResizeTextarea);
 }
+
+// <-- 수정: Clean History 버튼 클릭 이벤트 리스너 -->
+if (cleanHistoryButton) { // <-- ID 변경
+    cleanHistoryButton.addEventListener('click', handleCleanHistory); // <-- 함수명 변경
+}
+// <-- 수정 끝 -->
+
 
 function handleSendMessage() {
     if (!chatInput) return;
@@ -122,8 +139,8 @@ function displayUserMessage(text) {
 
     chatMessages.appendChild(userMessageElement);
     chatMessages.appendChild(separatorElement);
-    // <-- 수정: 메시지 추가 후 가장 마지막 요소로 스크롤 -->
-    requestAnimationFrame(() => { // DOM 렌더링 직전에 스크롤 요청
+    // 스크롤을 맨 아래로 이동
+    requestAnimationFrame(() => { // 브라우저 렌더링 직전에 스크롤 요청
         const lastChild = chatMessages.lastElementChild;
         if (lastChild) {
             lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' }); // 부드럽게 맨 아래로 스크롤
@@ -131,7 +148,6 @@ function displayUserMessage(text) {
             chatMessages.scrollTop = chatMessages.scrollHeight; // Fallback
         }
     });
-    // <-- 수정 끝 -->
 }
 
 // 로딩 버블 생성 함수
@@ -146,19 +162,8 @@ function showLoading() {
     chatMessages.appendChild(messageContainer);
     thinkingBubbleElement = messageContainer; // 엘리먼트 참조 저장
 
-    // <-- 수정: showLoading에서는 스크롤 로직 제거 -->
-    // thinking 애니메이션이 뷰포트에 보이도록 스크롤하는 로직은 제거합니다.
+    // showLoading에서는 스크롤 로직을 제거
     // 최종 메시지 출력이 끝나고 스크롤하는 로직으로 대체됩니다.
-    /*
-    requestAnimationFrame(() => {
-        if (thinkingBubbleElement) {
-            thinkingBubbleElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        } else if (chatMessages) {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-    });
-    */
-    // <-- 수정 끝 -->
 }
 
 // 로딩 버블 제거 함수
@@ -168,6 +173,18 @@ function hideLoading() {
         thinkingBubbleElement = null;
     }
 }
+
+// <-- 수정: 채팅 기록을 모두 삭제하는 함수 (이름 변경) -->
+function handleCleanHistory() { // <-- 함수명 변경
+    if (chatMessages) {
+        while (chatMessages.firstChild) {
+            chatMessages.removeChild(chatMessages.firstChild);
+        }
+        console.log('Chat history cleared.');
+    }
+}
+// <-- 수정 끝 -->
+
 
 // CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시
 function displayCodePilotMessage(markdownText) {
@@ -227,8 +244,8 @@ function displayCodePilotMessage(markdownText) {
 
     chatMessages.appendChild(messageContainer);
 
-    // <-- 수정: 스크롤을 맨 아래로 이동 (최종 응답 메시지 추가 시) -->
-    requestAnimationFrame(() => { // DOM 렌더링 직전에 스크롤 요청
+    // 스크롤을 맨 아래로 이동 (응답 메시지 추가 시)
+    requestAnimationFrame(() => { // 브라우저 렌더링 직전에 스크롤 요청
         const lastChild = chatMessages.lastElementChild; // chatMessages의 마지막 자식 (즉, 방금 추가된 메시지 컨테이너)
         if (lastChild) {
             lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' }); // 부드럽게 맨 아래로 스크롤
@@ -236,15 +253,14 @@ function displayCodePilotMessage(markdownText) {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     });
-    // <-- 수정 끝 -->
 }
 
-// 마크다운 렌더링 함수 (자체 구현) - 이제 displayCodePilotMessage에서 사용되지 않습니다.
+// 마크다운 렌더링 함수 (자체 구현) - 이 함수는 displayCodePilotMessage에서 사용되지 않습니다.
 // 이 함수는 더 이상 Markdown을 파싱하지 않습니다.
 function renderBasicMarkdown(markdownText) {
     // 이 함수는 현재 md.render()로 대체되었으므로, 더 이상 사용되지 않습니다.
     // 하지만 코드 자체는 유지하라는 지시가 있었으므로 비워두겠습니다.
-    return markdownText;
+    return markdownText; // 원본 텍스트를 그대로 반환 (사용되지 않음)
 }
 
 
