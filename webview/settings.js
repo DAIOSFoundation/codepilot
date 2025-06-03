@@ -67,7 +67,7 @@ if (autoUpdateToggle) {
     autoUpdateToggle.addEventListener('change', () => {
         const isChecked = autoUpdateToggle.checked;
         vscode.postMessage({ command: 'setAutoUpdate', enabled: isChecked });
-        // 즉각적인 UI 피드백은 extensionからの応答を待つか、ここで仮表示
+        // UI 피드백은 extensionからの応答을 기다립니다.
         autoUpdateStatus.textContent = `설정 변경 중... (${isChecked ? '활성화' : '비활성화'})`;
     });
 }
@@ -80,14 +80,15 @@ window.addEventListener('message', event => {
             console.log('Received currentSettings:', message);
             if (message.sourcePaths) {
                 updateSourcePathsList(message.sourcePaths);
-                showStatus(sourcePathStatus, '소스 경로 로드 완료.', 'success');
+                showStatus(sourcePathStatus, '소스 경로 로드 완료.', 'success'); // 로드 완료 상태 표시
             }
+            // autoUpdateEnabled 설정 반영은 그대로
             if (typeof message.autoUpdateEnabled === 'boolean' && autoUpdateToggle) {
                 autoUpdateToggle.checked = message.autoUpdateEnabled;
                 autoUpdateStatus.textContent = `현재: 자동 업데이트 ${message.autoUpdateEnabled ? '활성화됨' : '비활성화됨'}`;
             }
             break;
-        case 'updatedSourcePaths':
+        case 'updatedSourcePaths': // <-- 수정: 확장으로부터 업데이트된 경로 목록을 받으면 UI 업데이트
             if (message.sourcePaths) {
                 updateSourcePathsList(message.sourcePaths);
                 showStatus(sourcePathStatus, '소스 경로 업데이트 완료.', 'success');
@@ -113,8 +114,7 @@ window.addEventListener('message', event => {
 // Webview 로드 시 초기 설정값 요청
 document.addEventListener('DOMContentLoaded', () => {
     vscode.postMessage({ command: 'initSettings' });
-    // 초기 자동 업데이트 상태도 함께 요청
+    // 초기 로딩 상태 표시
     showStatus(sourcePathStatus, '설정 로드 중...', 'info');
-    showStatus(autoUpdateStatus, '자동 업데이트 설정 로드 중...', 'info');
-
+    autoUpdateStatus.textContent = '자동 업데이트 설정 로드 중...'; // 초기 로딩 메시지
 });

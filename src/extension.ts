@@ -12,6 +12,7 @@ let storageService: StorageService;
 let geminiApi: GeminiApi;
 let codePilotTerminal: vscode.Terminal | undefined;
 
+
 function getCodePilotTerminal(): vscode.Terminal {
     if (!codePilotTerminal || codePilotTerminal.exitStatus !== undefined) {
         codePilotTerminal = vscode.window.createTerminal({ name: "CodePilot Terminal" });
@@ -111,6 +112,7 @@ export function deactivate() {
     if (codePilotTerminal) codePilotTerminal.dispose();
 }
 
+// --- 파일 읽기 및 프롬프트, 응답 처리 로직 ---
 async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: vscode.Webview, context: vscode.ExtensionContext) {
     const apiKey = await storageService.getApiKey();
     if (!apiKey) {
@@ -124,7 +126,9 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
         let fileContentsContext = "";
         const MAX_TOTAL_CONTENT_LENGTH = 25000;
         let currentTotalContentLength = 0;
+        // <-- 수정: includedFilesForContext를 handleUserMessageAndRespond의 로컬 변수로 유지 -->
         const includedFilesForContext: { name: string, fullPath: string }[] = [];
+        // <-- 수정 끝 -->
 
         for (const sourcePath of sourcePathsSetting) {
             if (currentTotalContentLength >= MAX_TOTAL_CONTENT_LENGTH) {
@@ -197,7 +201,9 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
 
         let llmResponse = await geminiApi.sendMessageWithSystemPrompt(systemPrompt, fullPrompt);
 
+        // <-- 수정: includedFilesForContext를 인자로 전달 -->
         await processLlmResponseAndAutoUpdate(llmResponse, includedFilesForContext, webviewToRespond, context);
+        // <-- 수정 끝 -->
 
     } catch (error: any) {
         console.error("Error in handleUserMessageAndRespond:", error);
@@ -208,7 +214,9 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
 
 async function processLlmResponseAndAutoUpdate(
     llmResponse: string,
+    // <-- 수정: includedFilesForContext를 인자로 받도록 수정 -->
     contextFiles: { name: string, fullPath: string }[],
+    // <-- 수정 끝 -->
     webview: vscode.Webview,
     context: vscode.ExtensionContext // Diff 및 임시 파일 정리용
 ) {
@@ -223,14 +231,18 @@ async function processLlmResponseAndAutoUpdate(
         const newCode = match[3];
         console.log(`[LLM Response Parsing] Found directive. LLM file: "${llmSpecifiedFileName}"`);
 
-        const matchedFile = contextFiles.find(f => f.name === llmSpecifiedFileName);
+        // <-- 수정: contextFiles 배열의 타입을 명시적으로 지정 -->
+        const matchedFile = contextFiles.find((f: {name: string, fullPath: string}) => f.name === llmSpecifiedFileName);
+        // <-- 수정 끝 -->
 
         if (matchedFile) {
             console.log(`[LLM Response Parsing] Matched to local file: "${matchedFile.fullPath}"`);
             updatesToApply.push({ filePath: matchedFile.fullPath, newContent: newCode, originalName: llmSpecifiedFileName });
         } else {
             const warnMsg = `경고: AI가 수정을 제안한 파일 '${llmSpecifiedFileName}'을(를) 컨텍스트 목록에서 찾을 수 없습니다. 해당 파일은 업데이트되지 않았습니다.`;
-            console.warn(`[LLM Response Parsing] No match for: "${llmSpecifiedFileName}". Context:`, contextFiles.map(f=>f.name));
+            // <-- 수정: contextFiles.map의 'f' 매개변수 타입 명시 -->
+            console.warn(`[LLM Response Parsing] No match for: "${llmSpecifiedFileName}". Context:`, contextFiles.map((f: {name: string, fullPath: string}) => f.name));
+            // <-- 수정 끝 -->
             webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
         }
     }
@@ -297,6 +309,12 @@ async function processLlmResponseAndAutoUpdate(
         finalWebviewResponse += "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요.";
     }
 
+    // <-- 수정: LLM 응답에 전송된 파일 목록 추가 (includedFilesForContext 대신 인자로 받은 contextFiles 사용) -->
+    if (contextFiles.length > 0) {
+        const fileList = contextFiles.map(f => f.name).join(', ');
+        finalWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n${fileList}`;
+    }
+    // <-- 수정 끝 -->
 
     webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: finalWebviewResponse });
     webview.postMessage({ command: 'hideLoading' });
@@ -401,13 +419,9 @@ function createAndSetupWebviewPanel(
         }
     );
     panel.webview.html = getHtmlContentWithUris(extensionUri, htmlFileName, panel.webview);
-    // <-- 수정: onDidDispose에서 thisArg를 undefined로 명시 -->
     panel.onDidDispose(() => { /* 정리 */ }, undefined, contextForSubs.subscriptions);
-    // <-- 수정 끝 -->
     if (onDidReceiveMessage) {
-        // <-- 수정: onDidReceiveMessage에서 thisArg를 undefined로 명시 -->
         panel.webview.onDidReceiveMessage(async (data) => { await onDidReceiveMessage(data, panel); }, undefined, contextForSubs.subscriptions);
-        // <-- 수정 끝 -->
     }
     panel.reveal(viewColumn);
     return panel;
@@ -458,7 +472,6 @@ function openLicensePanel(extensionUri: vscode.Uri, context: vscode.ExtensionCon
         async (data, panel) => {
             switch (data.command) {
                 case 'saveApiKey':
-                    // ... (이전과 동일한 API Key 저장 로직) ...
                     const apiKeyToSave = data.apiKey;
                     if (apiKeyToSave && typeof apiKeyToSave === 'string') {
                         try {
