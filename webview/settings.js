@@ -1,96 +1,120 @@
-// acquireVsCodeApi는 웹뷰 환경에서 전역으로 사용 가능합니다.
+// settings.js
 const vscode = acquireVsCodeApi();
 
 // DOM 요소 참조
 const sourcePathsList = document.getElementById('source-paths-list');
 const addDirectoryButton = document.getElementById('add-directory-button');
-const statusMessage = document.getElementById('status-message');
+const sourcePathStatus = document.getElementById('source-path-status'); // ID 수정
 
-// 상태 변수
-let currentSourcePaths = [];
+const autoUpdateToggle = document.getElementById('auto-update-toggle');
+const autoUpdateStatus = document.getElementById('auto-update-status');
 
-// UI 업데이트 함수
+// UI 업데이트 함수 (소스 경로)
 function updateSourcePathsList(paths) {
-    currentSourcePaths = paths;
-    sourcePathsList.innerHTML = ''; // 목록 비우기
-    if (paths.length === 0) {
-        sourcePathsList.innerHTML = '<li class="path-item" style="justify-content: center; color: var(--vscode-descriptionForeground);">지정된 디렉토리 없음</li>';
+    sourcePathsList.innerHTML = '';
+    if (!paths || paths.length === 0) {
+        sourcePathsList.innerHTML = '<li class="path-item" style="justify-content: center; color: var(--vscode-descriptionForeground);">지정된 경로 없음</li>';
     } else {
         paths.forEach(path => {
             const listItem = document.createElement('li');
             listItem.classList.add('path-item');
-            // data-path 속성에 경로를 저장하여 삭제 시 사용
             listItem.innerHTML = `
-                <span class="path-text">${path}</span>
-                <button class="delete-button" data-path="${path}" title="디렉토리 삭제">X</button>
-            `;
+                <span class="path-text" title="${path}">${path}</span>
+                <button class="delete-button" data-path="${path}" title="경로 삭제">×</button>
+            `; // title 속성 추가, X 버튼 텍스트 명확화
             sourcePathsList.appendChild(listItem);
         });
     }
 }
 
 // 상태 메시지 표시
-function showStatus(message, type = 'info') {
-    statusMessage.textContent = message;
-    statusMessage.className = `info-message ${type}-message`;
+function showStatus(element, message, type = 'info', duration = 3000) {
+    if (!element) return;
+    element.textContent = message;
+    element.className = `info-message ${type}-message`; // 기존 클래스 초기화 후 새 클래스 적용
     if (type === 'success' || type === 'error') {
         setTimeout(() => {
-            statusMessage.textContent = '';
-            statusMessage.className = 'info-message';
-        }, 3000);
+            element.textContent = '';
+            element.className = 'info-message';
+        }, duration);
     }
 }
 
+// 이벤트 리스너: 경로 추가 버튼
+if (addDirectoryButton) {
+    addDirectoryButton.addEventListener('click', () => {
+        showStatus(sourcePathStatus, '경로 선택 창 열림...', 'info');
+        vscode.postMessage({ command: 'addDirectory' });
+    });
+}
 
-// 이벤트 리스너: 디렉토리 추가 버튼 클릭
-addDirectoryButton.addEventListener('click', () => {
-    showStatus('디렉토리 선택 창 열림...', 'info');
-    vscode.postMessage({ command: 'addDirectory' });
-});
-
-// 이벤트 리스너: 디렉토리 삭제 버튼 클릭 (이벤트 위임 사용)
-sourcePathsList.addEventListener('click', (event) => {
-    const target = event.target;
-    // 클릭된 요소가 delete-button 클래스를 가지고 있는지 확인
-    if (target && target.classList.contains('delete-button')) {
-        const pathToRemove = target.dataset.path; // data-path 속성 값 가져오기
-        if (pathToRemove) {
-            showStatus('디렉토리 삭제 요청 중...', 'info');
-            vscode.postMessage({ command: 'removeDirectory', path: pathToRemove });
+// 이벤트 리스너: 경로 삭제 버튼 (이벤트 위임)
+if (sourcePathsList) {
+    sourcePathsList.addEventListener('click', (event) => {
+        const target = event.target;
+        if (target && target.classList.contains('delete-button')) {
+            const pathToRemove = target.dataset.path;
+            if (pathToRemove) {
+                showStatus(sourcePathStatus, `'${pathToRemove}' 삭제 요청 중...`, 'info');
+                vscode.postMessage({ command: 'removeDirectory', path: pathToRemove });
+            }
         }
-    }
-});
+    });
+}
 
-// 확장 프로그램으로부터 메시지 수신
+// 이벤트 리스너: 자동 업데이트 토글
+if (autoUpdateToggle) {
+    autoUpdateToggle.addEventListener('change', () => {
+        const isChecked = autoUpdateToggle.checked;
+        vscode.postMessage({ command: 'setAutoUpdate', enabled: isChecked });
+        // 즉각적인 UI 피드백은 extensionからの応答を待つか、ここで仮表示
+        autoUpdateStatus.textContent = `설정 변경 중... (${isChecked ? '활성화' : '비활성화'})`;
+    });
+}
+
+// 확장으로부터 메시지 수신
 window.addEventListener('message', event => {
     const message = event.data;
     switch (message.command) {
-        case 'currentSettings': // 초기 설정값 수신
-            console.log('Received currentSettings from extension:', message.sourcePaths);
+        case 'currentSettings':
+            console.log('Received currentSettings:', message);
             if (message.sourcePaths) {
                 updateSourcePathsList(message.sourcePaths);
-                showStatus('설정 로드 완료.', 'success');
+                showStatus(sourcePathStatus, '소스 경로 로드 완료.', 'success');
+            }
+            if (typeof message.autoUpdateEnabled === 'boolean' && autoUpdateToggle) {
+                autoUpdateToggle.checked = message.autoUpdateEnabled;
+                autoUpdateStatus.textContent = `현재: 자동 업데이트 ${message.autoUpdateEnabled ? '활성화됨' : '비활성화됨'}`;
             }
             break;
-        case 'updatedSourcePaths': // 디렉토리 추가/삭제 후 업데이트된 경로 목록 수신
-            console.log('Received updatedSourcePaths from extension:', message.sourcePaths);
+        case 'updatedSourcePaths':
             if (message.sourcePaths) {
                 updateSourcePathsList(message.sourcePaths);
-                showStatus('설정 업데이트 완료.', 'success');
+                showStatus(sourcePathStatus, '소스 경로 업데이트 완료.', 'success');
             }
             break;
-        case 'pathAddError': // 디렉토리 추가 중 오류 발생 시
-            showStatus(`오류: ${message.error}`, 'error');
+        case 'autoUpdateStatusChanged': // 익스텐션에서 설정 변경 후 최종 상태 수신
+            if (typeof message.enabled === 'boolean' && autoUpdateToggle) {
+                autoUpdateToggle.checked = message.enabled;
+                const statusText = `자동 업데이트 ${message.enabled ? '활성화됨' : '비활성화됨'}.`;
+                showStatus(autoUpdateStatus, statusText, 'success');
+                autoUpdateStatus.textContent = `현재: ${statusText}`; // showStatus 후에도 상태 유지
+            }
             break;
-        case 'pathRemoveError': // 디렉토리 삭제 중 오류 발생 시
-            showStatus(`오류: ${message.error}`, 'error');
+        case 'pathAddError':
+            showStatus(sourcePathStatus, `오류 (경로 추가): ${message.error}`, 'error');
             break;
-        // 'selectedDirectory' 메시지는 extension.ts에서 처리되므로 여기서는 필요 없음
+        case 'pathRemoveError':
+            showStatus(sourcePathStatus, `오류 (경로 삭제): ${message.error}`, 'error');
+            break;
     }
 });
 
 // Webview 로드 시 초기 설정값 요청
-// DOMContentLoaded 이벤트 후에 메시지를 보내도록 하여 안전성 확보
 document.addEventListener('DOMContentLoaded', () => {
     vscode.postMessage({ command: 'initSettings' });
+    // 초기 자동 업데이트 상태도 함께 요청
+    showStatus(sourcePathStatus, '설정 로드 중...', 'info');
+    showStatus(autoUpdateStatus, '자동 업데이트 설정 로드 중...', 'info');
+
 });

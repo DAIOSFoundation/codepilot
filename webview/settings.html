@@ -3,114 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP를 위한 meta 태그는 extension.ts에서 getHtmlContentWithUris 함수를 통해 동적으로 삽입됩니다. -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; img-src {{cspSource}} https: data:; script-src 'nonce-{{nonce}}'; font-src {{cspSource}};"> -->
     <title>CodePilot Settings</title>
+    <!-- commonStylesUri와 settingsStylesUri는 extension.ts에서 치환됩니다. -->
+    <link rel="stylesheet" type="text/css" href="{{commonStylesUri}}">
+    <link rel="stylesheet" type="text/css" href="{{settingsStylesUri}}">
     <style>
+        /* settings.html 고유 스타일 및 license.html과 동기화된 스타일 */
         body {
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
             color: var(--vscode-foreground);
             background-color: var(--vscode-editor-background);
-            margin: 0;
             padding: 20px;
-            box-sizing: border-box;
+            line-height: 1.5;
+            display: flex; /* <-- 추가: body를 flex 컨테이너로 설정 (세로 스크롤 가능하게) */
+            flex-direction: column; /* <-- 추가: 자식 요소들을 세로로 쌓음 */
+            height: 100vh; /* <-- 추가: 뷰포트 높이 전체를 차지하게 함 */
+            overflow: auto; /* <-- 추가: 내용이 넘칠 때 스크롤바 생성 */
         }
+
         h1 {
             color: var(--vscode-textLink-foreground);
             border-bottom: 1px solid var(--vscode-panel-border);
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
-        h2 {
-            color: var(--vscode-textLink-foreground);
+
+        .section-container {
             margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--vscode-panel-border);
+        }
+
+        .section-container h2 {
+             margin-bottom: 10px;
+             color: var(--vscode-textLink-foreground);
+        }
+
+        .info-message {
+            color: var(--vscode-descriptionForeground);
+            font-size: 0.9em;
             margin-bottom: 15px;
         }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .section-container {
-            background-color: var(--vscode-sideBar-background);
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            align-items: center;
-        }
-        button {
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: var(--vscode-font-size);
-            user-select: none; /* 텍스트 드래그 방지 */
-        }
-        button:hover {
-            background-color: var(--vscode-button-hoverBackground);
-        }
-        button:focus {
-            outline: 1px solid var(--vscode-focusBorder);
-            outline-offset: -1px;
-        }
+        .info-message.success-message { color: var(--vscode-terminal-ansiGreen); }
+        .info-message.error-message { color: var(--vscode-terminal-ansiRed); }
+
+        /* 소스 경로 리스트 스타일 */
         .path-list {
-            list-style: none;
+            list-style-type: none;
             padding: 0;
-            margin: 10px 0;
-            max-height: 300px; /* 스크롤을 위한 최대 높이 */
-            overflow-y: auto; /* 내용 넘칠 시 스크롤 */
-            border: 1px solid var(--vscode-input-border);
-            background-color: var(--vscode-input-background);
+            margin: 0;
+            border: 1px solid var(--vscode-panel-border);
             border-radius: 5px;
+            max-height: 200px; /* 고정 높이, 스크롤 가능 */
+            overflow-y: auto;
+            background-color: var(--vscode-input-background);
         }
-        .path-item {
+        .path-list .path-item {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             padding: 8px 10px;
             border-bottom: 1px solid var(--vscode-panel-border);
         }
-        .path-item:last-child {
-            border-bottom: none;
+        .path-list .path-item:last-child { border-bottom: none; }
+        .path-list .path-item:hover {
+            background-color: var(--vscode-list-hoverBackground);
         }
-        .path-text {
+        .path-list .path-item .path-text {
             flex-grow: 1;
-            word-break: break-all; /* 경로가 길 경우 강제 줄바꿈 */
-            white-space: normal; /* 필요에 따라 줄바꿈 허용 */
+            white-space: nowrap; /* 줄바꿈 방지 */
+            overflow: hidden; /* 넘치는 내용 숨김 */
+            text-overflow: ellipsis; /* ... 표시 */
+            margin-right: 10px;
             color: var(--vscode-foreground);
         }
-        .path-item .delete-button {
-            background-color: transparent;
-            color: var(--vscode-errorForeground); /* 에러 색상으로 X 표시 */
+        .path-list .path-item .delete-button {
+            background: none;
             border: none;
+            color: var(--vscode-textLink-foreground);
             font-size: 1.2em;
-            padding: 0 5px;
-            margin-left: 10px;
             cursor: pointer;
-            line-height: 1;
-            font-weight: bold;
+            padding: 0 5px;
+            line-height: 1; /* 높이 맞춤 */
         }
-        .path-item .delete-button:hover {
-            color: var(--vscode-errorForeground);
-            background-color: var(--vscode-editorGroup-dropBackground); /* 약한 배경색 변경 */
-        }
-        .info-message {
-            margin-top: 10px;
-            color: var(--vscode-descriptionForeground);
-            font-size: 0.9em;
-        }
-        .error-message {
-            color: var(--vscode-errorForeground);
-            margin-top: 10px;
-        }
-        .success-message {
+        .path-list .path-item .delete-button:hover {
             color: var(--vscode-textLink-activeForeground);
+        }
+
+        /* 버튼 그룹 스타일 */
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* 버튼과 상태 메시지 간 간격 */
+            margin-top: 15px;
+        }
+        #add-directory-button {
+            padding: 8px 15px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #add-directory-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        /* 토글 스위치 스타일 (기존과 동일) */
+        .toggle-switch-container {
+            display: flex;
+            align-items: center;
             margin-top: 10px;
+        }
+        .toggle-switch-container input[type="checkbox"] {
+            height: 0;
+            width: 0;
+            visibility: hidden;
+        }
+        .toggle-switch-container label {
+            cursor: pointer;
+            text-indent: -9999px;
+            width: 40px; /* 스위치 너비 */
+            height: 20px; /* 스위치 높이 */
+            background: grey;
+            display: block;
+            border-radius: 100px;
+            position: relative;
+            margin-right: 10px; /* 스위치와 텍스트 사이 간격 */
+        }
+        .toggle-switch-container label:after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px; /* 핸들 너비 */
+            height: 16px; /* 핸들 높이 */
+            background: #fff;
+            border-radius: 90px;
+            transition: 0.3s;
+        }
+        .toggle-switch-container input:checked + label {
+            background: var(--vscode-button-background); /* 활성화 시 VS Code 버튼 배경색 */
+        }
+        .toggle-switch-container input:checked + label:after {
+            left: calc(100% - 2px);
+            transform: translateX(-100%);
+        }
+        .toggle-switch-container label:active:after {
+            width: 22px; /* 클릭 시 핸들 약간 커짐 */
+        }
+        .toggle-label-text {
+            font-weight: normal; /* 일반 텍스트처럼 */
+            margin-bottom: 0; /* label 태그의 기본 마진 제거 */
         }
     </style>
 </head>
@@ -118,21 +165,30 @@
     <h1>CodePilot 설정</h1>
 
     <div class="section-container">
-        <h2>소스 코드 디렉토리 지정</h2>
-        <p class="info-message">CodePilot이 AI 응답을 생성할 때 참조할 소스 코드 디렉토리 경로 목록을 지정합니다. 여기에 지정된 모든 폴더의 파일들이 AI에게 컨텍스트 정보로 제공될 수 있습니다.</p>
-
+        <h2>소스 코드 경로 지정</h2>
+        <p class="info-message">CodePilot이 AI 응답을 생성할 때 참조할 소스 코드 경로 목록입니다. 지정된 파일 및 폴더의 내용이 AI에게 컨텍스트로 제공될 수 있습니다.</p>
         <ul id="source-paths-list" class="path-list">
-            <!-- 디렉토리 경로들이 여기에 동적으로 추가됩니다. -->
+            <!-- 경로들이 여기에 동적으로 추가됩니다. -->
         </ul>
-
         <div class="button-group">
-            <button id="add-directory-button">디렉토리 추가</button>
-            <span id="status-message" class="info-message"></span>
+            <button id="add-directory-button">경로 추가</button>
+            <span id="source-path-status" class="info-message"></span>
         </div>
         <p class="info-message">설정 변경은 즉시 저장됩니다.</p>
     </div>
-    <script src="{{scriptUri}}"></script>
-</body>
-</html>
+
+    <div class="section-container">
+        <h2>파일 자동 업데이트</h2>
+        <p class="info-message">LLM이 제안한 코드를 기반으로 파일을 자동으로 업데이트할지 여부를 설정합니다. 비활성화 시, 업데이트 전에 확인 메시지가 표시됩니다.</p>
+        <div class="toggle-switch-container">
+            <input type="checkbox" id="auto-update-toggle" />
+            <label for="auto-update-toggle">Toggle</label> <!-- 스위치 핸들 -->
+            <span class="toggle-label-text">파일 자동 업데이트 활성화</span>
+        </div>
+        <p id="auto-update-status" class="info-message" style="margin-top: 5px;"></p>
+    </div>
+
+    <!-- Nonce가 적용된 스크립트 로드 -->
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
 </body>
 </html>

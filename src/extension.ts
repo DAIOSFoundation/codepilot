@@ -1,450 +1,486 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import * as fs from 'fs';
+import * as path from 'path';
+import * as glob from 'glob';
+import * as os from 'os';
 
-// 새로 생성한 모듈 임포트
+// 사용자 정의 모듈 임포트
 import { StorageService } from './storage/storage';
 import { GeminiApi } from './api/gemini';
 
-// 터미널 인스턴스를 저장하기 위한 변수
-let codePilotTerminal: vscode.Terminal | undefined;
-
-// API 및 스토리지 서비스 인스턴스 (전역 또는 싱글톤으로 관리)
 let storageService: StorageService;
 let geminiApi: GeminiApi;
+let codePilotTerminal: vscode.Terminal | undefined;
 
-// 터미널을 가져오거나 생성하는 헬퍼 함수
 function getCodePilotTerminal(): vscode.Terminal {
     if (!codePilotTerminal || codePilotTerminal.exitStatus !== undefined) {
         codePilotTerminal = vscode.window.createTerminal({ name: "CodePilot Terminal" });
-        vscode.window.onDidCloseTerminal(event => {
+        const disposable = vscode.window.onDidCloseTerminal(event => {
             if (event === codePilotTerminal) {
                 codePilotTerminal = undefined;
+                disposable.dispose();
             }
         });
     }
     return codePilotTerminal;
 }
 
-
-// 채팅 뷰를 제공하는 WebviewViewProvider 구현 클래스 (Activity Bar View 용)
 class ChatViewProvider implements vscode.WebviewViewProvider {
-    public static readonly viewId = 'codepilot.chatView';
+    public static readonly viewType = 'codepilot.chatView';
     private _view?: vscode.WebviewView;
-    constructor(private readonly _extensionUri: vscode.Uri) {}
 
-    public resolveWebviewView( webviewView: vscode.WebviewView, context: vscode.WebviewViewResolveContext, _token: vscode.CancellationToken, ) {
+    constructor(private readonly extensionUri: vscode.Uri, private readonly context: vscode.ExtensionContext) {}
+
+    public resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        context: vscode.WebviewViewResolveContext,
+        _token: vscode.CancellationToken,
+    ) {
         this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,
-             // localResourceRoots에 dist/webview도 추가 (chat.js 및 codeCopy.js 로드용)
-            localResourceRoots: [ this._extensionUri, vscode.Uri.joinPath(this._extensionUri, 'webview'), vscode.Uri.joinPath(this._extensionUri, 'media'), vscode.Uri.joinPath(this._extensionUri, 'dist', 'webview') ]
+            localResourceRoots: [
+                this.extensionUri,
+                vscode.Uri.joinPath(this.extensionUri, 'webview'),
+                vscode.Uri.joinPath(this.extensionUri, 'media'),
+                vscode.Uri.joinPath(this.extensionUri, 'dist'),
+                vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview')
+            ]
         };
+        webviewView.webview.html = getHtmlContentWithUris(this.extensionUri, 'chat', webviewView.webview);
 
-        // ChatViewProvider에서는 직접 HTML을 읽고 URI를 치환하여 로드
-        webviewView.webview.html = getHtmlContentWithUris(this._extensionUri, 'chat', webviewView.webview);
-
-        webviewView.webview.onDidReceiveMessage(async data => { // <-- async 유지 -->
+        webviewView.webview.onDidReceiveMessage(async data => {
             switch (data.command) {
                 case 'sendMessage':
-                    console.log('Received message from chat view:', data.text);
-                    const userText = data.text.trim();
-
-                    // 사용자 메시지는 웹뷰 자체에서 처리하도록 변경됨
-
-                    const apiKey = await storageService.getApiKey();
-                    if (!apiKey) {
-                        this._view?.webview.postMessage({ command: 'receiveMessage', text: "Error: Gemini API Key is not set. Please go to the License panel to set it.", sender: 'CodePilot' });
-                        return;
-                    }
-
-                    // 터미널 명령 우선 처리
-                    if (userText === '앱 실행') {
-                         const terminal = getCodePilotTerminal();
-                         terminal.show();
-                         terminal.sendText('npm start', true);
-                         this._view?.webview.postMessage({ command: 'receiveMessage', text: "Running `npm start` in terminal...", sender: 'CodePilot' });
-
-                    } else if (userText === '깃 푸쉬') {
-                         const terminal = getCodePilotTerminal();
-                         terminal.show();
-                         terminal.sendText('git add -A', true);
-                         terminal.sendText('git commit -m "n/a"', true);
-                         terminal.sendText('git push', true);
-                         this._view?.webview.postMessage({ command: 'receiveMessage', text: "Executing Git commands in terminal...", sender: 'CodePilot' });
-
-                    } else {
-                         // <-- 추가: Gemini API 호출 전에 로딩 표시 메시지 전송 -->
-                         this._view?.webview.postMessage({ command: 'showLoading' });
-                         // <-- 추가 끝 -->
-
-                         // Gemini API 호출
-                         console.log('Sending message to Gemini...');
-                         let geminiResponse = "Error sending message to CodePilot AI.";
-                         try { geminiResponse = await geminiApi.sendMessage(userText); }
-                         catch (error: any) { console.error("Gemini API Call Failed:", error); geminiResponse = `Error: Failed to get response from AI. ${error.message || ''}`; }
-                         finally {
-                             // <-- 추가: Gemini API 호출 완료 (성공/실패) 후에 로딩 표시 제거 메시지 전송 -->
-                             // 응답과 함께 receiveMessage를 보내거나, 별도로 hideLoading을 보낼 수 있습니다.
-                             // 여기서는 receiveMessage 처리 시 Webview에서 hideLoading을 호출하도록 구현했습니다.
-                             // this._view?.webview.postMessage({ command: 'hideLoading' });
-                             // <-- 추가 끝 -->
-                         }
-
-                         // CodePilot 응답을 UI에 표시 (Gemini 응답 사용)
-                         this._view?.webview.postMessage({ command: 'receiveMessage', text: geminiResponse, sender: 'CodePilot' });
-                    }
+                    await handleUserMessageAndRespond(data.text, webviewView.webview, this.context);
                     break;
                 case 'openPanel':
-                    console.log(`Received open panel command from chat view: ${data.panel}`);
-                     // Activity Bar View의 메뉴에서 패널 열기 (ViewColumn.One에 고정)
-                    if (data.panel === 'settings') { openSettingsPanel(this._extensionUri, 'Settings', 'CodePilot Settings', vscode.ViewColumn.One); }
-                    else if (data.panel === 'license') {
-                         openLicensePanel(this._extensionUri, 'License', 'CodePilot License Information', vscode.ViewColumn.One);
-                    } else if (data.panel === 'customizing') { openBlankPanel(this._extensionUri, 'Customizing', 'CodePilot Customization Options'); }
+                    let targetViewColumn = vscode.ViewColumn.Beside;
+                    if (vscode.window.activeTextEditor?.viewColumn) {
+                        targetViewColumn = vscode.window.activeTextEditor.viewColumn;
+                    }
+                    if (data.panel === 'settings') openSettingsPanel(this.extensionUri, this.context, targetViewColumn);
+                    else if (data.panel === 'license') openLicensePanel(this.extensionUri, this.context, targetViewColumn);
+                    else if (data.panel === 'customizing') openBlankPanel(this.extensionUri, this.context, targetViewColumn);
                     break;
-                 // TODO: License Panel에서 보낸 메시지 (예: checkApiKeyStatus) 처리는 ChatViewProvider에서도 필요하다면 여기에 추가
+                case 'webviewLoaded':
+                    console.log('[ChatViewProvider] Chat webview loaded.');
+                    break;
             }
         });
-
-         webviewView.onDidDispose(() => { console.log('Chat view disposed'); this._view = undefined; });
-        console.log('Chat View resolved (via sidebar)');
+        webviewView.onDidDispose(() => {
+            console.log('[ChatViewProvider] Chat view disposed');
+            this._view = undefined;
+        }, null, this.context.subscriptions);
     }
 }
 
-
-export async function activate(context: vscode.ExtensionContext) { // <-- async 유지 -->
-    console.log('Congratulations, your extension "codepilot" is now active!');
-
-    // 스토리지 서비스 초기화
+export async function activate(context: vscode.ExtensionContext) {
+    console.log('Congratulations, CodePilot is now active!');
     storageService = new StorageService(context.secrets);
+    const initialApiKey = await storageService.getApiKey();
+    if (!initialApiKey) {
+        vscode.window.showWarningMessage('CodePilot: Gemini API Key is not set. Please set it in the License panel for AI features.');
+    }
+    geminiApi = new GeminiApi(initialApiKey || undefined);
 
-    // 저장된 API Key를 불러와 Gemini API 초기화
-    const apiKey = await storageService.getApiKey();
-    // GeminiApi 생성자에서 updateApiKey를 호출하여 초기화합니다.
-    geminiApi = new GeminiApi(apiKey || undefined);
+    const chatViewProvider = new ChatViewProvider(context.extensionUri, context);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(ChatViewProvider.viewType, chatViewProvider, {
+            webviewOptions: { retainContextWhenHidden: true }
+        })
+    );
 
-    // 1. Chat Webview View Provider 등록 (Activity Bar 아이콘 클릭 시 작동)
-    const chatViewProvider = new ChatViewProvider(context.extensionUri);
-    context.subscriptions.push( vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, chatViewProvider) );
+    context.subscriptions.push(vscode.commands.registerCommand('codepilot.openChatView', () => {
+        vscode.commands.executeCommand('workbench.view.extension.codepilotViewContainer');
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('codepilot.openSettingsPanel', () => {
+        openSettingsPanel(context.extensionUri, context, vscode.ViewColumn.One);
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('codepilot.openLicensePanel', () => {
+        openLicensePanel(context.extensionUri, context, vscode.ViewColumn.One);
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('codepilot.openCustomizingPanel', () => {
+        openBlankPanel(context.extensionUri, context, vscode.ViewColumn.One);
+    }));
 
-    // 확장이 활성화될 때 터미널에 메시지 출력
-    const terminal = getCodePilotTerminal();
-    terminal.show();
-    terminal.sendText("echo CodePilot activated!", true);
-
-
-    // 2. Command 등록 (package.json의 contributes.commands[]에 정의된 명령어들)
-
-    // <-- 수정: openSettingsPanel 명령어 핸들러 변경 -->
-    const openSettingsPanelCommand = vscode.commands.registerCommand('codepilot.openSettingsPanel', () => {
-        // settings.html 파일을 로드하는 새로운 헬퍼 함수 호출
-        openSettingsPanel(context.extensionUri, 'Settings', 'CodePilot Settings', vscode.ViewColumn.One);
-    });
-    context.subscriptions.push(openSettingsPanelCommand);
-    // <-- 수정 끝 -->
-
-    const openLicensePanelCommand = vscode.commands.registerCommand('codepilot.openLicensePanel', () => {
-        // License 패널 명령어 실행 시 ViewColumn.One에 열도록 고정
-        openLicensePanel(context.extensionUri, 'License', 'CodePilot License Information', vscode.ViewColumn.One);
-    });
-    context.subscriptions.push(openLicensePanelCommand);
-
-    const openCustomizingPanelCommand = vscode.commands.registerCommand('codepilot.openCustomizingPanel', () => {
-        openBlankPanel(context.extensionUri, 'Customizing', 'CodePilot Customization Options');
-    });
-    context.subscriptions.push(openCustomizingPanelCommand);
-
-    const helloWorldCommand = vscode.commands.registerCommand('codepilot.helloWorld', () => {
-        terminal.sendText("echo Hello from CodePilot!", true);
-        terminal.show();
-    });
-    context.subscriptions.push(helloWorldCommand);
-
-    // 'Open Banya Chat' 명령어 핸들러 등록
-    const openBanyaChatCommand = vscode.commands.registerCommand('codepilot.openChatView', () => {
-        console.log('Executing command: Open Banya Chat (using createWebviewPanel in ViewColumn.Two)');
-        // Chat 패널은 ViewColumn.Two에 열도록 기본값 설정
-        openChatPanel(context.extensionUri, 'Chat', 'CodePilot Chat', vscode.ViewColumn.Two);
-    });
-    context.subscriptions.push(openBanyaChatCommand);
-
-
-     // TODO: 필요한 다른 기능 구현
+    console.log('CodePilot activated and commands registered.');
 }
 
 export function deactivate() {
-     console.log('Your extension "codepilot" is now deactivated.');
-     codePilotTerminal?.dispose();
+    if (codePilotTerminal) codePilotTerminal.dispose();
 }
 
-// HTML 파일 내용을 읽고 URI를 치환하는 범용 함수
-// ChatViewProvider와 createWebviewPanelWithHtml 모두에서 사용할 수 있습니다.
-function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, webview: vscode.Webview): string {
-    const htmlFilePath = vscode.Uri.joinPath(extensionUri, 'webview', `${htmlFileName}.html`);
-    let htmlContent = '';
+async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: vscode.Webview, context: vscode.ExtensionContext) {
+    const apiKey = await storageService.getApiKey();
+    if (!apiKey) {
+        webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: "Error: Gemini API Key is not set. Please set it via CodePilot settings." });
+        return;
+    }
+    webviewToRespond.postMessage({ command: 'showLoading' });
 
     try {
-        htmlContent = fs.readFileSync(htmlFilePath.fsPath, 'utf8');
-        console.log(`Successfully read ${htmlFileName}.html. Content length: ${htmlContent.length}`);
+        const sourcePathsSetting = vscode.workspace.getConfiguration('codepilot').get<string[]>('sourcePaths') || [];
+        let fileContentsContext = "";
+        const MAX_TOTAL_CONTENT_LENGTH = 25000;
+        let currentTotalContentLength = 0;
+        const includedFilesForContext: { name: string, fullPath: string }[] = [];
+
+        for (const sourcePath of sourcePathsSetting) {
+            if (currentTotalContentLength >= MAX_TOTAL_CONTENT_LENGTH) {
+                fileContentsContext += "\n[INFO] 컨텍스트 길이 제한으로 일부 파일 내용이 생략되었습니다.\n";
+                break;
+            }
+            try {
+                const uri = vscode.Uri.file(sourcePath);
+                const stats = await vscode.workspace.fs.stat(uri);
+
+                if (stats.type === vscode.FileType.File) {
+                    const contentBytes = await vscode.workspace.fs.readFile(uri);
+                    const content = Buffer.from(contentBytes).toString('utf8');
+                    const fileName = path.basename(sourcePath);
+
+                    if (currentTotalContentLength + content.length <= MAX_TOTAL_CONTENT_LENGTH) {
+                        fileContentsContext += `파일명: ${fileName}\n코드:\n\`\`\`${getFileType(sourcePath)}\n${content}\n\`\`\`\n\n`;
+                        currentTotalContentLength += content.length;
+                        includedFilesForContext.push({ name: fileName, fullPath: sourcePath });
+                    } else {
+                        fileContentsContext += `파일명: ${fileName}\n코드:\n[INFO] 파일 내용이 너무 길어 생략되었습니다.\n\n`;
+                    }
+                } else if (stats.type === vscode.FileType.Directory) {
+                    const pattern = vscode.Uri.joinPath(uri, '**/*.{ts,js,py,html,css,md,java,c,cpp,go,rs}').fsPath;
+                    const files = glob.sync(pattern, { nodir: true, dot: false, ignore: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/out/**'] });
+
+                    for (const file of files) {
+                        if (currentTotalContentLength >= MAX_TOTAL_CONTENT_LENGTH) break;
+                        const fileUri = vscode.Uri.file(file);
+                        const contentBytes = await vscode.workspace.fs.readFile(fileUri);
+                        const content = Buffer.from(contentBytes).toString('utf8');
+                        const relativeFileName = path.relative(sourcePath, file).replace(/\\/g, '/') || path.basename(file);
+
+                        if (currentTotalContentLength + content.length <= MAX_TOTAL_CONTENT_LENGTH) {
+                            fileContentsContext += `파일명: ${relativeFileName}\n코드:\n\`\`\`${getFileType(file)}\n${content}\n\`\`\`\n\n`;
+                            currentTotalContentLength += content.length;
+                            includedFilesForContext.push({ name: relativeFileName, fullPath: file });
+                        } else {
+                            fileContentsContext += `파일명: ${relativeFileName}\n코드:\n[INFO] 파일 내용이 너무 길어 생략되었습니다.\n\n`;
+                            break;
+                        }
+                    }
+                }
+            } catch (err: any) {
+                console.error(`Error processing source path ${sourcePath}:`, err);
+                fileContentsContext += `[오류] 경로 '${sourcePath}' 처리 중 문제 발생: ${err.message}\n\n`;
+            }
+        }
+        if (includedFilesForContext.length === 0 && sourcePathsSetting.length > 0) {
+             fileContentsContext += "[정보] 설정된 경로에서 컨텍스트에 포함할 파일을 찾지 못했습니다. 파일 확장자나 경로 설정을 확인해주세요.\n";
+        } else if (sourcePathsSetting.length === 0) {
+             fileContentsContext += "[정보] 참조할 소스 경로가 설정되지 않았습니다. CodePilot 설정에서 경로를 추가해주세요.\n";
+        }
 
 
-        // 아이콘 경로 치환 (필요하다면)
-        const settingsIconUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'settings-gear.svg'));
-        const licenseIconUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'book.svg'));
-        const customizingIconUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'paintbrush.svg'));
+        const systemPrompt = `당신은 코드 수정 전문가입니다. 제공된 코드 컨텍스트를 바탕으로 사용자의 요청을 수행하고, 수정된 코드를 제공합니다.
+중요 규칙:
+1.  항상 모든 파일의 전체 코드를 출력해야 합니다. 부분적인 코드 변경만 출력하지 마세요.
+2.  수정된 코드를 출력할 때는, 코드 블록 바로 위에 다음 형식을 반드시 정확하게 지켜서 원래 파일명을 명시해야 합니다:
+    수정 파일: [원본 파일명]
+    여기서 [원본 파일명]은 컨텍스트로 제공된 '파일명: ' 뒤의 파일명(경로 포함 가능)과 정확히 일치해야 합니다. (예: '수정 파일: utils.js' 또는 '수정 파일: src/components/Button.tsx')
+3.  수정할 파일이 여러 개일 경우, 각 파일에 대해 2번 규칙을 반복하여 명시하고 해당 파일의 전체 코드를 코드 블록으로 출력합니다.
+4.  새로운 파일을 생성해야 하는 경우, '새 파일: [새 파일 경로/파일명]' 형식으로 명시하고 전체 코드를 출력합니다. (이 기능은 현재는 업데이트 대상이 아님)
+5.  수정하지 않은 파일에 대해서는 언급하거나 코드를 출력할 필요가 없습니다.`;
+
+        const fullPrompt = `사용자 요청: ${userQuery}\n\n--- 참조 코드 컨텍스트 ---\n${fileContentsContext.trim() === "" ? "참조 코드가 제공되지 않았습니다." : fileContentsContext}`;
+
+        console.log("[To LLM] System Prompt:", systemPrompt);
+        console.log("[To LLM] Full Prompt (first 300 chars):", fullPrompt.substring(0,300));
+
+        let llmResponse = await geminiApi.sendMessageWithSystemPrompt(systemPrompt, fullPrompt);
+
+        await processLlmResponseAndAutoUpdate(llmResponse, includedFilesForContext, webviewToRespond, context);
+
+    } catch (error: any) {
+        console.error("Error in handleUserMessageAndRespond:", error);
+        webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: `Error: ${error.message || 'Failed to process request.'}` });
+        webviewToRespond.postMessage({ command: 'hideLoading' });
+    }
+}
+
+async function processLlmResponseAndAutoUpdate(
+    llmResponse: string,
+    contextFiles: { name: string, fullPath: string }[],
+    webview: vscode.Webview,
+    context: vscode.ExtensionContext // Diff 및 임시 파일 정리용
+) {
+    const updatesToApply: { filePath: string; newContent: string; originalName: string }[] = [];
+    const codeBlockRegex = /수정 파일:\s*(.+?)\s*```(\w*\s*)\n([\s\S]*?)```/g;
+    let match;
+
+    console.log("[LLM Response Parsing] Starting. LLM Response (first 300 chars):", llmResponse.substring(0,300));
+
+    while ((match = codeBlockRegex.exec(llmResponse)) !== null) {
+        const llmSpecifiedFileName = match[1].trim();
+        const newCode = match[3];
+        console.log(`[LLM Response Parsing] Found directive. LLM file: "${llmSpecifiedFileName}"`);
+
+        const matchedFile = contextFiles.find(f => f.name === llmSpecifiedFileName);
+
+        if (matchedFile) {
+            console.log(`[LLM Response Parsing] Matched to local file: "${matchedFile.fullPath}"`);
+            updatesToApply.push({ filePath: matchedFile.fullPath, newContent: newCode, originalName: llmSpecifiedFileName });
+        } else {
+            const warnMsg = `경고: AI가 수정을 제안한 파일 '${llmSpecifiedFileName}'을(를) 컨텍스트 목록에서 찾을 수 없습니다. 해당 파일은 업데이트되지 않았습니다.`;
+            console.warn(`[LLM Response Parsing] No match for: "${llmSpecifiedFileName}". Context:`, contextFiles.map(f=>f.name));
+            webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
+        }
+    }
+
+    let updateSummaryMessages: string[] = [];
+
+    if (updatesToApply.length > 0) {
+        const autoUpdateEnabled = vscode.workspace.getConfiguration('codepilot').get<boolean>('autoUpdateFiles');
+
+        for (const update of updatesToApply) {
+            const fileNameForDisplay = update.originalName;
+            const fileUri = vscode.Uri.file(update.filePath);
+
+            if (autoUpdateEnabled) {
+                try {
+                    await vscode.workspace.fs.writeFile(fileUri, Buffer.from(update.newContent, 'utf8'));
+                    const successMsg = `✅ 파일이 자동으로 업데이트되었습니다: ${fileNameForDisplay}`;
+                    vscode.window.showInformationMessage(`CodePilot: ${successMsg}`);
+                    updateSummaryMessages.push(successMsg);
+                } catch (err: any) {
+                    const errorMsg = `❌ 파일 자동 업데이트 실패 (${fileNameForDisplay}): ${err.message}`;
+                    vscode.window.showErrorMessage(`CodePilot: ${errorMsg}`);
+                    updateSummaryMessages.push(errorMsg);
+                }
+            } else {
+                const userChoice = await vscode.window.showInformationMessage(
+                    `CodePilot: AI가 '${fileNameForDisplay}' 파일 수정을 제안했습니다. 적용하시겠습니까? (전체 코드로 대체됩니다)`,
+                    { modal: true }, "적용", "Diff 보기", "취소"
+                );
+
+                if (userChoice === "적용") {
+                    try {
+                        await vscode.workspace.fs.writeFile(fileUri, Buffer.from(update.newContent, 'utf8'));
+                        const successMsg = `✅ 파일이 업데이트되었습니다: ${fileNameForDisplay}`;
+                        vscode.window.showInformationMessage(`CodePilot: ${successMsg}`);
+                        updateSummaryMessages.push(successMsg);
+                    } catch (err: any) {
+                        const errorMsg = `❌ 파일 업데이트 실패 (${fileNameForDisplay}): ${err.message}`;
+                        vscode.window.showErrorMessage(`CodePilot: ${errorMsg}`);
+                        updateSummaryMessages.push(errorMsg);
+                    }
+                } else if (userChoice === "Diff 보기") {
+                    const tempFileName = `codepilot-suggested-${path.basename(update.filePath)}-${Date.now()}${path.extname(update.filePath)}`;
+                    const tempFileUri = vscode.Uri.joinPath(context.globalStorageUri, tempFileName);
+                    try {
+                        await vscode.workspace.fs.writeFile(tempFileUri, Buffer.from(update.newContent, 'utf8'));
+                        await vscode.commands.executeCommand('vscode.diff', fileUri, tempFileUri, `Original '${fileNameForDisplay}'  vs.  CodePilot Suggestion`);
+                        updateSummaryMessages.push(`ℹ️ '${fileNameForDisplay}' 변경 제안 Diff를 표시했습니다.`);
+                    } catch (diffError: any) {
+                        vscode.window.showErrorMessage(`Diff 표시 중 오류: ${diffError.message}`);
+                        updateSummaryMessages.push(`❌ Diff 표시 실패 (${fileNameForDisplay}): ${diffError.message}`);
+                    }
+                } else {
+                    updateSummaryMessages.push(`ℹ️ 파일 업데이트가 취소되었습니다: ${fileNameForDisplay}`);
+                }
+            }
+        }
+    }
+
+    let finalWebviewResponse = llmResponse;
+    if (updateSummaryMessages.length > 0) {
+        finalWebviewResponse += "\n\n--- 파일 업데이트 결과 ---\n" + updateSummaryMessages.join("\n");
+    } else if (updatesToApply.length === 0 && llmResponse.includes("```") && !llmResponse.includes("수정 파일:")) {
+        finalWebviewResponse += "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요.";
+    }
+
+
+    webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: finalWebviewResponse });
+    webview.postMessage({ command: 'hideLoading' });
+}
+
+
+function getFileType(filePath: string): string {
+    const ext = path.extname(filePath).toLowerCase();
+    switch (ext) {
+        case '.ts': case '.tsx': return 'typescript';
+        case '.js': case '.jsx': return 'javascript';
+        case '.py': return 'python';
+        case '.html': return 'html';
+        case '.css': return 'css';
+        case '.java': return 'java';
+        case '.c': return 'c';
+        case '.cpp': return 'cpp';
+        case '.go': return 'go';
+        case '.rs': return 'rust';
+        case '.md': return 'markdown';
+        case '.json': return 'json';
+        case '.xml': return 'xml';
+        case '.yaml': case '.yml': return 'yaml';
+        case '.sh': return 'shell';
+        case '.rb': return 'ruby';
+        case '.php': return 'php';
+        default: return '';
+    }
+}
+
+function getNonce() {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+}
+
+// --- HTML 콘텐츠 로더 및 패널 생성 함수들 ---
+function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, webview: vscode.Webview): string {
+    const htmlFilePathOnDisk = vscode.Uri.joinPath(extensionUri, 'webview', `${htmlFileName}.html`);
+    let htmlContent = '';
+    const nonce = getNonce();
+
+    try {
+        htmlContent = fs.readFileSync(htmlFilePathOnDisk.fsPath, 'utf8');
+        console.log(`[HTML Loader] Read ${htmlFileName}.html. Length: ${htmlContent.length}`);
+
+        const commonStylesUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'styles.css'));
+        const specificStylesUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', `${htmlFileName}.css`));
 
         htmlContent = htmlContent
-            .replace('{{settingsIconUri}}', settingsIconUri.toString())
-            .replace('{{licenseIconUri}}', licenseIconUri.toString())
-            .replace('{{customizingIconUri}}', customizingIconUri.toString());
+            .replace(/\{\{nonce\}\}/g, nonce)
+            .replace(/\{\{cspSource\}\}/g, webview.cspSource)
+            .replace('{{commonStylesUri}}', commonStylesUri.toString())
+            .replace(`{{${htmlFileName}StylesUri}}`, specificStylesUri.toString());
 
-        // chat.js 및 codeCopy.js 파일의 Webview URI 생성 및 치환
+        let mainScriptUri = '';
+        let secondaryScriptUri = '';
+
         if (htmlFileName === 'chat') {
-            const chatScriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'chat.js');
-            const codeCopyScriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'codeCopy.js');
-
-            const chatScriptUri = webview.asWebviewUri(chatScriptPathInExtension);
-            const codeCopyScriptUri = webview.asWebviewUri(codeCopyScriptPathInExtension);
-
-            console.log(`[URI Debug] Generated chat script URI: ${chatScriptUri.toString()}`);
-            console.log(`[URI Debug] Generated codeCopy script URI: ${codeCopyScriptUri.toString()}`);
-
-
-            const chatPlaceholder = '{{scriptUri}}';
-            if (htmlContent.includes(chatPlaceholder)) {
-                htmlContent = htmlContent.replace(chatPlaceholder, chatScriptUri.toString());
-                console.log(`[URI Debug] Successfully replaced "${chatPlaceholder}".`);
-            } else {
-                console.warn(`[URI Debug] Placeholder "${chatPlaceholder}" not found in ${htmlFileName}.html content.`);
-            }
-
-            const codeCopyPlaceholder = '{{codeCopyScriptUri}}';
-            if (htmlContent.includes(codeCopyPlaceholder)) {
-               htmlContent = htmlContent.replace(codeCopyPlaceholder, codeCopyScriptUri.toString());
-               console.log(`[URI Debug] Successfully replaced "${codeCopyPlaceholder}".`);
-            } else {
-               console.warn(`[URI Debug] Placeholder "${codeCopyPlaceholder}" not found in ${htmlFileName}.html content.`);
-            }
+            mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'chat.js')).toString();
+            secondaryScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'codeCopy.js')).toString();
+            htmlContent = htmlContent.replace('{{codeCopyScriptUri}}', secondaryScriptUri);
+        } else if (htmlFileName === 'settings') {
+            mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'settings.js')).toString();
+        } else if (htmlFileName === 'license') {
+            // license.html에 별도 JS 파일이 있다면 여기서 URI 생성
+            // mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'license.js')).toString();
         }
-        // settings.html 스크립트 URI 치환 로직
-        else if (htmlFileName === 'settings') { // settings.html 파일인 경우
-            // settings.js 스크립트 URI 생성
-            const settingsScriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'settings.js');
-            const settingsScriptUri = webview.asWebviewUri(settingsScriptPathInExtension);
-            console.log(`[URI Debug] Generated settings script URI: ${settingsScriptUri.toString()}`);
-
-            const settingsPlaceholder = '{{scriptUri}}'; // settings.html도 동일한 플레이스홀더 사용한다고 가정
-            if (htmlContent.includes(settingsPlaceholder)) {
-                htmlContent = htmlContent.replace(settingsPlaceholder, settingsScriptUri.toString());
-                console.log(`[URI Debug] Successfully replaced "${settingsPlaceholder}" in settings.html.`);
-            } else {
-                console.warn(`[URI Debug] Placeholder "${settingsPlaceholder}" not found in ${htmlFileName}.html content.`);
-            }
-        }
+        htmlContent = htmlContent.replace('{{scriptUri}}', mainScriptUri);
 
 
-        console.log('[URI Debug] Checking localResourceRoots set for this webview:');
-        const roots = webview.options.localResourceRoots;
-        if (roots && Array.isArray(roots)) {
-            for (const root of roots) {
-                 if (root instanceof vscode.Uri) {
-                    console.log(`- Root: ${root.toString()} (fsPath: ${root.fsPath})`);
-                 } else {
-                    console.log(`- Root: Invalid URI type`);
-                 }
-            }
-        } else {
-            console.log('- No localResourceRoots set.');
-        }
-
-    } catch (error: unknown) {
-        console.error(`[URI Debug] Error during getHtmlContentWithUris for ${htmlFileName}.html:`, error);
-        const errorMessage = (typeof error === 'object' && error !== null && 'message' in error)
-            ? (error as { message: string }).message
-            : String(error);
-        htmlContent = `<h1>Error loading ${htmlFileName} view</h1><p>${errorMessage}</p><p>Check console for details.</p>`;
+    } catch (error: any) {
+        console.error(`[HTML Loader] Error for ${htmlFileName}.html:`, error);
+        return `<h1>Error loading ${htmlFileName} view</h1><p>${error.message || 'File not found.'}</p>`;
     }
     return htmlContent;
 }
 
 
-// createWebviewPanelWithHtml 함수 - HTML 로딩 부분을 getHtmlContentWithUris로 변경
-function createWebviewPanelWithHtml(
+function createAndSetupWebviewPanel(
     extensionUri: vscode.Uri,
-    panelIdSuffix: string,
+    contextForSubs: vscode.ExtensionContext,
+    panelTypeSuffix: string,
     panelTitle: string,
     htmlFileName: string,
     viewColumn: vscode.ViewColumn = vscode.ViewColumn.One,
-    onDidReceiveMessage?: (data: any, panel: vscode.WebviewPanel) => void
-) {
-     const panel = vscode.window.createWebviewPanel(
-         `codepilot.${panelIdSuffix.toLowerCase()}`, panelTitle, viewColumn,
-         {
-             enableScripts: true,
-             // localResourceRoots에 dist/webview도 추가 (스크립트 로드용)
-             localResourceRoots: [ extensionUri, vscode.Uri.joinPath(extensionUri, 'webview'), vscode.Uri.joinPath(extensionUri, 'media'), vscode.Uri.joinPath(extensionUri, 'dist', 'webview') ]
-         }
-     );
-
-    // HTML 콘텐츠를 getHtmlContentWithUris 함수로 가져옴
+    onDidReceiveMessage?: (data: any, panel: vscode.WebviewPanel) => void | Promise<void>
+): vscode.WebviewPanel {
+    const panel = vscode.window.createWebviewPanel(
+        `codepilot.${panelTypeSuffix.toLowerCase()}`, panelTitle, viewColumn,
+        {
+            enableScripts: true, retainContextWhenHidden: true,
+            localResourceRoots: [
+                extensionUri,
+                vscode.Uri.joinPath(extensionUri, 'webview'),
+                vscode.Uri.joinPath(extensionUri, 'media'),
+                vscode.Uri.joinPath(extensionUri, 'dist')
+            ]
+        }
+    );
     panel.webview.html = getHtmlContentWithUris(extensionUri, htmlFileName, panel.webview);
-
-
-    panel.onDidDispose(() => { console.log(`${panelTitle} panel closed`); }, null, []);
-
+    // <-- 수정: onDidDispose에서 thisArg를 undefined로 명시 -->
+    panel.onDidDispose(() => { /* 정리 */ }, undefined, contextForSubs.subscriptions);
+    // <-- 수정 끝 -->
     if (onDidReceiveMessage) {
-        panel.webview.onDidReceiveMessage(data => { onDidReceiveMessage(data, panel); });
+        // <-- 수정: onDidReceiveMessage에서 thisArg를 undefined로 명시 -->
+        panel.webview.onDidReceiveMessage(async (data) => { await onDidReceiveMessage(data, panel); }, undefined, contextForSubs.subscriptions);
+        // <-- 수정 끝 -->
     }
-
+    panel.reveal(viewColumn);
     return panel;
 }
 
-
-// blank.html을 로드하는 헬퍼 함수 (SettingsPanel에서 openBlankPanel은 다른 용도로 사용)
-function openBlankPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTitle: string) {
-     createWebviewPanelWithHtml(extensionUri, panelIdSuffix, panelTitle, 'blank');
-}
-
-// License Panel을 여는 헬퍼 함수 (이전과 동일)
-function openLicensePanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTitle: string, viewColumn: vscode.ViewColumn = vscode.ViewColumn.One) {
-     createWebviewPanelWithHtml(extensionUri, panelIdSuffix, panelTitle, 'license', viewColumn,
-         async (data, panel) => {
-             switch (data.command) {
-                 case 'saveApiKey':
-                     console.log('Received saveApiKey command from license panel.');
-                     const apiKey = data.apiKey;
-                     if (apiKey) {
-                         try {
-                             await storageService.saveApiKey(apiKey);
-                             geminiApi.updateApiKey(apiKey);
-                             panel.webview.postMessage({ command: 'apiKeySaved' });
-                         } catch (error: any) { console.error('Error saving API Key:', error); panel.webview.postMessage({ command: 'apiKeySaveError', error: error.message || String(error) }); }
-                     } else {
-                          console.warn('Received saveApiKey command but API key was empty.');
-                          panel.webview.postMessage({ command: 'apiKeySaveError', error: 'API Key cannot be empty.' });
-                     }
-                     break;
-                 case 'checkApiKeyStatus':
-                    const currentKey = await storageService.getApiKey();
-                    panel.webview.postMessage({ command: 'apiKeyStatus', hasKey: !!currentKey });
-                    break;
-             }
-         }
-     );
-}
-
-// Settings Panel을 여는 헬퍼 함수
-function openSettingsPanel(
-    extensionUri: vscode.Uri,
-    panelIdSuffix: string,
-    panelTitle: string,
-    viewColumn: vscode.ViewColumn = vscode.ViewColumn.One
-) {
-    createWebviewPanelWithHtml(extensionUri, panelIdSuffix, panelTitle, 'settings', viewColumn,
+// --- 패널 열기 헬퍼 함수들 (context 인자 추가) ---
+function openSettingsPanel(extensionUri: vscode.Uri, context: vscode.ExtensionContext, viewColumn: vscode.ViewColumn) {
+    createAndSetupWebviewPanel(extensionUri, context, 'settings', 'CodePilot Settings', 'settings', viewColumn,
         async (data, panel) => {
             const config = vscode.workspace.getConfiguration('codepilot');
-
             switch (data.command) {
                 case 'initSettings':
-                    console.log('Received initSettings command from settings panel.');
-                    const sourcePaths = config.get<string[]>('sourcePaths') || [];
-                    panel.webview.postMessage({ command: 'currentSettings', sourcePaths: sourcePaths });
+                    panel.webview.postMessage({
+                        command: 'currentSettings',
+                        sourcePaths: config.get<string[]>('sourcePaths') || [],
+                        autoUpdateEnabled: config.get<boolean>('autoUpdateFiles') || false
+                    });
                     break;
-
                 case 'addDirectory':
-                    console.log('Received addDirectory command from settings panel.');
-                    const options: vscode.OpenDialogOptions = {
-                        canSelectFolders: true, // 폴더 선택 가능
-                        canSelectFiles: true, // <-- 수정: 파일 선택 가능
-                        canSelectMany: true, // <-- 수정: 여러 개 선택 가능
-                        openLabel: 'Select Source File(s) or Directory(ies)' // <-- 수정: 버튼 텍스트
-                    };
-                    const selectedUris = await vscode.window.showOpenDialog(options); // <-- 수정: folderUris 대신 selectedUris
-                    if (selectedUris && selectedUris.length > 0) {
-                        const newPathsToAdd = selectedUris.map(uri => uri.fsPath); // <-- 수정: 여러 경로 매핑
-                        const currentPaths = config.get<string[]>('sourcePaths') || [];
-                        let updatedPaths = [...currentPaths]; // <-- 수정: 기존 경로 복사
-
-                        newPathsToAdd.forEach(newPath => { // <-- 수정: 각 새 경로를 순회
-                            if (!updatedPaths.includes(newPath)) { // 중복 방지
-                                updatedPaths.push(newPath); // 경로 추가
-                                vscode.window.showInformationMessage(`CodePilot: Added source path '${newPath}'`);
-                            } else {
-                                vscode.window.showInformationMessage(`CodePilot: Path '${newPath}' already exists.`);
-                            }
-                        });
-
-                        // 최종 업데이트된 경로를 저장
-                        await config.update('sourcePaths', updatedPaths, vscode.ConfigurationTarget.Global);
-                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
+                    const uris = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: true, canSelectMany: true, openLabel: 'Select Sources' });
+                    if (uris && uris.length > 0) {
+                        const newPaths = uris.map(u => u.fsPath);
+                        const current = config.get<string[]>('sourcePaths') || [];
+                        await config.update('sourcePaths', Array.from(new Set([...current, ...newPaths])), vscode.ConfigurationTarget.Global);
+                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: config.get<string[]>('sourcePaths') });
                     }
                     break;
-
-                case 'removeDirectory': // Webview에서 디렉토리/파일 삭제 요청 시 (명칭은 Directory로 유지)
-                    console.log('Received removeDirectory command from settings panel:', data.path);
+                case 'removeDirectory':
                     const pathToRemove = data.path;
-                    const currentPaths = config.get<string[]>('sourcePaths') || [];
-                    const updatedPaths = currentPaths.filter(p => p !== pathToRemove);
-                    await config.update('sourcePaths', updatedPaths, vscode.ConfigurationTarget.Global);
-                    panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
-                    vscode.window.showInformationMessage(`CodePilot: Removed source path '${pathToRemove}'`);
+                    if (pathToRemove) {
+                        const current = config.get<string[]>('sourcePaths') || [];
+                        await config.update('sourcePaths', current.filter(p => p !== pathToRemove), vscode.ConfigurationTarget.Global);
+                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: config.get<string[]>('sourcePaths') });
+                    }
                     break;
-
-                // API Key 설정은 License Panel에서 처리하므로 여기서는 다루지 않음.
+                case 'setAutoUpdate':
+                    if (typeof data.enabled === 'boolean') {
+                        await config.update('autoUpdateFiles', data.enabled, vscode.ConfigurationTarget.Global);
+                        panel.webview.postMessage({ command: 'autoUpdateStatusChanged', enabled: data.enabled });
+                    }
+                    break;
             }
         }
     );
 }
-
-
-// Chat Panel을 여는 헬퍼 함수 (이전과 동일)
-function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTitle: string, viewColumn: vscode.ViewColumn = vscode.ViewColumn.One) {
-     createWebviewPanelWithHtml(extensionUri, panelIdSuffix, panelTitle, 'chat', viewColumn,
+function openLicensePanel(extensionUri: vscode.Uri, context: vscode.ExtensionContext, viewColumn: vscode.ViewColumn) {
+    createAndSetupWebviewPanel(extensionUri, context, 'license', 'CodePilot License', 'license', viewColumn,
         async (data, panel) => {
-             switch (data.command) {
-                 case 'sendMessage':
-                     console.log('Received message from chat panel:', data.text);
-                     const userText = data.text.trim();
-
-                     const apiKey = await storageService.getApiKey();
-                     if (!apiKey) {
-                         panel.webview.postMessage({ command: 'receiveMessage', text: "Error: Gemini API Key is not set. Please go to the License panel to set it.", sender: 'CodePilot' });
-                         return;
-                     }
-
-                     if (userText === '앱 실행') {
-                         const terminal = getCodePilotTerminal();
-                         terminal.show();
-                         terminal.sendText('npm start', true);
-                          panel.webview.postMessage({ command: 'receiveMessage', text: "Running `npm start` in terminal...", sender: 'CodePilot' });
-
-                     } else if (userText === '깃 푸쉬') {
-                         const terminal = getCodePilotTerminal();
-                         terminal.show();
-                         terminal.sendText('git add -A', true);
-                         terminal.sendText('git commit -m "n/a"', true);
-                         terminal.sendText('git push', true);
-                          panel.webview.postMessage({ command: 'receiveMessage', text: "Executing Git commands in terminal...", sender: 'CodePilot' });
-
-                     } else {
-                          panel.webview.postMessage({ command: 'showLoading' });
-
-                          let geminiResponse = "Error sending message to CodePilot AI.";
-                          try { geminiResponse = await geminiApi.sendMessage(userText); }
-                          catch (error: any) { console.error("Gemini API Call Failed:", error); geminiResponse = `Error: Failed to get response from AI. ${error.message || ''}`; }
-                          finally { panel.webview.postMessage({ command: 'hideLoading' }); }
-
-                          panel.webview.postMessage({ command: 'receiveMessage', text: geminiResponse, sender: 'CodePilot' });
-                     }
-                     break;
-                  case 'openPanel':
-                      console.log(`Received open panel command from chat panel: ${data.panel}`);
-                       if (data.panel === 'settings') { openSettingsPanel(extensionUri, 'Settings', 'CodePilot Settings', panel.viewColumn); }
-                       else if (data.panel === 'license') { openLicensePanel(extensionUri, 'License', 'CodePilot License Information', panel.viewColumn); }
-                       else if (data.panel === 'customizing') { openBlankPanel(extensionUri, 'Customizing', 'CodePilot Customization Options'); }
-                       break;
-             }
-         }
-     );
+            switch (data.command) {
+                case 'saveApiKey':
+                    // ... (이전과 동일한 API Key 저장 로직) ...
+                    const apiKeyToSave = data.apiKey;
+                    if (apiKeyToSave && typeof apiKeyToSave === 'string') {
+                        try {
+                            await storageService.saveApiKey(apiKeyToSave);
+                            geminiApi.updateApiKey(apiKeyToSave);
+                            panel.webview.postMessage({ command: 'apiKeySaved', message: 'API Key saved!' });
+                            vscode.window.showInformationMessage('CodePilot: API Key saved.');
+                        } catch (error: any) {
+                            panel.webview.postMessage({ command: 'apiKeySaveError', error: error.message });
+                        }
+                    } else { panel.webview.postMessage({ command: 'apiKeySaveError', error: 'API Key empty.' });}
+                    break;
+                case 'checkApiKeyStatus': // license.html에서 요청 시
+                    const currentKey = await storageService.getApiKey();
+                    panel.webview.postMessage({ command: 'apiKeyStatus', hasKey: !!currentKey, apiKeyPreview: currentKey ? `***${currentKey.slice(-4)}` : 'Not Set' });
+                    break;
+            }
+        }
+    );
+}
+function openBlankPanel(extensionUri: vscode.Uri, context: vscode.ExtensionContext, viewColumn: vscode.ViewColumn) {
+    createAndSetupWebviewPanel(extensionUri, context, 'customizing', 'CodePilot Customizing', 'blank', viewColumn,
+        (data, panel) => { console.log(`[BlankPanel] Message:`, data); }
+    );
 }
