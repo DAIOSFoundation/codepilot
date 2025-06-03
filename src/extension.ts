@@ -98,7 +98,7 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
                 case 'openPanel':
                     console.log(`Received open panel command from chat view: ${data.panel}`);
                      // Activity Bar View의 메뉴에서 패널 열기 (ViewColumn.One에 고정)
-                    if (data.panel === 'settings') { openBlankPanel(this._extensionUri, 'Settings', 'CodePilot Settings'); }
+                    if (data.panel === 'settings') { openSettingsPanel(this._extensionUri, 'Settings', 'CodePilot Settings', vscode.ViewColumn.One); }
                     else if (data.panel === 'license') {
                          openLicensePanel(this._extensionUri, 'License', 'CodePilot License Information', vscode.ViewColumn.One);
                     } else if (data.panel === 'customizing') { openBlankPanel(this._extensionUri, 'Customizing', 'CodePilot Customization Options'); }
@@ -136,10 +136,13 @@ export async function activate(context: vscode.ExtensionContext) { // <-- async 
 
     // 2. Command 등록 (package.json의 contributes.commands[]에 정의된 명령어들)
 
+    // <-- 수정: openSettingsPanel 명령어 핸들러 변경 -->
     const openSettingsPanelCommand = vscode.commands.registerCommand('codepilot.openSettingsPanel', () => {
-        openBlankPanel(context.extensionUri, 'Settings', 'CodePilot Settings'); // blank.html 로드
+        // settings.html 파일을 로드하는 새로운 헬퍼 함수 호출
+        openSettingsPanel(context.extensionUri, 'Settings', 'CodePilot Settings', vscode.ViewColumn.One);
     });
     context.subscriptions.push(openSettingsPanelCommand);
+    // <-- 수정 끝 -->
 
     const openLicensePanelCommand = vscode.commands.registerCommand('codepilot.openLicensePanel', () => {
         // License 패널 명령어 실행 시 ViewColumn.One에 열도록 고정
@@ -182,7 +185,6 @@ function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, 
     let htmlContent = '';
 
     try {
-        // 1. chat.html 파일을 제대로 읽어오는지 확인
         htmlContent = fs.readFileSync(htmlFilePath.fsPath, 'utf8');
         console.log(`Successfully read ${htmlFileName}.html. Content length: ${htmlContent.length}`);
 
@@ -199,18 +201,16 @@ function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, 
 
         // chat.js 및 codeCopy.js 파일의 Webview URI 생성 및 치환
         if (htmlFileName === 'chat') {
-            // webpack.config.js의 output 설정 (path, filename)과 일치해야 함
             const chatScriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'chat.js');
-            const codeCopyScriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'codeCopy.js'); // <-- codeCopy.js 경로
+            const codeCopyScriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'codeCopy.js');
 
             const chatScriptUri = webview.asWebviewUri(chatScriptPathInExtension);
-            const codeCopyScriptUri = webview.asWebviewUri(codeCopyScriptPathInExtension); // <-- codeCopy.js URI
+            const codeCopyScriptUri = webview.asWebviewUri(codeCopyScriptPathInExtension);
 
             console.log(`[URI Debug] Generated chat script URI: ${chatScriptUri.toString()}`);
             console.log(`[URI Debug] Generated codeCopy script URI: ${codeCopyScriptUri.toString()}`);
 
 
-            // {{scriptUri}} 치환
             const chatPlaceholder = '{{scriptUri}}';
             if (htmlContent.includes(chatPlaceholder)) {
                 htmlContent = htmlContent.replace(chatPlaceholder, chatScriptUri.toString());
@@ -219,7 +219,6 @@ function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, 
                 console.warn(`[URI Debug] Placeholder "${chatPlaceholder}" not found in ${htmlFileName}.html content.`);
             }
 
-            // <-- 추가: {{codeCopyScriptUri}} 치환 -->
             const codeCopyPlaceholder = '{{codeCopyScriptUri}}';
             if (htmlContent.includes(codeCopyPlaceholder)) {
                htmlContent = htmlContent.replace(codeCopyPlaceholder, codeCopyScriptUri.toString());
@@ -227,22 +226,36 @@ function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, 
             } else {
                console.warn(`[URI Debug] Placeholder "${codeCopyPlaceholder}" not found in ${htmlFileName}.html content.`);
             }
-            // <-- 추가 끝 -->
+        }
+        // settings.html 스크립트 URI 치환 로직
+        else if (htmlFileName === 'settings') { // settings.html 파일인 경우
+            // settings.js 스크립트 URI 생성
+            const settingsScriptPathInExtension = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'settings.js');
+            const settingsScriptUri = webview.asWebviewUri(settingsScriptPathInExtension);
+            console.log(`[URI Debug] Generated settings script URI: ${settingsScriptUri.toString()}`);
 
-
-            console.log('[URI Debug] Checking localResourceRoots set for this webview:');
-            const roots = webview.options.localResourceRoots;
-            if (roots && Array.isArray(roots)) {
-                for (const root of roots) {
-                     if (root instanceof vscode.Uri) {
-                        console.log(`- Root: ${root.toString()} (fsPath: ${root.fsPath})`);
-                     } else {
-                        console.log(`- Root: Invalid URI type`);
-                     }
-                }
+            const settingsPlaceholder = '{{scriptUri}}'; // settings.html도 동일한 플레이스홀더 사용한다고 가정
+            if (htmlContent.includes(settingsPlaceholder)) {
+                htmlContent = htmlContent.replace(settingsPlaceholder, settingsScriptUri.toString());
+                console.log(`[URI Debug] Successfully replaced "${settingsPlaceholder}" in settings.html.`);
             } else {
-                console.log('- No localResourceRoots set.');
+                console.warn(`[URI Debug] Placeholder "${settingsPlaceholder}" not found in ${htmlFileName}.html content.`);
             }
+        }
+
+
+        console.log('[URI Debug] Checking localResourceRoots set for this webview:');
+        const roots = webview.options.localResourceRoots;
+        if (roots && Array.isArray(roots)) {
+            for (const root of roots) {
+                 if (root instanceof vscode.Uri) {
+                    console.log(`- Root: ${root.toString()} (fsPath: ${root.fsPath})`);
+                 } else {
+                    console.log(`- Root: Invalid URI type`);
+                 }
+            }
+        } else {
+            console.log('- No localResourceRoots set.');
         }
 
     } catch (error: unknown) {
@@ -269,7 +282,7 @@ function createWebviewPanelWithHtml(
          `codepilot.${panelIdSuffix.toLowerCase()}`, panelTitle, viewColumn,
          {
              enableScripts: true,
-             // localResourceRoots에 dist/webview도 추가 (chat.js 및 codeCopy.js 로드용)
+             // localResourceRoots에 dist/webview도 추가 (스크립트 로드용)
              localResourceRoots: [ extensionUri, vscode.Uri.joinPath(extensionUri, 'webview'), vscode.Uri.joinPath(extensionUri, 'media'), vscode.Uri.joinPath(extensionUri, 'dist', 'webview') ]
          }
      );
@@ -288,23 +301,22 @@ function createWebviewPanelWithHtml(
 }
 
 
-// blank.html을 로드하는 헬퍼 함수
+// blank.html을 로드하는 헬퍼 함수 (SettingsPanel에서 openBlankPanel은 다른 용도로 사용)
 function openBlankPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTitle: string) {
      createWebviewPanelWithHtml(extensionUri, panelIdSuffix, panelTitle, 'blank');
 }
 
-// license.html을 로드하고 메시지를 처리하는 헬퍼 함수
+// License Panel을 여는 헬퍼 함수 (이전과 동일)
 function openLicensePanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTitle: string, viewColumn: vscode.ViewColumn = vscode.ViewColumn.One) {
      createWebviewPanelWithHtml(extensionUri, panelIdSuffix, panelTitle, 'license', viewColumn,
-         async (data, panel) => { // <-- async 유지 -->
+         async (data, panel) => {
              switch (data.command) {
                  case 'saveApiKey':
                      console.log('Received saveApiKey command from license panel.');
                      const apiKey = data.apiKey;
                      if (apiKey) {
                          try {
-                             await storageService.saveApiKey(apiKey); // API Key 저장
-                             // Gemini API 인스턴스 업데이트 (updateApiKey 함수 사용)
+                             await storageService.saveApiKey(apiKey);
                              geminiApi.updateApiKey(apiKey);
                              panel.webview.postMessage({ command: 'apiKeySaved' });
                          } catch (error: any) { console.error('Error saving API Key:', error); panel.webview.postMessage({ command: 'apiKeySaveError', error: error.message || String(error) }); }
@@ -313,7 +325,6 @@ function openLicensePanel(extensionUri: vscode.Uri, panelIdSuffix: string, panel
                           panel.webview.postMessage({ command: 'apiKeySaveError', error: 'API Key cannot be empty.' });
                      }
                      break;
-                 // License Panel에서 'checkApiKeyStatus' 메시지를 보내면 여기서 처리
                  case 'checkApiKeyStatus':
                     const currentKey = await storageService.getApiKey();
                     panel.webview.postMessage({ command: 'apiKeyStatus', hasKey: !!currentKey });
@@ -323,16 +334,78 @@ function openLicensePanel(extensionUri: vscode.Uri, panelIdSuffix: string, panel
      );
 }
 
-// chat.html을 로드하고 메시지를 처리하는 헬퍼 함수
+// Settings Panel을 여는 헬퍼 함수
+function openSettingsPanel(
+    extensionUri: vscode.Uri,
+    panelIdSuffix: string,
+    panelTitle: string,
+    viewColumn: vscode.ViewColumn = vscode.ViewColumn.One
+) {
+    createWebviewPanelWithHtml(extensionUri, panelIdSuffix, panelTitle, 'settings', viewColumn,
+        async (data, panel) => {
+            const config = vscode.workspace.getConfiguration('codepilot');
+
+            switch (data.command) {
+                case 'initSettings':
+                    console.log('Received initSettings command from settings panel.');
+                    const sourcePaths = config.get<string[]>('sourcePaths') || [];
+                    panel.webview.postMessage({ command: 'currentSettings', sourcePaths: sourcePaths });
+                    break;
+
+                case 'addDirectory':
+                    console.log('Received addDirectory command from settings panel.');
+                    const options: vscode.OpenDialogOptions = {
+                        canSelectFolders: true, // 폴더 선택 가능
+                        canSelectFiles: true, // <-- 수정: 파일 선택 가능
+                        canSelectMany: true, // <-- 수정: 여러 개 선택 가능
+                        openLabel: 'Select Source File(s) or Directory(ies)' // <-- 수정: 버튼 텍스트
+                    };
+                    const selectedUris = await vscode.window.showOpenDialog(options); // <-- 수정: folderUris 대신 selectedUris
+                    if (selectedUris && selectedUris.length > 0) {
+                        const newPathsToAdd = selectedUris.map(uri => uri.fsPath); // <-- 수정: 여러 경로 매핑
+                        const currentPaths = config.get<string[]>('sourcePaths') || [];
+                        let updatedPaths = [...currentPaths]; // <-- 수정: 기존 경로 복사
+
+                        newPathsToAdd.forEach(newPath => { // <-- 수정: 각 새 경로를 순회
+                            if (!updatedPaths.includes(newPath)) { // 중복 방지
+                                updatedPaths.push(newPath); // 경로 추가
+                                vscode.window.showInformationMessage(`CodePilot: Added source path '${newPath}'`);
+                            } else {
+                                vscode.window.showInformationMessage(`CodePilot: Path '${newPath}' already exists.`);
+                            }
+                        });
+
+                        // 최종 업데이트된 경로를 저장
+                        await config.update('sourcePaths', updatedPaths, vscode.ConfigurationTarget.Global);
+                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
+                    }
+                    break;
+
+                case 'removeDirectory': // Webview에서 디렉토리/파일 삭제 요청 시 (명칭은 Directory로 유지)
+                    console.log('Received removeDirectory command from settings panel:', data.path);
+                    const pathToRemove = data.path;
+                    const currentPaths = config.get<string[]>('sourcePaths') || [];
+                    const updatedPaths = currentPaths.filter(p => p !== pathToRemove);
+                    await config.update('sourcePaths', updatedPaths, vscode.ConfigurationTarget.Global);
+                    panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
+                    vscode.window.showInformationMessage(`CodePilot: Removed source path '${pathToRemove}'`);
+                    break;
+
+                // API Key 설정은 License Panel에서 처리하므로 여기서는 다루지 않음.
+            }
+        }
+    );
+}
+
+
+// Chat Panel을 여는 헬퍼 함수 (이전과 동일)
 function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTitle: string, viewColumn: vscode.ViewColumn = vscode.ViewColumn.One) {
-     createWebviewPanelWithHtml(extensionUri, panelIdSuffix, panelTitle, 'chat', viewColumn, // <-- viewColumn 인자 사용 -->
-        async (data, panel) => { // <-- async 유지 -->
+     createWebviewPanelWithHtml(extensionUri, panelIdSuffix, panelTitle, 'chat', viewColumn,
+        async (data, panel) => {
              switch (data.command) {
                  case 'sendMessage':
                      console.log('Received message from chat panel:', data.text);
                      const userText = data.text.trim();
-
-                     // 사용자 메시지는 웹뷰 자체에서 처리하도록 변경됨
 
                      const apiKey = await storageService.getApiKey();
                      if (!apiKey) {
@@ -340,12 +413,10 @@ function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTit
                          return;
                      }
 
-                     // 터미널 명령 우선 처리
                      if (userText === '앱 실행') {
                          const terminal = getCodePilotTerminal();
                          terminal.show();
                          terminal.sendText('npm start', true);
-                          // 터미널 명령 실행 후 CodePilot 응답 메시지를 보낼 수도 있습니다.
                           panel.webview.postMessage({ command: 'receiveMessage', text: "Running `npm start` in terminal...", sender: 'CodePilot' });
 
                      } else if (userText === '깃 푸쉬') {
@@ -354,42 +425,25 @@ function openChatPanel(extensionUri: vscode.Uri, panelIdSuffix: string, panelTit
                          terminal.sendText('git add -A', true);
                          terminal.sendText('git commit -m "n/a"', true);
                          terminal.sendText('git push', true);
-                         // 터미널 명령 실행 후 CodePilot 응답 메시지를 보낼 수도 있습니다.
                           panel.webview.postMessage({ command: 'receiveMessage', text: "Executing Git commands in terminal...", sender: 'CodePilot' });
 
                      } else {
-                          // <-- 추가: Gemini API 호출 전에 로딩 표시 메시지 전송 -->
                           panel.webview.postMessage({ command: 'showLoading' });
-                          // <-- 추가 끝 -->
 
-                          // Gemini API 호출
-                          console.log('Sending message to Gemini...');
                           let geminiResponse = "Error sending message to CodePilot AI.";
-                          try {
-                              geminiResponse = await geminiApi.sendMessage(userText);
-                          } catch (error: any) {
-                               console.error("Gemini API Call Failed:", error);
-                               geminiResponse = `Error: Failed to get response from AI. ${error.message || ''}`;
-                          } finally {
-                              // <-- 추가: Gemini API 호출 완료 (성공/실패) 후에 로딩 표시 제거 메시지 전송 -->
-                              panel.webview.postMessage({ command: 'hideLoading' });
-                              // <-- 추가 끝 -->
-                          }
+                          try { geminiResponse = await geminiApi.sendMessage(userText); }
+                          catch (error: any) { console.error("Gemini API Call Failed:", error); geminiResponse = `Error: Failed to get response from AI. ${error.message || ''}`; }
+                          finally { panel.webview.postMessage({ command: 'hideLoading' }); }
 
-
-                          // CodePilot 응답을 UI에 표시 (Gemini 응답 사용)
                           panel.webview.postMessage({ command: 'receiveMessage', text: geminiResponse, sender: 'CodePilot' });
                      }
                      break;
                   case 'openPanel':
                       console.log(`Received open panel command from chat panel: ${data.panel}`);
-                       if (data.panel === 'settings') { openBlankPanel(extensionUri, 'Settings', 'CodePilot Settings'); }
-                       else if (data.panel === 'license') {
-                            // Chat Panel에서 License 패널을 열 때는 현재 패널과 같은 열에 열도록 viewColumn 전달
-                           openLicensePanel(extensionUri, 'License', 'CodePilot License Information', panel.viewColumn);
-                       } else if (data.panel === 'customizing') { openBlankPanel(extensionUri, 'Customizing', 'CodePilot Customization Options'); }
+                       if (data.panel === 'settings') { openSettingsPanel(extensionUri, 'Settings', 'CodePilot Settings', panel.viewColumn); }
+                       else if (data.panel === 'license') { openLicensePanel(extensionUri, 'License', 'CodePilot License Information', panel.viewColumn); }
+                       else if (data.panel === 'customizing') { openBlankPanel(extensionUri, 'Customizing', 'CodePilot Customization Options'); }
                        break;
-                 // TODO: chat.js에서 보낼 수 있는 추가 메시지 타입 처리
              }
          }
      );

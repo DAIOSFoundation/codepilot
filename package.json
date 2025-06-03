@@ -3,7 +3,7 @@
   "displayName": "codepilot",
   "description": "Coding assistant with customizable LLM",
   "version": "0.5.0",
-  "publisher": "banya.ai",
+  "publisher": "banya",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -48,10 +48,6 @@
     },
     "commands": [
       {
-        "command": "codepilot.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "codepilot.openSettingsPanel",
         "title": "Setting"
       },
@@ -95,6 +91,26 @@
           "title": "Customizing"
         }
       ]
+    },
+    "configuration": {
+      "title": "CodePilot Configuration",
+      "properties": {
+        "codepilot.sourcePaths": {
+          "type": "array",
+          "default": [],
+          "description": "CodePilot이 AI 응답을 생성할 때 참조할 소스 코드 파일 및 디렉토리 경로 목록을 지정합니다. 여기에 지정된 모든 파일과 폴더의 내용이 AI에게 컨텍스트 정보로 제공될 수 있습니다.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "codepilot.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Gemini API Key를 설정합니다. Secret Storage에 안전하게 저장됩니다.",
+          "scope": "resource",
+          "markdownDescription": "Gemini API Key를 설정합니다. 이는 VS Code의 Secret Storage에 안전하게 저장되며, 확장이 이 키를 사용하여 Gemini API에 접근합니다. [여기](https://aistudio.google.com/app/apikey)에서 API 키를 얻을 수 있습니다."
+        }
+      }
     }
   },
   "scripts": {
@@ -125,9 +141,7 @@
     "ts-loader": "^9.5.2",
     "typescript": "^5.8.3",
     "webpack": "^5.99.7",
-    "webpack-cli": "^6.0.1"
-  },
-  "dependencies": {
+    "webpack-cli": "^6.0.1",
     "markdown-it": "^14.1.0"
   }
 }

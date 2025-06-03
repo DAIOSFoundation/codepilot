@@ -49,10 +49,11 @@ const webviewConfig = {
 	mode: 'none', // will be overridden by npm scripts (e.g., development or production)
 
   // <-- 수정: 웹뷰 스크립트 entry point를 객체로 설정 -->
-  // chat.js와 codeCopy.js를 각각 별도의 번들로 출력합니다.
+  // chat.js, codeCopy.js, settings.js를 각각 별도의 번들로 출력합니다.
   entry: {
     chat: './webview/chat.js', // chat 번들
     codeCopy: './webview/codeCopy.js', // codeCopy 번들
+    settings: './webview/settings.js' // <-- 추가: settings.js 번들 엔트리 포인트
   },
   // <-- 수정 끝 -->
 
@@ -63,8 +64,8 @@ const webviewConfig = {
     // <-- 끝 -->
 
     // <-- 수정: 웹뷰 번들 파일 이름을 [name].js 형태로 설정 -->
-    // entry 객체의 키 (chat, codeCopy)를 사용하여 파일 이름이 결정됩니다.
-    filename: '[name].js', // 예: chat.js, codeCopy.js
+    // entry 객체의 키 (chat, codeCopy, settings)를 사용하여 파일 이름이 결정됩니다.
+    filename: '[name].js', // 예: chat.js, codeCopy.js, settings.js
     // <-- 수정 끝 -->
 
     libraryTarget: 'umd', // 웹 환경에 맞는 라이브러리 타겟 (UMD, var 등)
@@ -77,17 +78,15 @@ const webviewConfig = {
 
   resolve: {
     // <-- 추가/수정: 웹뷰에서 import하는 파일들의 확장자 해결 -->
-    // chat.js와 codeCopy.js는 .js 파일입니다. import를 사용하므로 .js 확장이 필요합니다.
+    // .js 파일입니다. import를 사용하므로 .js 확장이 필요합니다.
     extensions: ['.js']
     // 만약 웹뷰 코드를 TypeScript로 작성했다면 ['.ts', '.js'] 추가
-    // <-- 추가/수정 끝 -->
   },
   module: {
     rules: [
       // <-- 추가: 웹뷰 JS 파일에 필요한 로더 (babel 등) -->
       // `.js` 파일을 babel 등으로 트랜스파일링 할 필요가 있다면 여기에 추가합니다.
-      // chat.js 파일에 ES 모듈 import 및 async/await 등이 사용되므로,
-      // 브라우저 호환성을 위해 babel-loader가 필요할 수 있습니다.
+      // ES 모듈 import 및 async/await 등이 사용되므로, 브라우저 호환성을 위해 babel-loader가 필요할 수 있습니다.
        {
          test: /\.js$/,
          exclude: /node_modules/,
