@@ -192,7 +192,8 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
     여기서 [원본 파일명]은 컨텍스트로 제공된 '파일명: ' 뒤의 파일명(경로 포함 가능)과 정확히 일치해야 합니다. (예: '수정 파일: utils.js' 또는 '수정 파일: src/components/Button.tsx')
 3.  수정할 파일이 여러 개일 경우, 각 파일에 대해 2번 규칙을 반복하여 명시하고 해당 파일의 전체 코드를 코드 블록으로 출력합니다.
 4.  새로운 파일을 생성해야 하는 경우, '새 파일: [새 파일 경로/파일명]' 형식으로 명시하고 전체 코드를 출력합니다. (이 기능은 현재는 업데이트 대상이 아님)
-5.  수정하지 않은 파일에 대해서는 언급하거나 코드를 출력할 필요가 없습니다.`;
+5.  수정하지 않은 파일에 대해서는 언급하거나 코드를 출력할 필요가 없습니다.
+6.  수정된 내용을 요약해서 출력합니다.`;
 
         const fullPrompt = `사용자 요청: ${userQuery}\n\n--- 참조 코드 컨텍스트 ---\n${fileContentsContext.trim() === "" ? "참조 코드가 제공되지 않았습니다." : fileContentsContext}`;
 
