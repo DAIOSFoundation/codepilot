@@ -124,7 +124,7 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
     try {
         const sourcePathsSetting = vscode.workspace.getConfiguration('codepilot').get<string[]>('sourcePaths') || [];
         let fileContentsContext = "";
-        const MAX_TOTAL_CONTENT_LENGTH = 25000;
+        const MAX_TOTAL_CONTENT_LENGTH = 100000;
         let currentTotalContentLength = 0;
         // <-- 수정: includedFilesForContext를 handleUserMessageAndRespond의 로컬 변수로 유지 -->
         const includedFilesForContext: { name: string, fullPath: string }[] = [];
@@ -189,7 +189,7 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
 1.  항상 모든 파일의 전체 코드를 출력해야 합니다. 부분적인 코드 변경만 출력하지 마세요.
 2.  수정된 코드를 출력할 때는, 코드 블록 바로 위에 다음 형식을 반드시 정확하게 지켜서 원래 파일명을 명시해야 합니다:
     수정 파일: [원본 파일명]
-    여기서 [원본 파일명]은 컨텍스트로 제공된 '파일명: ' 뒤의 파일명(경로 포함 가능)과 정확히 일치해야 합니다. (예: '수정 파일: utils.js' 또는 '수정 파일: src/components/Button.tsx')
+    여기서 [원본 파일명]은 컨텍스트로 제공된 '경로를 포함한 파일명' 과 정확히 일치해야 합니다. (예: '수정 파일: src/components/Button.tsx')
 3.  수정할 파일이 여러 개일 경우, 각 파일에 대해 2번 규칙을 반복하여 명시하고 해당 파일의 전체 코드를 코드 블록으로 출력합니다.
 4.  새로운 파일을 생성해야 하는 경우, '새 파일: [새 파일 경로/파일명]' 형식으로 명시하고 전체 코드를 출력합니다. (이 기능은 현재는 업데이트 대상이 아님)
 5.  수정하지 않은 파일에 대해서는 언급하거나 코드를 출력할 필요가 없습니다.
