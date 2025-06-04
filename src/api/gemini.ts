@@ -7,13 +7,13 @@ export class GeminiApi {
     private genAI: GoogleGenerativeAI | undefined;
     private model: any; // SDK의 GenerativeModel 타입으로 지정 권장
 
-    private readonly MODEL_NAME = "gemini-1.5-flash-latest";
+    private readonly MODEL_NAME = "gemini-2.5-flash-latest";
 
     private readonly defaultGenerationConfig: GenerationConfig = {
         temperature: 0.7,
         topK: 1,
         topP: 1,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 10000,
     };
 
     private readonly defaultSafetySettings = [
