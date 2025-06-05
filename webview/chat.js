@@ -55,7 +55,8 @@ if (cleanHistoryButton) {
 
 function handleSendMessage() {
     if (!chatInput) return;
-    const text = chatInput.value.trim();
+    // trimEnd()를 사용하여 끝의 줄바꿈 문자를 유지합니다.
+    const text = chatInput.value.trimEnd();
     if (text) {
         window.displayUserMessage(text);
         window.showLoading(); // 로딩 애니메이션 표시
@@ -131,7 +132,10 @@ function displayUserMessage(text) {
     if (!chatMessages) return;
     const userMessageElement = document.createElement('div');
     userMessageElement.classList.add('user-plain-message');
-    userMessageElement.textContent = 'You: ' + text;
+    // <-- 수정: textContent 대신 innerHTML 사용 및 줄바꿈 <br> 변환 -->
+    // Markdown은 아니지만, 사용자의 줄바꿈을 유지하기 위해 <br> 태그를 사용합니다.
+    userMessageElement.innerHTML = 'You: ' + DOMPurify.sanitize(text).replace(/\n/g, '<br>');
+    // <-- 수정 끝 -->
 
     const separatorElement = document.createElement('hr');
     separatorElement.classList.add('message-separator');
@@ -183,14 +187,12 @@ function handleCleanHistory() {
     }
 }
 
-// <-- 추가: HTML 엔티티를 디코딩하는 헬퍼 함수 -->
-// 이 함수는 문자열 내의 HTML 엔티티를 실제 문자로 변환합니다.
+// HTML 엔티티를 디코딩하는 헬퍼 함수
 function decodeHtmlEntities(html) {
     const textarea = document.createElement('textarea');
     textarea.innerHTML = html; // innerHTML을 사용하면 브라우저가 엔티티를 디코딩합니다.
     return textarea.value; // 디코딩된 순수 텍스트를 반환
 }
-// <-- 추가 끝 -->
 
 // CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시
 function displayCodePilotMessage(markdownText) {
@@ -222,10 +224,7 @@ function displayCodePilotMessage(markdownText) {
         // 2. 코드 블록 처리 (Markdown 포맷 미적용, 원본 텍스트 그대로)
         const preElement = document.createElement('pre');
         const codeElement = document.createElement('code');
-        // <-- 수정: codeContent를 먼저 HTML 엔티티로 디코딩 후 textContent에 할당 -->
         codeElement.textContent = decodeHtmlEntities(codeContent); // decodeHtmlEntities 사용
-        // <-- 수정 끝 -->
-
         // if (lang) { // language- 클래스를 추가하지 않음 (요구사항: 코드 블록 내 plain text)
         //     codeElement.classList.add(`language-${lang.trim()}`);
         // }

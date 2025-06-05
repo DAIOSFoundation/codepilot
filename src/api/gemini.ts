@@ -75,13 +75,6 @@ export class GeminiApi {
             });
             const result = await chat.sendMessage(message);
 
-            // 또는 단일 턴 generateContent를 사용하는 경우:
-            // const request: GenerateContentRequest = {
-            //    contents: [{ role: "user", parts: [{ text: message }] }],
-            //    generationConfig: generationConfigParam || this.defaultGenerationConfig,
-            // };
-            // const result = await this.model.generateContent(request);
-
             const response = result.response;
             const text = response.text();
             console.log('Gemini Response (sendMessage):', text.substring(0, 100) + "...");
@@ -98,53 +91,18 @@ export class GeminiApi {
         }
 
         try {
-            // 방법 A: 시스템 지침과 함께 모델 인스턴스를 "동적으로" 가져오기
-            // 이 방법은 해당 호출에만 시스템 지침을 적용합니다.
-            // SDK의 systemInstruction 타입 정의를 정확히 따라야 합니다.
-            // 가장 간단한 형태는 문자열입니다.
             const tempModel = this.genAI.getGenerativeModel({
                 model: this.MODEL_NAME,
-                // 오류 1 해결 시도: systemInstruction을 문자열 또는 SDK가 기대하는 정확한 Part/Content 형태로 전달
-                systemInstruction: systemInstructionText, // 1. 문자열로 직접 전달
-                // systemInstruction: { text: systemInstructionText } // 2. 단일 Part 객체 (role 없음)
-                // systemInstruction: { role: "user", parts: [{text: systemInstructionText}] } // 3. Content 객체 (role 필요, 하지만 system role이 아닐 수 있음)
-                // SDK d.ts 파일을 확인하여 systemInstruction이 정확히 어떤 타입(들)을 받는지 확인하세요.
-                // 만약 { parts: [...] } 형태를 보내야 하고 Content 타입으로 인식된다면, role이 필요합니다.
-                // 하지만 systemInstruction에는 보통 role: "system"을 쓰지 않습니다.
-                // 그래서 문자열이나 { text: ... } 형태의 Part가 더 적합할 수 있습니다.
+                systemInstruction: systemInstructionText,
                 safetySettings: this.defaultSafetySettings,
             });
 
-            // 오류 2 해결: generateContent에 하나의 GenerateContentRequest 객체 전달
             const request: GenerateContentRequest = {
                 // systemInstruction은 위에서 모델에 설정했으므로, 여기서는 사용자 입력만 전달
                 contents: [{ role: "user", parts: [{ text: userPrompt }] }],
                 generationConfig: generationConfigParam || this.defaultGenerationConfig,
             };
             const result = await tempModel.generateContent(request);
-
-
-            // 방법 B (만약 방법 A가 잘 안되거나, 더 복잡한 상호작용 시): contents 배열 직접 구성
-            /*
-            if (!this.isInitialized()) { // 기본 모델이 초기화되었는지 확인
-                throw new Error("Default Gemini model is not initialized.");
-            }
-            const contentsForRequest: Content[] = [
-                // 시스템 메시지를 어떻게 구성할지는 API 스펙에 따름
-                // 예시 1: 시스템 지침을 사용자 메시지 앞에 붙이기
-                { role: "user", parts: [{ text: `${systemInstructionText}\n\nTASK:\n${userPrompt}` }] }
-
-                // 예시 2: history를 이용한 것처럼 (첫 번째 턴을 시스템 지침으로)
-                // { role: "user", parts: [{ text: systemInstructionText }] },
-                // { role: "model", parts: [{ text: "Understood. I will follow these instructions." }] }, // 가상 응답
-                // { role: "user", parts: [{ text: userPrompt }] }
-            ];
-            const requestAlternative: GenerateContentRequest = {
-                contents: contentsForRequest,
-                generationConfig: generationConfigParam || this.defaultGenerationConfig,
-            };
-            const result = await this.model.generateContent(requestAlternative);
-            */
 
             const response = result.response;
             if (response.promptFeedback && response.promptFeedback.blockReason) {
@@ -162,7 +120,6 @@ export class GeminiApi {
     }
 
     private handleApiError(error: any): string {
-        // ... (이전과 동일한 오류 처리 로직) ...
         if (error.message) {
             if (error.message.includes('API key not valid') || error.message.includes('invalid api key')) {
                 return "Error: Invalid Gemini API Key. Please check and update it in the CodePilot settings (License section).";
