@@ -1,11 +1,11 @@
 // src/api/gemini.ts
 
-// GenerateContentRequest 타입을 임포트합니다. (SDK 버전에 따라 정확한 이름 확인)
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerationConfig, Part, GenerateContentRequest, Content } from '@google/generative-ai';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerationConfig, Part, GenerateContentRequest, Content, RequestOptions } from '@google/generative-ai';
+// RequestOptions는 이제 여기서 직접 사용되지 않지만, 다른 곳에서 타입 정의로 필요할 수 있으므로 임포트는 유지합니다.
 
 export class GeminiApi {
     private genAI: GoogleGenerativeAI | undefined;
-    private model: any; // SDK의 GenerativeModel 타입으로 지정 권장
+    private model: any; // SDK의 GenerativeModel 타입으로 지정 권장 (GenerativeModel)
 
     private readonly MODEL_NAME = "gemini-2.5-flash-preview-05-20";
 
@@ -13,7 +13,7 @@ export class GeminiApi {
         temperature: 0.7,
         topK: 1,
         topP: 1,
-        maxOutputTokens: 10000,
+        maxOutputTokens: 100000,
     };
 
     private readonly defaultSafetySettings = [
@@ -31,14 +31,12 @@ export class GeminiApi {
         }
     }
 
-    private initializeApi(apiKey: string, systemInstructionText?: string): void { // systemInstructionText 추가 (선택적)
+    private initializeApi(apiKey: string, systemInstructionText?: string): void {
         try {
             this.genAI = new GoogleGenerativeAI(apiKey);
             this.model = this.genAI.getGenerativeModel({
                 model: this.MODEL_NAME,
                 safetySettings: this.defaultSafetySettings,
-                // 모델 생성 시 시스템 지침을 설정하려면 여기에 추가
-                // systemInstruction: systemInstructionText, // 문자열로 전달 시도
             });
             console.log(`Gemini API initialized with model: ${this.MODEL_NAME}${systemInstructionText ? " and system instruction." : "."}`);
         } catch (error) {
@@ -50,7 +48,7 @@ export class GeminiApi {
 
     updateApiKey(apiKey: string | undefined): void {
         if (apiKey) {
-            this.initializeApi(apiKey); // 기본 시스템 지침 없이 초기화
+            this.initializeApi(apiKey);
             console.log('Gemini API Key updated.');
         } else {
             this.genAI = undefined;
@@ -63,17 +61,21 @@ export class GeminiApi {
         return !!this.model && !!this.genAI;
     }
 
+    // <-- 수정: sendMessage 메서드에서 RequestOptions 인자 제거 -->
     async sendMessage(message: string, generationConfigParam?: GenerationConfig): Promise<string> {
         if (!this.isInitialized()) {
             throw new Error("Gemini API is not initialized. Please set your API Key in the CodePilot settings (License section).");
         }
 
         try {
-            // startChat을 사용하는 경우:
             const chat = this.model.startChat({
                 generationConfig: generationConfigParam || this.defaultGenerationConfig,
             });
-            const result = await chat.sendMessage(message);
+            const request: GenerateContentRequest = {
+                contents: [{ role: "user", parts: [{ text: message }] }],
+            };
+            // RequestOptions 인자를 전달하지 않음
+            const result = await chat.sendMessage(request);
 
             const response = result.response;
             const text = response.text();
@@ -84,9 +86,11 @@ export class GeminiApi {
             return this.handleApiError(error);
         }
     }
+    // <-- 수정 끝 -->
 
-    async sendMessageWithSystemPrompt(systemInstructionText: string, userPrompt: string, generationConfigParam?: GenerationConfig): Promise<string> {
-        if (!this.genAI) { // genAI 인스턴스가 있는지 먼저 확인
+    // <-- 수정: sendMessageWithSystemPrompt 메서드에서 RequestOptions 인자 제거 -->
+    async sendMessageWithSystemPrompt(systemInstructionText: string, userPrompt: string): Promise<string> { // options 인자 제거
+        if (!this.genAI) {
             throw new Error("Gemini API (GoogleGenerativeAI instance) is not initialized. Please set your API Key.");
         }
 
@@ -98,11 +102,12 @@ export class GeminiApi {
             });
 
             const request: GenerateContentRequest = {
-                // systemInstruction은 위에서 모델에 설정했으므로, 여기서는 사용자 입력만 전달
                 contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-                generationConfig: generationConfigParam || this.defaultGenerationConfig,
+                generationConfig: this.defaultGenerationConfig,
             };
-            const result = await tempModel.generateContent(request);
+
+            // RequestOptions 인자를 전달하지 않음
+            const result = await tempModel.generateContent(request); // options 인자 제거
 
             const response = result.response;
             if (response.promptFeedback && response.promptFeedback.blockReason) {
@@ -118,8 +123,12 @@ export class GeminiApi {
             return this.handleApiError(error);
         }
     }
+    // <-- 수정 끝 -->
 
     private handleApiError(error: any): string {
+        if (error.name === 'AbortError') {
+            return "Error: Gemini API call was cancelled.";
+        }
         if (error.message) {
             if (error.message.includes('API key not valid') || error.message.includes('invalid api key')) {
                 return "Error: Invalid Gemini API Key. Please check and update it in the CodePilot settings (License section).";

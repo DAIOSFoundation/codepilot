@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CodePilot Chat</title>
     <style>
+        /* (기존 스타일 유지) */
         body {
             margin: 0;
             padding: 0;
@@ -15,8 +16,10 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden;
+            overflow: hidden; /* body 스크롤 숨김 */
         }
+
+        /* 아이콘 헤더 스타일 (이전 단계에서 추가된 경우 포함) */
         .chat-header-icons {
             display: flex;
             justify-content: flex-end;
@@ -29,7 +32,7 @@
             z-index: 1;
             flex-shrink: 0;
         }
-        .icon-button {
+        .icon-button { /* 아이콘 버튼 스타일 */
              background: none; border: none; padding: 0; margin-left: 10px; cursor: pointer;
              color: var(--vscode-foreground); font-size: 18px;
         }
@@ -38,16 +41,17 @@
 
 
         #chat-container {
-            padding: 10px 10px 130px;
-            overflow-y: auto;
-            flex-grow: 1;
+            /* <-- 수정: 하단 입력창 높이(약 100px)보다 더 여유롭게 패딩을 줘서 로딩 애니메이션이 가려지지 않도록 함 --> */
+            padding: 10px 10px 150px; /* <-- 수정: padding-bottom을 150px로 더 늘림 (더 긴 스크롤 영역 확보) */
+            overflow-y: auto; /* 내용 넘칠 시 세로 스크롤 생성 */
+            flex-grow: 1; /* 부모 flex 컨테이너의 남은 공간을 모두 차지 */
             display: flex;
             flex-direction: column;
             align-items: flex-start;
             width: 100%;
             max-width: 100%;
             box-sizing: border-box;
-            height: 100%;
+            height: 100%; /* <-- chat-container가 flex-grow 1을 적용받도록 height 100% 명시 */
         }
 
         #chat-messages {
@@ -58,47 +62,51 @@
         }
 
         #chat-input-area {
-            position: fixed;
+            position: fixed; /* 고정 위치 */
             bottom: 0;
             left: 0;
-            width: 100%;
+            width: 100%; /* 너비 전체 사용 */
             max-width: 100%;
-            display: flex;
-            align-items: flex-end;
-            padding: 10px;
-            border-top: 1px solid var(--vscode-panel-border);
-            background-color: var(--vscode-editor-background);
+            display: flex; /* <-- 필수: 입력 필드와 버튼 그룹을 가로로 배치 (상위 컨테이너) */
+            flex-direction: row; /* <-- 필수: 가로 배치 */
+            align-items: flex-end; /* <-- 필수: 전체 그룹을 하단으로 정렬 */
+            padding: 10px; /* 내부 패딩 */
+            border-top: 1px solid var(--vscode-panel-border); /* 상단 구분선 */
+            background-color: var(--vscode-editor-background); /* 배경색 */
             box-sizing: border-box;
             z-index: 10;
         }
 
+        /* <-- chatInput 스타일 (기존 스타일 유지하며 자동조절 속성 추가) --> */
         #chat-input {
-            flex-grow: 1;
+            flex-grow: 1; /* 남은 공간을 모두 차지하여 늘어남 */
             padding: 8px;
-            border: 1px solid var(--vscode-input-border);
-            background-color: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            margin-right: 8px;
-            outline: none;
-            resize: none;
+            border: 1px solid var(--vscode-input-border); /* 테두리 스타일 */
+            background-color: var(--vscode-input-background); /* 배경색 */
+            color: var(--vscode-input-foreground); /* 글자색 */
+            margin-right: 8px; /* 오른쪽 여백 (버튼 그룹과의 간격) */
+            outline: none; /* 포커스 시 기본 아웃라인 제거 */
+            resize: none; /* 사용자 수동 리사이즈 방지 (JS 자동 조절 사용) */
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
-            line-height: 1.5em;
-            min-height: calc(1.5em * 1 + 16px + 2px);
-            max-height: 150px;
-            overflow: auto;
+            line-height: 1.5em; /* 행 높이 명시 */
+            /* <-- 수정: 최소 높이를 버튼 3개 높이에 맞춤 (button-group의 height가 이 높이를 결정하므로, 이 calc는 참고용) --> */
+            min-height: calc(3 * (1.5em + 8px + 8px) + 2 * 8px); /* 3개 버튼 높이 + 3*버튼패딩 + 2*버튼 사이 마진 */
+            max-height: 150px; /* 최대 높이 제한 */
+            overflow: auto; /* 내용 넘칠 시 스크롤바 보이도록 'auto' 사용 */
             box-sizing: border-box;
         }
+        /* <-- 수정 끝 --> */
 
 
         #chat-input:focus {
-            border-color: var(--vscode-focusBorder);
+            border-color: var(--vscode-focusBorder); /* 포커스 시 테두리 색상 변경 */
         }
 
-        #send-button {
-            padding: 8px 15px;
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
+        /* <-- Send, Clear, Cancel 버튼 공통 스타일 및 개별 스타일 --> */
+        /* Send 버튼은 이제 .button-group 안에 들어갑니다. */
+        #send-button, #clean-history-button, #cancel-call-button { /* <-- 수정: 모든 버튼에 공통 스타일 적용 */
+            padding: 8px 15px; /* 모든 버튼에 동일한 패딩 */
             border: none;
             cursor: pointer;
             border-radius: 5px;
@@ -108,43 +116,59 @@
             box-sizing: border-box;
             user-select: none;
             flex-shrink: 0;
-            width: 100%;
+            width: 100%; /* <-- 수정: 버튼 그룹 내에서 너비 전체 사용 */
+            height: auto; /* <-- 유지: 부모 flex item의 height: auto가 필요함 */
         }
         
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end; 
-            height: auto; 
-            flex-shrink: 0; 
-            width: 100px; 
+        #send-button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+        }
+        #send-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
         }
 
+        /* Clean (-> Clear) 버튼 스타일 */
         #clean-history-button {
-            padding: 8px 15px;
-            background-color: #4CAF50;
-            color: #FFFFFF;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            user-select: none;
-            flex-shrink: 0;
-            width: 100%;
+            background-color: #4CAF50; /* <-- 수정: 녹색 계열 배경색 */
+            color: white; /* 텍스트 색상 (흰색) */
+            margin-bottom: 8px; /* <-- 수정: Cancel 버튼과의 간격 */
         }
 
         #clean-history-button:hover {
-            background-color: #45a049;
+            background-color: #45a049; /* 호버 시 약간 어두운 녹색 */
         }
 
+        /* 붉은색 Cancel 버튼 고유 스타일 */
+        #cancel-call-button {
+            background-color: var(--vscode-debug-disconnectButtonBackground); /* 붉은색 계열 */
+            color: var(--vscode-button-foreground); /* 텍스트 색상 (밝은 색) */
+            margin-bottom: 8px; /* <-- 수정: Clear 버튼과의 간격 */
+        }
+        #cancel-call-button:hover {
+            background-color: var(--vscode-debug-disconnectButtonHoverBackground);
+        }
+        /* <-- 수정 끝 --> */
+
+
+        /* <-- 추가: 버튼 그룹 컨테이너 스타일 --> */
+        .button-group {
+            display: flex;
+            flex-direction: column; /* 버튼들을 세로로 쌓음 */
+            align-items: flex-end; /* 버튼들을 오른쪽으로 정렬 */
+            justify-content: flex-end; /* 버튼들을 컨테이너 하단으로 정렬 */
+            height: auto; /* 내용에 따라 높이 조절 (Textarea 높이에 맞춰 늘어남) */
+            flex-shrink: 0; /* 줄어들지 않음 */
+            width: 100px; /* <-- 수정: 버튼 그룹 고정 너비 (필요시 조정) */
+        }
+        /* <-- 추가 끝 --> */
+
+
+        /* (기존 메시지 관련 스타일 유지) */
         .user-plain-message {
             margin-bottom: 0;
             word-wrap: break-word;
-            white-space: pre-wrap;
+            white-space: pre-wrap; /* <-- 추가: user-plain-message에서도 줄바꿈 유지 */
             align-self: flex-start;
             max-width: 100%;
             color: var(--vscode-descriptionForeground);
@@ -219,10 +243,6 @@
             border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
         }
-
-        .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
-        .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
-        .thinking-dots span:nth-child(3) { animation-delay: 0s; }
 
         @keyframes bounce {
             0%, 80%, 100% { transform: scale(0); }
@@ -316,17 +336,17 @@
             display: block;
         }
         .message-bubble th, .message-bubble td {
-            border: 1px solid var(--vscode-panel-border); /* 테두리 스타일 */
+            border: 1px solid var(--vscode-panel-border);
             padding: 8px;
             text-align: left;
         }
         .message-bubble th {
-            background-color: var(--vscode-sideBar-background); /* 헤더 배경색 */
+            background-color: var(--vscode-sideBar-background);
             font-weight: bold;
         }
         .message-bubble a {
-            color: var(--vscode-textLink-foreground); /* 링크 글자색 */
-            text-decoration: underline; /* 밑줄 */
+            color: var(--vscode-textLink-foreground);
+            text-decoration: underline;
         }
         .message-bubble a:hover {
             color: var(--vscode-textLink-activeForeground);
@@ -342,10 +362,13 @@
 
     <div id="chat-input-area">
         <textarea id="chat-input" rows="4" placeholder="메시지를 입력하세요..."></textarea>
+        <!-- <-- 추가: 버튼 그룹을 포함하는 div -->
         <div class="button-group">
-            <button id="clean-history-button">Clean</button>
+            <button id="cancel-call-button" class="cancel-button">Cancel</button>
+            <button id="clean-history-button">Clear</button> <!-- <-- Clean -> Clear 이름 변경, ID는 그대로 유지 -->
             <button id="send-button">Send</button>
         </div>
+        <!-- <-- 추가 끝 -->
     </div>
 
     <script>

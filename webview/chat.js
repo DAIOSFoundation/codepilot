@@ -11,7 +11,8 @@ const vscode = acquireVsCodeApi();
 const sendButton = document.getElementById('send-button');
 const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages'); // 스크롤 컨테이너
-const cleanHistoryButton = document.getElementById('clean-history-button');
+const cleanHistoryButton = document.getElementById('clean-history-button'); // Clean History 버튼 참조
+const cancelButton = document.getElementById('cancel-call-button'); // <-- 추가: Cancel 버튼 참조
 
 
 let thinkingBubbleElement = null;
@@ -52,11 +53,20 @@ if (cleanHistoryButton) {
     cleanHistoryButton.addEventListener('click', handleCleanHistory);
 }
 
+// <-- 추가: Cancel 버튼 클릭 이벤트 리스너 -->
+if (cancelButton) {
+    cancelButton.addEventListener('click', () => {
+        console.log('Cancel button clicked. Sending cancel command to extension.');
+        vscode.postMessage({ command: 'cancelGeminiCall' }); // 확장 프로그램으로 취소 명령 전송
+        window.hideLoading(); // 로딩 애니메이션은 즉시 숨김
+    });
+}
+// <-- 추가 끝 -->
+
 
 function handleSendMessage() {
     if (!chatInput) return;
-    // trimEnd()를 사용하여 끝의 줄바꿈 문자를 유지합니다.
-    const text = chatInput.value.trimEnd();
+    const text = chatInput.value.trimEnd(); // trim() 대신 trimEnd() 사용 (기존 로직 유지)
     if (text) {
         window.displayUserMessage(text);
         window.showLoading(); // 로딩 애니메이션 표시
@@ -132,10 +142,7 @@ function displayUserMessage(text) {
     if (!chatMessages) return;
     const userMessageElement = document.createElement('div');
     userMessageElement.classList.add('user-plain-message');
-    // <-- 수정: textContent 대신 innerHTML 사용 및 줄바꿈 <br> 변환 -->
-    // Markdown은 아니지만, 사용자의 줄바꿈을 유지하기 위해 <br> 태그를 사용합니다.
-    userMessageElement.innerHTML = 'You: ' + DOMPurify.sanitize(text).replace(/\n/g, '<br>');
-    // <-- 수정 끝 -->
+    userMessageElement.innerHTML = 'You: ' + DOMPurify.sanitize(text).replace(/\n/g, '<br>'); // 줄바꿈 유지
 
     const separatorElement = document.createElement('hr');
     separatorElement.classList.add('message-separator');
@@ -165,8 +172,16 @@ function showLoading() {
     chatMessages.appendChild(messageContainer);
     thinkingBubbleElement = messageContainer; // 엘리먼트 참조 저장
 
-    // showLoading에서는 스크롤 로직을 제거
-    // 최종 메시지 출력이 끝나고 스크롤하는 로직으로 대체됩니다.
+    // <-- 수정: showLoading에서도 로딩 애니메이션이 보이도록 스크롤 -->
+    requestAnimationFrame(() => { // DOM 업데이트 후 스크롤 되도록 지연
+        if (thinkingBubbleElement) {
+            // thinkingBubbleElement의 하단이 뷰포트 하단에 맞춰지도록 스크롤
+            thinkingBubbleElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        } else if (chatMessages) { // Fallback
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    });
+    // <-- 수정 끝 -->
 }
 
 // 로딩 버블 제거 함수
@@ -187,11 +202,11 @@ function handleCleanHistory() {
     }
 }
 
-// HTML 엔티티를 디코딩하는 헬퍼 함수
+// HTML 엔티티를 디코딩하는 헬퍼 함수 (필요 시 사용)
 function decodeHtmlEntities(html) {
     const textarea = document.createElement('textarea');
-    textarea.innerHTML = html; // innerHTML을 사용하면 브라우저가 엔티티를 디코딩합니다.
-    return textarea.value; // 디코딩된 순수 텍스트를 반환
+    textarea.innerHTML = html;
+    return textarea.value;
 }
 
 // CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시
@@ -224,7 +239,7 @@ function displayCodePilotMessage(markdownText) {
         // 2. 코드 블록 처리 (Markdown 포맷 미적용, 원본 텍스트 그대로)
         const preElement = document.createElement('pre');
         const codeElement = document.createElement('code');
-        codeElement.textContent = decodeHtmlEntities(codeContent); // decodeHtmlEntities 사용
+        codeElement.textContent = DOMPurify.sanitize(codeContent, { RETURN_TYPE: 'text' });
         // if (lang) { // language- 클래스를 추가하지 않음 (요구사항: 코드 블록 내 plain text)
         //     codeElement.classList.add(`language-${lang.trim()}`);
         // }
@@ -243,7 +258,6 @@ function displayCodePilotMessage(markdownText) {
     while (tempHtmlElements.firstChild) {
         bubbleElement.appendChild(tempHtmlElements.firstChild);
     }
-    // --- 조합 끝 ---
 
     messageContainer.appendChild(bubbleElement);
 
@@ -263,22 +277,14 @@ function displayCodePilotMessage(markdownText) {
     });
 }
 
-// 마크다운 렌더링 함수 (자체 구현) - 이 함수는 displayCodePilotMessage에서 사용되지 않습니다.
-// 이 함수는 더 이상 Markdown을 파싱하지 않습니다.
+// renderBasicMarkdown 함수는 현재 md.render()로 대체되었으므로, 더 이상 사용되지 않습니다.
 function renderBasicMarkdown(markdownText) {
-    // 이 함수는 현재 md.render()로 대체되었으므로, 더 이상 사용되지 않습니다.
-    // 하지만 코드 자체는 유지하라는 지시가 있었으므로 비워두겠습니다.
     return markdownText; // 원본 텍스트를 그대로 반환 (사용되지 않음)
 }
 
 
-// TODO: 필요한 다른 Webview 로직 추가
-
-
 // --- 웹뷰 메시지 핸들러에서 호출되는 함수들을 전역 window 객체에 할당 ---
-// Webpack UMD 번들에서 전역 접근을 가능하게 합니다.
 window.displayUserMessage = displayUserMessage;
 window.showLoading = showLoading;
 window.hideLoading = hideLoading;
 window.displayCodePilotMessage = displayCodePilotMessage;
-// renderBasicMarkdown은 displayCodePilotMessage 내부에서만 사용되므로 전역 노출 필요 없음.

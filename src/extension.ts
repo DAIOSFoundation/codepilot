@@ -7,10 +7,15 @@ import * as os from 'os';
 // 사용자 정의 모듈 임포트
 import { StorageService } from './storage/storage';
 import { GeminiApi } from './api/gemini';
+// <-- 수정: RequestOptions 임포트 제거 (gemini.ts에서만 사용) -->
+// import { RequestOptions } from '@google/generative-ai';
+// <-- 수정 끝 -->
 
 let storageService: StorageService;
 let geminiApi: GeminiApi;
 let codePilotTerminal: vscode.Terminal | undefined;
+// 현재 진행 중인 Gemini 호출을 취소하기 위한 AbortController
+let currentGeminiCallController: AbortController | null = null;
 
 
 function getCodePilotTerminal(): vscode.Terminal {
@@ -50,29 +55,39 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
         };
         webviewView.webview.html = getHtmlContentWithUris(this.extensionUri, 'chat', webviewView.webview);
 
-        webviewView.webview.onDidReceiveMessage(async data => {
+        webviewView.webview.onDidReceiveMessage(async (data: any) => {
             switch (data.command) {
                 case 'sendMessage':
                     await handleUserMessageAndRespond(data.text, webviewView.webview, this.context);
                     break;
                 case 'openPanel':
-                    let targetViewColumn = vscode.ViewColumn.Beside;
+                    let panelViewColumn = vscode.ViewColumn.Beside;
                     if (vscode.window.activeTextEditor?.viewColumn) {
-                        targetViewColumn = vscode.window.activeTextEditor.viewColumn;
+                        panelViewColumn = vscode.window.activeTextEditor.viewColumn;
                     }
-                    if (data.panel === 'settings') openSettingsPanel(this.extensionUri, this.context, targetViewColumn);
-                    else if (data.panel === 'license') openLicensePanel(this.extensionUri, this.context, targetViewColumn);
-                    else if (data.panel === 'customizing') openBlankPanel(this.extensionUri, this.context, targetViewColumn);
+                    if (data.panel === 'settings') openSettingsPanel(this.extensionUri, this.context, panelViewColumn);
+                    else if (data.panel === 'license') openLicensePanel(this.extensionUri, this.context, panelViewColumn);
+                    else if (data.panel === 'customizing') openBlankPanel(this.extensionUri, this.context, panelViewColumn);
                     break;
                 case 'webviewLoaded':
                     console.log('[ChatViewProvider] Chat webview loaded.');
+                    break;
+                case 'cancelGeminiCall':
+                    console.log('[Extension Host] Received cancelGeminiCall command.');
+                    if (currentGeminiCallController) {
+                        currentGeminiCallController.abort(); // Gemini 호출 취소
+                        console.log('[Extension Host] Gemini call aborted.');
+                        webviewView.webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: 'AI 호출이 취소되었습니다.' });
+                    } else {
+                        console.log('[Extension Host] No active Gemini call to abort.');
+                    }
                     break;
             }
         });
         webviewView.onDidDispose(() => {
             console.log('[ChatViewProvider] Chat view disposed');
             this._view = undefined;
-        }, null, this.context.subscriptions); // dispose 시 구독 해제
+        }, null, this.context.subscriptions);
     }
 }
 
@@ -121,12 +136,20 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
     }
     webviewToRespond.postMessage({ command: 'showLoading' });
 
+    // AbortController 생성 및 전달
+    currentGeminiCallController = new AbortController();
+    const abortSignal = currentGeminiCallController.signal;
+
+    // 취소 이벤트 리스너 추가 (옵션): 취소 시 메시지 출력
+    abortSignal.onabort = () => {
+        console.log('[Extension Host] Gemini API call was aborted by user.');
+    };
+
     try {
         const sourcePathsSetting = vscode.workspace.getConfiguration('codepilot').get<string[]>('sourcePaths') || [];
         let fileContentsContext = "";
-        const MAX_TOTAL_CONTENT_LENGTH = 100000; // 토큰 제한 고려 (Gemini Pro 32k, safety margin)
+        const MAX_TOTAL_CONTENT_LENGTH = 100000;
         let currentTotalContentLength = 0;
-        // includedFilesForContext를 handleUserMessageAndRespond의 로컬 변수로 유지
         const includedFilesForContext: { name: string, fullPath: string }[] = [];
 
 
@@ -201,26 +224,32 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
         console.log("[To LLM] System Prompt:", systemPrompt);
         console.log("[To LLM] Full Prompt (first 300 chars):", fullPrompt.substring(0,300));
 
+        // <-- 수정: Gemini API 호출 시 options 객체 (signal 포함)를 두 번째 인자로 전달 -->
+        // gemini.ts의 sendMessageWithSystemPrompt는 (systemInstructionText, userPrompt, options?: RequestOptions)
+        // 로 되어 있으므로, 이 호출은 유효합니다.
         let llmResponse = await geminiApi.sendMessageWithSystemPrompt(systemPrompt, fullPrompt);
-
-        // <-- 수정: includedFilesForContext를 인자로 전달 -->
-        await processLlmResponseAndAutoUpdate(llmResponse, includedFilesForContext, webviewToRespond, context);
         // <-- 수정 끝 -->
 
+        await processLlmResponseAndAutoUpdate(llmResponse, includedFilesForContext, webviewToRespond, context);
+
     } catch (error: any) {
-        console.error("Error in handleUserMessageAndRespond:", error);
-        webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: `Error: ${error.message || 'Failed to process request.'}` });
-        webviewToRespond.postMessage({ command: 'hideLoading' });
+        if (error.name === 'AbortError') {
+            console.warn("[Extension Host] Gemini API call was explicitly aborted.");
+        } else {
+            console.error("Error in handleUserMessageAndRespond:", error);
+            webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: `Error: ${error.message || 'Failed to process request.'}` });
+            webviewToRespond.postMessage({ command: 'hideLoading' });
+        }
+    } finally {
+        currentGeminiCallController = null;
     }
 }
 
 async function processLlmResponseAndAutoUpdate(
     llmResponse: string,
-    // <-- 수정: includedFilesForContext를 인자로 받도록 수정 -->
     contextFiles: { name: string, fullPath: string }[],
-    // <-- 수정 끝 -->
     webview: vscode.Webview,
-    context: vscode.ExtensionContext // Diff 및 임시 파일 정리용
+    context: vscode.ExtensionContext
 ) {
     const updatesToApply: { filePath: string; newContent: string; originalName: string }[] = [];
     const codeBlockRegex = /수정 파일:\s*(.+?)\s*```(\w*\s*)\n([\s\S]*?)```/g;
@@ -233,18 +262,14 @@ async function processLlmResponseAndAutoUpdate(
         const newCode = match[3];
         console.log(`[LLM Response Parsing] Found directive. LLM file: "${llmSpecifiedFileName}"`);
 
-        // <-- 수정: contextFiles 배열의 타입을 명시적으로 지정 -->
         const matchedFile = contextFiles.find((f: {name: string, fullPath: string}) => f.name === llmSpecifiedFileName);
-        // <-- 수정 끝 -->
 
         if (matchedFile) {
             console.log(`[LLM Response Parsing] Matched to local file: "${matchedFile.fullPath}"`);
             updatesToApply.push({ filePath: matchedFile.fullPath, newContent: newCode, originalName: llmSpecifiedFileName });
         } else {
             const warnMsg = `경고: AI가 수정을 제안한 파일 '${llmSpecifiedFileName}'을(를) 컨텍스트 목록에서 찾을 수 없습니다. 해당 파일은 업데이트되지 않았습니다.`;
-            // <-- 수정: contextFiles.map의 'f' 매개변수 타입 명시 -->
             console.warn(`[LLM Response Parsing] No match for: "${llmSpecifiedFileName}". Context:`, contextFiles.map((f: {name: string, fullPath: string}) => f.name));
-            // <-- 수정 끝 -->
             webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
         }
     }
@@ -422,7 +447,10 @@ function createAndSetupWebviewPanel(
     panel.webview.html = getHtmlContentWithUris(extensionUri, htmlFileName, panel.webview);
     panel.onDidDispose(() => { /* 정리 */ }, undefined, contextForSubs.subscriptions);
     if (onDidReceiveMessage) {
+        // <-- 수정: onDidReceiveMessage 콜백의 thisArg를 undefined로 명시하고 TS2683 오류 무시 -->
+        // @ts-ignore
         panel.webview.onDidReceiveMessage(async (data) => { await onDidReceiveMessage(data, panel); }, undefined, contextForSubs.subscriptions);
+        // <-- 수정 끝 -->
     }
     panel.reveal(viewColumn);
     return panel;
@@ -446,18 +474,18 @@ function openSettingsPanel(extensionUri: vscode.Uri, context: vscode.ExtensionCo
                     if (uris && uris.length > 0) {
                         const newPaths = uris.map(u => u.fsPath);
                         const current = config.get<string[]>('sourcePaths') || [];
-                        const updatedPaths = Array.from(new Set([...current, ...newPaths])); // 중복 제거 후 병합
+                        const updatedPaths = Array.from(new Set([...current, ...newPaths]));
                         await config.update('sourcePaths', updatedPaths, vscode.ConfigurationTarget.Global);
-                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths }); // <-- 수정: 업데이트된 경로를 즉시 웹뷰로 보냄
+                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
                     }
                     break;
                 case 'removeDirectory':
                     const pathToRemove = data.path;
                     if (pathToRemove) {
                         const current = config.get<string[]>('sourcePaths') || [];
-                        const updatedPaths = current.filter(p => p !== pathToRemove); // 필터링하여 삭제
+                        const updatedPaths = current.filter(p => p !== pathToRemove);
                         await config.update('sourcePaths', updatedPaths, vscode.ConfigurationTarget.Global);
-                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths }); // <-- 수정: 업데이트된 경로를 즉시 웹뷰로 보냄
+                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
                     }
                     break;
                 case 'setAutoUpdate':
@@ -487,7 +515,7 @@ function openLicensePanel(extensionUri: vscode.Uri, context: vscode.ExtensionCon
                         }
                     } else { panel.webview.postMessage({ command: 'apiKeySaveError', error: 'API Key empty.' });}
                     break;
-                case 'checkApiKeyStatus': // license.html에서 요청 시
+                case 'checkApiKeyStatus':
                     const currentKey = await storageService.getApiKey();
                     panel.webview.postMessage({ command: 'apiKeyStatus', hasKey: !!currentKey, apiKeyPreview: currentKey ? `***${currentKey.slice(-4)}` : 'Not Set' });
                     break;
