@@ -45,7 +45,7 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
                 vscode.Uri.joinPath(this.extensionUri, 'webview'),
                 vscode.Uri.joinPath(this.extensionUri, 'media'),
                 vscode.Uri.joinPath(this.extensionUri, 'dist'),
-                vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview')
+                vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview') // 컴파일된 JS 파일 위치
             ]
         };
         webviewView.webview.html = getHtmlContentWithUris(this.extensionUri, 'chat', webviewView.webview);
@@ -72,7 +72,7 @@ class ChatViewProvider implements vscode.WebviewViewProvider {
         webviewView.onDidDispose(() => {
             console.log('[ChatViewProvider] Chat view disposed');
             this._view = undefined;
-        }, null, this.context.subscriptions);
+        }, null, this.context.subscriptions); // dispose 시 구독 해제
     }
 }
 
@@ -124,11 +124,11 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
     try {
         const sourcePathsSetting = vscode.workspace.getConfiguration('codepilot').get<string[]>('sourcePaths') || [];
         let fileContentsContext = "";
-        const MAX_TOTAL_CONTENT_LENGTH = 100000;
+        const MAX_TOTAL_CONTENT_LENGTH = 100000; // 토큰 제한 고려 (Gemini Pro 32k, safety margin)
         let currentTotalContentLength = 0;
-        // <-- 수정: includedFilesForContext를 handleUserMessageAndRespond의 로컬 변수로 유지 -->
+        // includedFilesForContext를 handleUserMessageAndRespond의 로컬 변수로 유지
         const includedFilesForContext: { name: string, fullPath: string }[] = [];
-        // <-- 수정 끝 -->
+
 
         for (const sourcePath of sourcePathsSetting) {
             if (currentTotalContentLength >= MAX_TOTAL_CONTENT_LENGTH) {
@@ -311,12 +311,10 @@ async function processLlmResponseAndAutoUpdate(
         finalWebviewResponse += "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요.";
     }
 
-    // <-- 수정: LLM 응답에 전송된 파일 목록 추가 (includedFilesForContext 대신 인자로 받은 contextFiles 사용) -->
     if (contextFiles.length > 0) {
         const fileList = contextFiles.map(f => f.name).join(', ');
         finalWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n${fileList}`;
     }
-    // <-- 수정 끝 -->
 
     webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: finalWebviewResponse });
     webview.postMessage({ command: 'hideLoading' });
@@ -375,6 +373,7 @@ function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: string, 
             .replace('{{commonStylesUri}}', commonStylesUri.toString())
             .replace(`{{${htmlFileName}StylesUri}}`, specificStylesUri.toString());
 
+        // 스크립트 URI (파일별로 다를 수 있음)
         let mainScriptUri = '';
         let secondaryScriptUri = '';
 
@@ -447,16 +446,18 @@ function openSettingsPanel(extensionUri: vscode.Uri, context: vscode.ExtensionCo
                     if (uris && uris.length > 0) {
                         const newPaths = uris.map(u => u.fsPath);
                         const current = config.get<string[]>('sourcePaths') || [];
-                        await config.update('sourcePaths', Array.from(new Set([...current, ...newPaths])), vscode.ConfigurationTarget.Global);
-                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: config.get<string[]>('sourcePaths') });
+                        const updatedPaths = Array.from(new Set([...current, ...newPaths])); // 중복 제거 후 병합
+                        await config.update('sourcePaths', updatedPaths, vscode.ConfigurationTarget.Global);
+                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths }); // <-- 수정: 업데이트된 경로를 즉시 웹뷰로 보냄
                     }
                     break;
                 case 'removeDirectory':
                     const pathToRemove = data.path;
                     if (pathToRemove) {
                         const current = config.get<string[]>('sourcePaths') || [];
-                        await config.update('sourcePaths', current.filter(p => p !== pathToRemove), vscode.ConfigurationTarget.Global);
-                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: config.get<string[]>('sourcePaths') });
+                        const updatedPaths = current.filter(p => p !== pathToRemove); // 필터링하여 삭제
+                        await config.update('sourcePaths', updatedPaths, vscode.ConfigurationTarget.Global);
+                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths }); // <-- 수정: 업데이트된 경로를 즉시 웹뷰로 보냄
                     }
                     break;
                 case 'setAutoUpdate':
