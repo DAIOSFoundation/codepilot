@@ -11,7 +11,7 @@ const vscode = acquireVsCodeApi();
 const sendButton = document.getElementById('send-button');
 const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages'); // 스크롤 컨테이너
-const cleanHistoryButton = document.getElementById('clean-history-button'); // <-- 수정: ID 변경 및 참조
+const cleanHistoryButton = document.getElementById('clean-history-button');
 
 
 let thinkingBubbleElement = null;
@@ -47,11 +47,10 @@ if (sendButton && chatInput) {
     chatInput.addEventListener('input', autoResizeTextarea);
 }
 
-// <-- 수정: Clean History 버튼 클릭 이벤트 리스너 -->
-if (cleanHistoryButton) { // <-- ID 변경
-    cleanHistoryButton.addEventListener('click', handleCleanHistory); // <-- 함수명 변경
+// Clean History 버튼 클릭 이벤트 리스너
+if (cleanHistoryButton) {
+    cleanHistoryButton.addEventListener('click', handleCleanHistory);
 }
-// <-- 수정 끝 -->
 
 
 function handleSendMessage() {
@@ -174,8 +173,8 @@ function hideLoading() {
     }
 }
 
-// <-- 수정: 채팅 기록을 모두 삭제하는 함수 (이름 변경) -->
-function handleCleanHistory() { // <-- 함수명 변경
+// 채팅 기록을 모두 삭제하는 함수
+function handleCleanHistory() {
     if (chatMessages) {
         while (chatMessages.firstChild) {
             chatMessages.removeChild(chatMessages.firstChild);
@@ -183,8 +182,15 @@ function handleCleanHistory() { // <-- 함수명 변경
         console.log('Chat history cleared.');
     }
 }
-// <-- 수정 끝 -->
 
+// <-- 추가: HTML 엔티티를 디코딩하는 헬퍼 함수 -->
+// 이 함수는 문자열 내의 HTML 엔티티를 실제 문자로 변환합니다.
+function decodeHtmlEntities(html) {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = html; // innerHTML을 사용하면 브라우저가 엔티티를 디코딩합니다.
+    return textarea.value; // 디코딩된 순수 텍스트를 반환
+}
+// <-- 추가 끝 -->
 
 // CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시
 function displayCodePilotMessage(markdownText) {
@@ -216,7 +222,10 @@ function displayCodePilotMessage(markdownText) {
         // 2. 코드 블록 처리 (Markdown 포맷 미적용, 원본 텍스트 그대로)
         const preElement = document.createElement('pre');
         const codeElement = document.createElement('code');
-        codeElement.textContent = DOMPurify.sanitize(codeContent, { RETURN_TYPE: 'text' });
+        // <-- 수정: codeContent를 먼저 HTML 엔티티로 디코딩 후 textContent에 할당 -->
+        codeElement.textContent = decodeHtmlEntities(codeContent); // decodeHtmlEntities 사용
+        // <-- 수정 끝 -->
+
         // if (lang) { // language- 클래스를 추가하지 않음 (요구사항: 코드 블록 내 plain text)
         //     codeElement.classList.add(`language-${lang.trim()}`);
         // }
