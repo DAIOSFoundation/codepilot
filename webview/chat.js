@@ -12,7 +12,7 @@ const sendButton = document.getElementById('send-button');
 const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages'); // 스크롤 컨테이너
 const cleanHistoryButton = document.getElementById('clean-history-button'); // Clean History 버튼 참조
-const cancelButton = document.getElementById('cancel-call-button'); // <-- 추가: Cancel 버튼 참조
+const cancelButton = document.getElementById('cancel-call-button'); // Cancel 버튼 참조
 
 
 let thinkingBubbleElement = null;
@@ -53,7 +53,7 @@ if (cleanHistoryButton) {
     cleanHistoryButton.addEventListener('click', handleCleanHistory);
 }
 
-// <-- 추가: Cancel 버튼 클릭 이벤트 리스너 -->
+// Cancel 버튼 클릭 이벤트 리스너
 if (cancelButton) {
     cancelButton.addEventListener('click', () => {
         console.log('Cancel button clicked. Sending cancel command to extension.');
@@ -61,7 +61,6 @@ if (cancelButton) {
         window.hideLoading(); // 로딩 애니메이션은 즉시 숨김
     });
 }
-// <-- 추가 끝 -->
 
 
 function handleSendMessage() {
@@ -142,7 +141,9 @@ function displayUserMessage(text) {
     if (!chatMessages) return;
     const userMessageElement = document.createElement('div');
     userMessageElement.classList.add('user-plain-message');
-    userMessageElement.innerHTML = 'You: ' + DOMPurify.sanitize(text).replace(/\n/g, '<br>'); // 줄바꿈 유지
+    // DOMPurify.sanitize(text)는 HTML 태그를 제거하고 안전한 텍스트를 반환합니다.
+    // .replace(/\n/g, '<br>')를 사용하여 줄바꿈을 HTML <br> 태그로 변환합니다.
+    userMessageElement.innerHTML = 'You: ' + DOMPurify.sanitize(text).replace(/\n/g, '<br>');
 
     const separatorElement = document.createElement('hr');
     separatorElement.classList.add('message-separator');
@@ -172,7 +173,7 @@ function showLoading() {
     chatMessages.appendChild(messageContainer);
     thinkingBubbleElement = messageContainer; // 엘리먼트 참조 저장
 
-    // <-- 수정: showLoading에서도 로딩 애니메이션이 보이도록 스크롤 -->
+    // showLoading에서도 로딩 애니메이션이 보이도록 스크롤
     requestAnimationFrame(() => { // DOM 업데이트 후 스크롤 되도록 지연
         if (thinkingBubbleElement) {
             // thinkingBubbleElement의 하단이 뷰포트 하단에 맞춰지도록 스크롤
@@ -181,7 +182,6 @@ function showLoading() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     });
-    // <-- 수정 끝 -->
 }
 
 // 로딩 버블 제거 함수
@@ -202,12 +202,13 @@ function handleCleanHistory() {
     }
 }
 
-// HTML 엔티티를 디코딩하는 헬퍼 함수 (필요 시 사용)
+// <-- 수정: HTML 엔티티를 디코딩하는 헬퍼 함수 (재확인) -->
+// 이 함수는 텍스트 내의 HTML 엔티티를 브라우저가 렌더링 가능한 문자로 디코딩합니다.
 function decodeHtmlEntities(html) {
-    const textarea = document.createElement('textarea');
-    textarea.innerHTML = html;
-    return textarea.value;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.documentElement.textContent;
 }
+// <-- 수정 끝 -->
 
 // CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시
 function displayCodePilotMessage(markdownText) {
@@ -239,7 +240,9 @@ function displayCodePilotMessage(markdownText) {
         // 2. 코드 블록 처리 (Markdown 포맷 미적용, 원본 텍스트 그대로)
         const preElement = document.createElement('pre');
         const codeElement = document.createElement('code');
-        codeElement.textContent = DOMPurify.sanitize(codeContent, { RETURN_TYPE: 'text' });
+        // <-- 수정: decodeHtmlEntities를 사용하여 엔티티 디코딩 후 textContent 설정 -->
+        codeElement.textContent = decodeHtmlEntities(DOMPurify.sanitize(codeContent, { RETURN_TYPE: 'text' }));
+        // <-- 수정 끝 -->
         // if (lang) { // language- 클래스를 추가하지 않음 (요구사항: 코드 블록 내 plain text)
         //     codeElement.classList.add(`language-${lang.trim()}`);
         // }

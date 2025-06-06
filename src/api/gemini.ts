@@ -1,7 +1,16 @@
 // src/api/gemini.ts
 
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerationConfig, Part, GenerateContentRequest, Content, RequestOptions } from '@google/generative-ai';
-// RequestOptions는 이제 여기서 직접 사용되지 않지만, 다른 곳에서 타입 정의로 필요할 수 있으므로 임포트는 유지합니다.
+
+// 확장을 위해 RequestOptions 인터페이스에 signal 속성을 추가합니다.
+// @google/generative-ai 라이브러리의 버전과 타입 정의가 다를 때 유용합니다.
+// 이렇게 하면 RequestOptions 타입에 signal 속성이 있다고 TypeScript가 인식하게 됩니다.
+declare module '@google/generative-ai' {
+  interface RequestOptions {
+    signal?: AbortSignal;
+  }
+}
+
 
 export class GeminiApi {
     private genAI: GoogleGenerativeAI | undefined;
@@ -61,8 +70,8 @@ export class GeminiApi {
         return !!this.model && !!this.genAI;
     }
 
-    // <-- 수정: sendMessage 메서드에서 RequestOptions 인자 제거 -->
-    async sendMessage(message: string, generationConfigParam?: GenerationConfig): Promise<string> {
+    // <-- 수정: sendMessage 메서드에 RequestOptions를 두 번째 인자로 전달 -->
+    async sendMessage(message: string, generationConfigParam?: GenerationConfig, options?: RequestOptions): Promise<string> {
         if (!this.isInitialized()) {
             throw new Error("Gemini API is not initialized. Please set your API Key in the CodePilot settings (License section).");
         }
@@ -74,8 +83,9 @@ export class GeminiApi {
             const request: GenerateContentRequest = {
                 contents: [{ role: "user", parts: [{ text: message }] }],
             };
-            // RequestOptions 인자를 전달하지 않음
-            const result = await chat.sendMessage(request);
+            // <-- 수정: chat.sendMessage 호출 시 request와 options를 분리하여 두 번째 인자로 전달 -->
+            const result = await chat.sendMessage(request, options); // RequestOptions를 두 번째 인자로 전달
+            // <-- 수정 끝 -->
 
             const response = result.response;
             const text = response.text();
@@ -88,8 +98,8 @@ export class GeminiApi {
     }
     // <-- 수정 끝 -->
 
-    // <-- 수정: sendMessageWithSystemPrompt 메서드에서 RequestOptions 인자 제거 -->
-    async sendMessageWithSystemPrompt(systemInstructionText: string, userPrompt: string): Promise<string> { // options 인자 제거
+    // <-- 수정: sendMessageWithSystemPrompt 메서드에 RequestOptions를 두 번째 인자로 전달 -->
+    async sendMessageWithSystemPrompt(systemInstructionText: string, userPrompt: string, options?: RequestOptions): Promise<string> { // options?: RequestOptions 유지
         if (!this.genAI) {
             throw new Error("Gemini API (GoogleGenerativeAI instance) is not initialized. Please set your API Key.");
         }
@@ -106,8 +116,9 @@ export class GeminiApi {
                 generationConfig: this.defaultGenerationConfig,
             };
 
-            // RequestOptions 인자를 전달하지 않음
-            const result = await tempModel.generateContent(request); // options 인자 제거
+            // <-- 수정: generateContent 호출 시 request와 options를 분리하여 두 번째 인자로 전달 -->
+            const result = await tempModel.generateContent(request, options); // RequestOptions를 두 번째 인자로 전달
+            // <-- 수정 끝 -->
 
             const response = result.response;
             if (response.promptFeedback && response.promptFeedback.blockReason) {

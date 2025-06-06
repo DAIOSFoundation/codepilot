@@ -7,7 +7,7 @@ import * as os from 'os';
 // 사용자 정의 모듈 임포트
 import { StorageService } from './storage/storage';
 import { GeminiApi } from './api/gemini';
-// <-- 수정: RequestOptions 타입을 다시 임포트하고 구문 오류 수정 -->
+// <-- 수정: RequestOptions 타입을 다시 임포트 -->
 import { RequestOptions } from '@google/generative-ai';
 // <-- 수정 끝 -->
 
@@ -136,7 +136,7 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
     }
     webviewToRespond.postMessage({ command: 'showLoading' });
 
-    // AbortController 생성 및 전달
+    // AbortController 생성 (매 호출마다 새로 생성)
     currentGeminiCallController = new AbortController();
     const abortSignal = currentGeminiCallController.signal;
 
@@ -153,7 +153,6 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
         const includedFilesForContext: { name: string, fullPath: string }[] = [];
 
 
-        // <-- 수정: 파일 읽기 및 컨텍스트 포함 로직 개선 -->
         for (const sourcePath of sourcePathsSetting) {
             if (currentTotalContentLength >= MAX_TOTAL_CONTENT_LENGTH) {
                 fileContentsContext += "\n[INFO] 컨텍스트 길이 제한으로 일부 파일 내용이 생략되었습니다.\n";
@@ -176,32 +175,26 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
                         fileContentsContext += `파일명: ${fileName}\n코드:\n[INFO] 파일 내용이 너무 길어 생략되었습니다.\n\n`;
                     }
                 } else if (stats.type === vscode.FileType.Directory) {
-                    // **glob 패턴 수정: '/**' 대신 '/**\/*'를 사용하여 모든 하위 파일 포함**
-                    // **ignore 패턴을 globOptions로 직접 전달하여 정확도 향상**
-                    const pattern = path.join(uri.fsPath, '**', '*'); // 모든 하위 파일
+                    const pattern = path.join(uri.fsPath, '**', '*');
                     const files = glob.sync(pattern, {
                         nodir: true,
-                        dot: false, // .으로 시작하는 파일 무시
+                        dot: false,
                         ignore: [
                             path.join(uri.fsPath, '**/node_modules/**'),
-                            path.join(uri.fsPath, '**/.git/**'),
-                            path.join(uri.fsPath, '**/dist/**'),
-                            path.join(uri.fsPath, '**/out/**')
-                        ].map(p => p.replace(/\\/g, '/')) // glob 패턴은 POSIX 스타일 경로 사용
+                            path.join(uri.fsPath, '**/.git/**', '**/dist/**', '**/out/**')
+                        ].map(p => p.replace(/\\/g, '/'))
                     });
 
                     for (const file of files) {
-                        // 파일 확장자 필터링 (여기에 추가)
                         const allowedExtensions = ['.ts', '.js', '.py', '.html', '.css', '.md', '.java', '.c', '.cpp', '.go', '.rs', '.json', '.xml', '.yaml', '.yml', '.sh', '.rb', '.php'];
                         if (!allowedExtensions.includes(path.extname(file).toLowerCase())) {
-                            continue; // 허용되지 않는 확장자 건너뛰기
+                            continue;
                         }
 
                         if (currentTotalContentLength >= MAX_TOTAL_CONTENT_LENGTH) break;
                         const fileUri = vscode.Uri.file(file);
                         const contentBytes = await vscode.workspace.fs.readFile(fileUri);
                         const content = Buffer.from(contentBytes).toString('utf8');
-                        // 상대 경로 사용 시 basePath는 sourcePath (디렉토리)
                         const relativeFileName = path.relative(sourcePath, file).replace(/\\/g, '/') || path.basename(file);
 
                         if (currentTotalContentLength + content.length <= MAX_TOTAL_CONTENT_LENGTH) {
@@ -219,7 +212,6 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
                 fileContentsContext += `[오류] 경로 '${sourcePath}' 처리 중 문제 발생: ${err.message}\n\n`;
             }
         }
-        // <-- 수정 끝 -->
 
         if (includedFilesForContext.length === 0 && sourcePathsSetting.length > 0) {
              fileContentsContext += "[정보] 설정된 경로에서 컨텍스트에 포함할 파일을 찾지 못했습니다. 파일 확장자나 경로 설정을 확인해주세요.\n";
@@ -243,13 +235,13 @@ async function handleUserMessageAndRespond(userQuery: string, webviewToRespond: 
         const fullPrompt = `사용자 요청: ${userQuery}\n\n--- 참조 코드 컨텍스트 ---\n${fileContentsContext.trim() === "" ? "참조 코드가 제공되지 않았습니다." : fileContentsContext}`;
 
         console.log("[To LLM] System Prompt:", systemPrompt);
-        console.log("[To LLM] Full Prompt (first 300 chars):", fullPrompt);
+        console.log("[To LLM] Full Prompt (first 300 chars):", fullPrompt.substring(0,300));
 
-
-        // @ts-ignore는 더 이상 필요 없을 수 있습니다.
-        // geminiApi.sendMessageWithSystemPrompt의 시그니처가 (systemInstructionText, userPrompt, options?: RequestOptions)
-        // 로 되어 있으므로, 이 호출은 유효합니다.
-        let llmResponse = await geminiApi.sendMessageWithSystemPrompt(systemPrompt, fullPrompt);
+        // RequestOptions를 구성 (signal 포함)
+        const requestOptions: RequestOptions = {
+            signal: abortSignal
+        };
+        let llmResponse = await geminiApi.sendMessageWithSystemPrompt(systemPrompt, fullPrompt, requestOptions);
 
         await processLlmResponseAndAutoUpdate(llmResponse, includedFilesForContext, webviewToRespond, context);
 
@@ -468,10 +460,8 @@ function createAndSetupWebviewPanel(
     panel.webview.html = getHtmlContentWithUris(extensionUri, htmlFileName, panel.webview);
     panel.onDidDispose(() => { /* 정리 */ }, undefined, contextForSubs.subscriptions);
     if (onDidReceiveMessage) {
-        // <-- 수정: onDidReceiveMessage 콜백의 thisArg를 undefined로 명시하고 TS2683 오류 무시 -->
         // @ts-ignore
         panel.webview.onDidReceiveMessage(async (data) => { await onDidReceiveMessage(data, panel); }, undefined, contextForSubs.subscriptions);
-        // <-- 수정 끝 -->
     }
     panel.reveal(viewColumn);
     return panel;
