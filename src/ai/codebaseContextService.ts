@@ -16,6 +16,27 @@ export class CodebaseContextService {
     }
 
     /**
+     * 파일의 전체 경로를 VS Code 워크스페이스 루트를 기준으로 한 상대 경로로 변환합니다.
+     * 워크스페이스가 열려있지 않거나 파일이 워크스페이스 외부에 있으면 null을 반환합니다.
+     * @param fullPath 파일의 전체 경로
+     * @returns 워크스페이스 기준 상대 경로 (슬래시 구분) 또는 null
+     */
+    private getPathRelativeToWorkspace(fullPath: string): string | null {
+        if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+            return null; // 워크스페이스가 열려있지 않음
+        }
+        const workspaceRootUri = vscode.workspace.workspaceFolders[0].uri;
+        const fullUri = vscode.Uri.file(fullPath);
+
+        // 파일이 워크스페이스 폴더 내에 있는지 확인
+        if (fullUri.fsPath.startsWith(workspaceRootUri.fsPath)) {
+            // path.relative는 OS에 맞는 구분자를 반환하므로, 일관성을 위해 슬래시로 변환
+            return path.relative(workspaceRootUri.fsPath, fullUri.fsPath).replace(/\\/g, '/');
+        }
+        return null;
+    }
+
+    /**
      * 프로젝트 코드베이스에서 LLM에 전달할 컨텍스트를 수집합니다.
      * @param abortSignal AbortController의 Signal (취소 요청 시 사용)
      * @returns { fileContentsContext: string, includedFilesForContext: { name: string, fullPath: string }[] }
@@ -42,18 +63,20 @@ export class CodebaseContextService {
                 if (stats.type === vscode.FileType.File) {
                     const contentBytes = await vscode.workspace.fs.readFile(uri);
                     const content = Buffer.from(contentBytes).toString('utf8');
-                    const fileName = path.basename(sourcePath);
+
+                    // 워크스페이스 기준 상대 경로를 얻거나, 없으면 기본 파일명 사용
+                    const nameForContext = this.getPathRelativeToWorkspace(sourcePath) || path.basename(sourcePath);
 
                     if (currentTotalContentLength + content.length <= this.MAX_TOTAL_CONTENT_LENGTH) {
-                        fileContentsContext += `파일명: ${fileName}\n코드:\n\`\`\`${getFileType(sourcePath)}\n${content}\n\`\`\`\n\n`;
+                        fileContentsContext += `파일명: ${nameForContext}\n코드:\n\`\`\`${getFileType(sourcePath)}\n${content}\n\`\`\`\n\n`;
                         currentTotalContentLength += content.length;
-                        includedFilesForContext.push({ name: fileName, fullPath: sourcePath });
+                        includedFilesForContext.push({ name: nameForContext, fullPath: sourcePath });
                     } else {
-                        fileContentsContext += `파일명: ${fileName}\n코드:\n[INFO] 파일 내용이 너무 길어 생략되었습니다.\n\n`;
+                        fileContentsContext += `파일명: ${nameForContext}\n코드:\n[INFO] 파일 내용이 너무 길어 생략되었습니다.\n\n`;
                     }
                 } else if (stats.type === vscode.FileType.Directory) {
                     const pattern = path.join(uri.fsPath, '**', '*');
-                    const files = glob.sync(pattern, { // glob.sync 대신 비동기 globby 라이브러리 고려 가능
+                    const files = glob.sync(pattern, {
                         nodir: true,
                         dot: false,
                         ignore: [
@@ -76,15 +99,16 @@ export class CodebaseContextService {
                         const fileUri = vscode.Uri.file(file);
                         const contentBytes = await vscode.workspace.fs.readFile(fileUri);
                         const content = Buffer.from(contentBytes).toString('utf8');
-                        const relativeFileName = path.relative(sourcePath, file).replace(/\\/g, '/') || path.basename(file);
+
+                        // 워크스페이스 기준 상대 경로를 얻거나, 없으면 기본 파일명 사용
+                        const nameForContext = this.getPathRelativeToWorkspace(file) || path.basename(file);
 
                         if (currentTotalContentLength + content.length <= this.MAX_TOTAL_CONTENT_LENGTH) {
-                            fileContentsContext += `파일명: ${relativeFileName}\n코드:\n\`\`\`${getFileType(file)}\n${content}\n\`\`\`\n\n`;
+                            fileContentsContext += `파일명: ${nameForContext}\n코드:\n\`\`\`${getFileType(file)}\n${content}\n\`\`\`\n\n`;
                             currentTotalContentLength += content.length;
-                            includedFilesForContext.push({ name: relativeFileName, fullPath: file });
+                            includedFilesForContext.push({ name: nameForContext, fullPath: file });
                         } else {
-                            fileContentsContext += `파일명: ${relativeFileName}\n코드:\n[INFO] 파일 내용이 너무 길어 생략되었습니다.\n\n`;
-                            break;
+                            fileContentsContext += `파일명: ${nameForContext}\n코드:\n[INFO] 파일 내용이 너무 길어 생략되었습니다.\n\n`;
                         }
                     }
                 }
