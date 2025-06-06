@@ -100,7 +100,8 @@
             gap: 10px; /* 버튼과 상태 메시지 간 간격 */
             margin-top: 15px;
         }
-        #add-directory-button {
+        #add-directory-button,
+        #select-project-root-button { /* 프로젝트 Root 버튼 스타일 추가 */
             padding: 8px 15px;
             background-color: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
@@ -108,7 +109,8 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        #add-directory-button:hover {
+        #add-directory-button:hover,
+        #select-project-root-button:hover { /* 프로젝트 Root 버튼 호버 스타일 추가 */
             background-color: var(--vscode-button-hoverBackground);
         }
 
@@ -159,10 +161,59 @@
             font-weight: normal; /* 일반 텍스트처럼 */
             margin-bottom: 0; /* label 태그의 기본 마진 제거 */
         }
+
+        /* 프로젝트 Root 경로 표시 스타일 */
+        #project-root-container {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 5px;
+            background-color: var(--vscode-input-background);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #project-root-path-display {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--vscode-foreground);
+            margin-right: 10px;
+        }
+
+        #clear-project-root-button {
+            background: none;
+            border: none;
+            color: var(--vscode-textLink-foreground);
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1;
+        }
+        #clear-project-root-button:hover {
+            color: var(--vscode-textLink-activeForeground);
+        }
+
     </style>
 </head>
 <body>
     <h1>CodePilot 설정</h1>
+
+    <div class="section-container">
+        <h2>프로젝트 Root 설정</h2>
+        <p class="info-message">CodePilot이 프로젝트의 최상위 경로로 인식할 디렉토리를 설정합니다. 이 경로는 파일 경로를 참조할 때 기준점으로 사용될 수 있습니다.</p>
+        <div id="project-root-container">
+            <p id="project-root-path-display" class="path-text">설정된 프로젝트 Root 없음</p>
+            <button id="clear-project-root-button" title="프로젝트 Root 지우기">×</button>
+        </div>
+        <div class="button-group">
+            <button id="select-project-root-button">경로 선택</button>
+            <span id="project-root-status" class="info-message"></span>
+        </div>
+        <p class="info-message">설정 변경은 즉시 저장됩니다.</p>
+    </div>
 
     <div class="section-container">
         <h2>소스 코드 경로 지정</h2>

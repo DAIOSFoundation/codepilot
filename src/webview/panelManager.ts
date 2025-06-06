@@ -20,15 +20,16 @@ export function openSettingsPanel(
                 case 'initSettings':
                     panel.webview.postMessage({
                         command: 'currentSettings',
-                        sourcePaths: configurationService.getSourcePaths(), // ConfigurationService 사용
-                        autoUpdateEnabled: configurationService.isAutoUpdateEnabled() // ConfigurationService 사용
+                        sourcePaths: await configurationService.getSourcePaths(), // ConfigurationService 사용
+                        autoUpdateEnabled: await configurationService.isAutoUpdateEnabled(), // ConfigurationService 사용
+                        projectRoot: await configurationService.getProjectRoot() // 프로젝트 Root 추가
                     });
                     break;
                 case 'addDirectory':
                     const uris = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: true, canSelectMany: true, openLabel: 'Select Sources' });
                     if (uris && uris.length > 0) {
                         const newPaths = uris.map(u => u.fsPath);
-                        const current = configurationService.getSourcePaths();
+                        const current = await configurationService.getSourcePaths(); // Promise를 기다립니다.
                         const updatedPaths = Array.from(new Set([...current, ...newPaths]));
                         await configurationService.updateSourcePaths(updatedPaths); // ConfigurationService 사용
                         panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
@@ -37,7 +38,7 @@ export function openSettingsPanel(
                 case 'removeDirectory':
                     const pathToRemove = data.path;
                     if (pathToRemove) {
-                        const current = configurationService.getSourcePaths();
+                        const current = await configurationService.getSourcePaths(); // Promise를 기다립니다.
                         const updatedPaths = current.filter(p => p !== pathToRemove);
                         await configurationService.updateSourcePaths(updatedPaths); // ConfigurationService 사용
                         panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
@@ -47,6 +48,17 @@ export function openSettingsPanel(
                     if (typeof data.enabled === 'boolean') {
                         await configurationService.updateAutoUpdateEnabled(data.enabled); // ConfigurationService 사용
                         panel.webview.postMessage({ command: 'autoUpdateStatusChanged', enabled: data.enabled });
+                    }
+                    break;
+                case 'setProjectRoot':
+                    const rootUris = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: 'Select Project Root' });
+                    if (rootUris && rootUris.length > 0) {
+                        const newRootPath = rootUris[0].fsPath;
+                        await configurationService.updateProjectRoot(newRootPath);
+                        panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: newRootPath });
+                    } else if (data.clear) { // Root 경로를 비우는 옵션 추가 (선택하지 않고 닫았을 때)
+                         await configurationService.updateProjectRoot(undefined); // undefined를 저장하여 설정에서 제거 또는 빈 문자열로 설정
+                         panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: '' });
                     }
                     break;
             }

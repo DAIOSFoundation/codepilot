@@ -115,6 +115,12 @@
           "default": false,
           "description": "Enable or disable automatic updating of files based on LLM's code block suggestions. If disabled, you will be prompted before updating.",
           "scope": "resource"
+        },
+        "codepilot.projectRoot": {
+          "type": "string",
+          "default": "",
+          "description": "CodePilot이 프로젝트의 최상위 경로로 인식할 디렉토리를 설정합니다. 이 경로는 파일 경로를 참조할 때 기준점으로 사용될 수 있습니다.",
+          "scope": "resource"
         }
       }
     }

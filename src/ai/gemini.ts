@@ -2,9 +2,6 @@
 
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerationConfig, Part, GenerateContentRequest, Content, RequestOptions } from '@google/generative-ai';
 
-// 확장을 위해 RequestOptions 인터페이스에 signal 속성을 추가합니다.
-// @google/generative-ai 라이브러리의 버전과 타입 정의가 다를 때 유용합니다.
-// 이렇게 하면 RequestOptions 타입에 signal 속성이 있다고 TypeScript가 인식하게 됩니다.
 declare module '@google/generative-ai' {
   interface RequestOptions {
     signal?: AbortSignal;
@@ -22,7 +19,7 @@ export class GeminiApi {
         temperature: 0.7,
         topK: 1,
         topP: 1,
-        maxOutputTokens: 100000,
+        maxOutputTokens: 500000,
     };
 
     private readonly defaultSafetySettings = [
