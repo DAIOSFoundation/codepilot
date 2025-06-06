@@ -9,6 +9,13 @@ export class CodebaseContextService {
     private configurationService: ConfigurationService;
     private notificationService: NotificationService;
     private readonly MAX_TOTAL_CONTENT_LENGTH = 1000000; // LLM 컨텍스트 최대 길이
+    private readonly EXCLUDED_EXTENSIONS = [
+        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico', // Images
+        '.pdf', '.zip', '.tar', '.gz', '.rar', '.7z',                     // Archives/Binary documents
+        '.exe', '.dll', '.bin',                                           // Executables/Binaries
+        '.sqlite', '.db',                                                 // Databases
+        '.lock', '.log', '.tmp', '.temp'                                  // Lock/Log/Temp files
+    ];
 
     constructor(configurationService: ConfigurationService, notificationService: NotificationService) {
         this.configurationService = configurationService;
@@ -61,6 +68,12 @@ export class CodebaseContextService {
                 const stats = await vscode.workspace.fs.stat(uri);
 
                 if (stats.type === vscode.FileType.File) {
+                    // Check if file is excluded
+                    if (this.EXCLUDED_EXTENSIONS.includes(path.extname(sourcePath).toLowerCase())) {
+                        console.log(`[CodebaseContextService] Skipping excluded file: ${sourcePath}`);
+                        continue;
+                    }
+
                     const contentBytes = await vscode.workspace.fs.readFile(uri);
                     const content = Buffer.from(contentBytes).toString('utf8');
 
@@ -90,8 +103,9 @@ export class CodebaseContextService {
                             this.notificationService.showWarningMessage('컨텍스트 수집이 취소되었습니다.');
                             break;
                         }
-                        const allowedExtensions = ['.ts', '.js', '.py', '.html', '.css', '.md', '.java', '.c', '.cpp', '.go', '.rs', '.json', '.xml', '.yaml', '.yml', '.sh', '.rb', '.php'];
-                        if (!allowedExtensions.includes(path.extname(file).toLowerCase())) {
+                        // Check if file is excluded
+                        if (this.EXCLUDED_EXTENSIONS.includes(path.extname(file).toLowerCase())) {
+                            console.log(`[CodebaseContextService] Skipping excluded file: ${file}`);
                             continue;
                         }
 

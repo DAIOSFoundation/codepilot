@@ -38,7 +38,7 @@ Not yet
 
 ## Release Notes
 
-### 0.5b
+### 0.5b 2025/06/01
 
 - Settings, License, Custom menu
 - Banya API registration
@@ -51,7 +51,20 @@ Not yet
   - Code block indicator
   - Code block copy with cliipboard
 
----
+### 1.3b 2025/06/06
+
+- Settings
+  - Project root setting
+  - Source directory and file path recognizble
+  - Source path update and redering bug fixed
+- CHAT panel
+  - Cancel button and API canceling feature implemented
+  - Chat contents clear feature added
+  - Loading animation bug fixed
+- AI
+  - Creating new files according to the context of LLM outputs
+  - Auto updating after LLM output response(User can determine if he can update codes immediately or check the difference with Diff)
+  - Notification for updated files by AI
 
 ## Following extension guidelines
 
