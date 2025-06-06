@@ -198,6 +198,7 @@ function handleCleanHistory() {
         while (chatMessages.firstChild) {
             chatMessages.removeChild(chatMessages.firstChild);
         }
+        thinkingBubbleElement = null; // 로딩 애니메이션 참조도 초기화
         console.log('Chat history cleared.');
     }
 }
@@ -221,7 +222,7 @@ function displayCodePilotMessage(markdownText) {
     bubbleElement.classList.add('message-bubble');
 
     // --- Markdown 텍스트를 코드 블록 기준으로 분할 및 조합 ---
-    const codeBlockRegex = /```(\S*?)\n([\s\S]*?)```/g;
+const codeBlockRegex = /```(\S*?)\n([\s\S]*?)```/g;
     let lastIndex = 0;
     const tempHtmlElements = document.createElement('div'); // 임시 컨테이너
 
