@@ -8,7 +8,7 @@ import { NotificationService } from '../services/notificationService';
 export class CodebaseContextService {
     private configurationService: ConfigurationService;
     private notificationService: NotificationService;
-    private readonly MAX_TOTAL_CONTENT_LENGTH = 100000; // LLM 컨텍스트 최대 길이
+    private readonly MAX_TOTAL_CONTENT_LENGTH = 1000000; // LLM 컨텍스트 최대 길이
 
     constructor(configurationService: ConfigurationService, notificationService: NotificationService) {
         this.configurationService = configurationService;
@@ -42,7 +42,7 @@ export class CodebaseContextService {
      * @returns { fileContentsContext: string, includedFilesForContext: { name: string, fullPath: string }[] }
      */
     public async getProjectCodebaseContext(abortSignal: AbortSignal): Promise<{ fileContentsContext: string, includedFilesForContext: { name: string, fullPath: string }[] }> {
-        const sourcePathsSetting = this.configurationService.getSourcePaths();
+        const sourcePathsSetting = await this.configurationService.getSourcePaths();
         let fileContentsContext = "";
         let currentTotalContentLength = 0;
         const includedFilesForContext: { name: string, fullPath: string }[] = [];

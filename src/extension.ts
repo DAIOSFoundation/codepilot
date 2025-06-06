@@ -43,7 +43,8 @@ export async function activate(context: vscode.ExtensionContext) {
         geminiApi,
         codebaseContextService, // 새로 추가
         llmResponseProcessor,   // 새로 추가
-        notificationService     // 새로 추가
+        notificationService,    // 새로 추가
+        configurationService    // Add configurationService here
     );
 
     // ChatViewProvider 인스턴스 생성 및 등록

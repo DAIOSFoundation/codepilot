@@ -3,6 +3,15 @@ import * as path from 'path';
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
 
+// Define a type for file operations
+interface FileOperation {
+    type: 'modify' | 'create';
+    originalDirective: string; // e.g., "수정 파일", "새 파일"
+    llmSpecifiedPath: string;  // The path as specified by LLM (e.g., 'src/components/Button.tsx')
+    absolutePath: string;      // The resolved absolute path on disk
+    newContent: string;
+}
+
 export class LlmResponseProcessor {
     private context: vscode.ExtensionContext;
     private configurationService: ConfigurationService;
@@ -12,6 +21,24 @@ export class LlmResponseProcessor {
         this.context = context;
         this.configurationService = configurationService;
         this.notificationService = notificationService;
+    }
+
+    /**
+     * Retrieves the project root path. It first checks the 'codepilot.projectRoot' setting.
+     * If not set, it defaults to the first workspace folder's root.
+     * @returns The absolute path of the project root, or undefined if no workspace is open and no setting is configured.
+     */
+    private async getProjectRootPath(): Promise<string | undefined> {
+        const configuredRoot = await this.configurationService.getProjectRoot();
+        if (configuredRoot) {
+            // ConfigurationService's getProjectRoot should ideally return an absolute path
+            // or handle resolution. Assuming it returns an absolute path or undefined.
+            return configuredRoot;
+        }
+        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+            return vscode.workspace.workspaceFolders[0].uri.fsPath;
+        }
+        return undefined;
     }
 
     /**
@@ -25,11 +52,15 @@ export class LlmResponseProcessor {
         contextFiles: { name: string, fullPath: string }[],
         webview: vscode.Webview
     ): Promise<void> {
+        const fileOperations: FileOperation[] = [];
         const updatesToApply: { filePath: string; newContent: string; originalName: string }[] = [];
+        
+        // Updated regex to capture both "수정 파일:" and "새 파일:" directives
         const codeBlockRegex = /수정 파일:\s*(.+?)\s*```(?:\w*\s*)?\n([\s\S]*?)```/g;
+        
         let match;
 
-        console.log("[LLM Response Parsing] Starting. LLM Response (first 300 chars):", llmResponse.substring(0, 300));
+        console.log("[LLM Response Parsing] Starting. LLM Response:", llmResponse);
 
         while ((match = codeBlockRegex.exec(llmResponse)) !== null) {
             const llmSpecifiedFileName = match[1].trim();
@@ -52,7 +83,7 @@ export class LlmResponseProcessor {
         let updateSummaryMessages: string[] = [];
 
         if (updatesToApply.length > 0) {
-            const autoUpdateEnabled = this.configurationService.isAutoUpdateEnabled(); // ConfigurationService 사용
+            const autoUpdateEnabled = await this.configurationService.isAutoUpdateEnabled(); // ConfigurationService 사용
 
             for (const update of updatesToApply) {
                 const fileNameForDisplay = update.originalName;
@@ -107,15 +138,12 @@ export class LlmResponseProcessor {
         let finalWebviewResponse = llmResponse;
         if (updateSummaryMessages.length > 0) {
             finalWebviewResponse += "\n\n--- 파일 업데이트 결과 ---\n" + updateSummaryMessages.join("\n");
-        } else if (updatesToApply.length === 0 && llmResponse.includes("```") && !llmResponse.includes("수정 파일:")) {
-            finalWebviewResponse += "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요.";
-        }
+        } else if (updatesToApply.length === 0 && llmResponse.includes("Copy") && !llmResponse.includes("수정 파일:")) { finalWebviewResponse += "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, ‘수정 파일:’ 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요."};
 
         if (contextFiles.length > 0) {
             const fileList = contextFiles.map(f => f.name).join(', ');
             finalWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n${fileList}`;
         }
-
         webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: finalWebviewResponse });
     }
 }
