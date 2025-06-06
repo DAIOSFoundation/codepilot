@@ -25,7 +25,7 @@ export function openSettingsPanel(
                     });
                     break;
                 case 'addDirectory':
-                    const uris = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: true, openLabel: 'Select Sources' });
+                    const uris = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: true, canSelectMany: true, openLabel: 'Select Sources' });
                     if (uris && uris.length > 0) {
                         const newPaths = uris.map(u => u.fsPath);
                         const current = configurationService.getSourcePaths();
