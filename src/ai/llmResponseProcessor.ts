@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
+import { PromptType } from './geminiService'; // Import PromptType
 
 // Define a type for file operations
 interface FileOperation {
@@ -50,12 +51,15 @@ export class LlmResponseProcessor {
      * @param llmResponse LLM의 원본 응답 문자열
      * @param contextFiles 컨텍스트에 포함되었던 파일 목록 ({ name: string, fullPath: string }[])
      * @param webview 웹뷰에 메시지를 보낼 수 있는 Webview 객체
+     * @param promptType 현재 프롬프트의 타입 (CODE_GENERATION 또는 GENERAL_ASK)
      */
     public async processLlmResponseAndApplyUpdates(
         llmResponse: string,
         contextFiles: { name: string, fullPath: string }[],
-        webview: vscode.Webview): Promise<void> 
-        {
+        webview: vscode.Webview,
+        promptType: PromptType // Add this parameter
+    ): Promise<void> 
+    {
         const fileOperations: FileOperation[] = [];
         
         // Updated regex to capture the directive (group 1), the path (group 2), and the content (group 3)
@@ -235,7 +239,7 @@ export class LlmResponseProcessor {
         else if (fileOperations.length === 0 && llmResponse.includes("새 파일:") && !llmResponse.includes("수정 파일:")) 
         {
             // This case handles when "새 파일:" was present but project root was not found
-            // // The warning message is already added to updateSummaryMessages, so no extra info needed here. 
+            // The warning message is already added to updateSummaryMessages, so no extra info needed here. 
             console.log("[LLM Response Processor] No file operations parsed, possibly due to missing project root for '새 파일:' directives."); 
         }
 
@@ -243,10 +247,11 @@ export class LlmResponseProcessor {
             const fileList = contextFiles.map(f => f.name).join(', ');
             finalWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n${fileList}`;
             console.log(`[LLM Response Processor] Context files included: ${fileList}`);
-        } else {
+        } else if (promptType === PromptType.CODE_GENERATION) { // Only show (없음) for CODE_GENERATION if no files
             finalWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n(없음)`;
-            console.log(`[LLM Response Processor] No context files included.`);
+            console.log(`[LLM Response Processor] No context files included for CODE_GENERATION.`);
         }
+        // For GENERAL_ASK, if contextFiles is empty, nothing is appended.
     
         webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: finalWebviewResponse });
         console.log("[LLM Response Processor] Finished processing LLM response.");

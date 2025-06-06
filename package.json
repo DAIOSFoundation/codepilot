@@ -45,9 +45,7 @@
           "name": "CODE",
           "type": "webview",
           "icon": "$(comment-discussion)"
-        }
-      ],
-      "explorer": [
+        },
         {
           "id": "codepilot.askView",
           "name": "ASK",

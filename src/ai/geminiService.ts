@@ -131,7 +131,8 @@ ${projectRootInfo}
             await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(
                 llmResponse,
                 promptType === PromptType.CODE_GENERATION ? includedFilesForContext : [],
-                webviewToRespond
+                webviewToRespond,
+                promptType // promptType을 LlmResponseProcessor로 전달
             );
 
         } catch (error: any) {
