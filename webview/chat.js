@@ -147,7 +147,7 @@ function displayUserMessage(text) {
     userMessageElement.classList.add('user-plain-message');
     // DOMPurify.sanitize(text)는 HTML 태그를 제거하고 안전한 텍스트를 반환합니다.
     // .replace(/\n/g, '<br>')를 사용하여 줄바꿈을 HTML <br> 태그로 변환합니다.
-    userMessageElement.innerHTML = 'You: ' + DOMPurify.sanitize(text).replace(/\n/g, '<br>');
+    userMessageElement.innerHTML = '🧇 ' + DOMPurify.sanitize(text).replace(/\n/g, '<br>');
 
     const separatorElement = document.createElement('hr');
     separatorElement.classList.add('message-separator');
@@ -235,7 +235,6 @@ function decodeHtmlEntities(html) {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return doc.documentElement.textContent;
 }
-// <-- 수정 끝 -->
 
 // CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시
 function displayCodePilotMessage(markdownText) {
@@ -247,8 +246,8 @@ function displayCodePilotMessage(markdownText) {
     const bubbleElement = document.createElement('div');
     bubbleElement.classList.add('message-bubble');
 
-    // --- Markdown 텍스트를 코드 블록 기준으로 분할 및 조합 ---
-   const codeBlockRegex = /```(\S*?)\n([\s\S]*?)```/g;
+// --- Markdown 텍스트를 코드 블록 기준으로 분할 및 조합 ---
+    const codeBlockRegex = /```(\S*?)\n([\s\S]*?)```/g;
     let lastIndex = 0;
     const tempHtmlElements = document.createElement('div'); // 임시 컨테이너
 

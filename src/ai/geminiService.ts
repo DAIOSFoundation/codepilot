@@ -29,19 +29,19 @@ export class GeminiService {
     }
 
     public cancelCurrentCall(): void {
-        console.log('[GeminiService] Attempting to cancel current Gemini call.');
+        console.log('[ CodePilot ] Attempting to cancel current Banya call.');
         if (this.currentGeminiCallController) {
             this.currentGeminiCallController.abort();
-            console.log('[GeminiService] Gemini call aborted.');
+            console.log('[CodePilot] Banya call aborted.');
         } else {
-            console.log('[GeminiService] No active Gemini call to abort.');
+            console.log('[CodePilot] No active Banya call to abort.');
         }
     }
 
     public async handleUserMessageAndRespond(userQuery: string, webviewToRespond: vscode.Webview): Promise<void> {
         const apiKey = await this.storageService.getApiKey();
         if (!apiKey) {
-            webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: "Error: Gemini API Key is not set. Please set it via CodePilot settings." });
+            webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: "Error: Banya API Key is not set. Please set it via CodePilot settings." });
             return;
         }
         webviewToRespond.postMessage({ command: 'showLoading' });
@@ -49,7 +49,7 @@ export class GeminiService {
         this.currentGeminiCallController = new AbortController();
         const abortSignal = this.currentGeminiCallController.signal;
         abortSignal.onabort = () => {
-            console.log('[GeminiService] Gemini API call was aborted by user.');
+            console.log('[CodePilot] Banya API call was aborted by user.');
         };
 
         try {
@@ -71,10 +71,10 @@ export class GeminiService {
 
             const fullPrompt = `사용자 요청: ${userQuery}\n\n--- 참조 코드 컨텍스트 ---\n${fileContentsContext.trim() === "" ? "참조 코드가 제공되지 않았습니다." : fileContentsContext}`;
 
-            console.log("[To LLM] System Prompt:", systemPrompt);
-            console.log("[To LLM] Full Prompt:", fullPrompt);
+            console.log("[To Banya] System Prompt:", systemPrompt);
+            console.log("[To Banya] Full Prompt:", fullPrompt);
 
-            // 2. Gemini API 호출
+            // 2. LLM API 호출
             const requestOptions: RequestOptions = { signal: abortSignal };
             let llmResponse = await this.geminiApi.sendMessageWithSystemPrompt(systemPrompt, fullPrompt, requestOptions);
 
@@ -87,7 +87,7 @@ export class GeminiService {
 
         } catch (error: any) {
             if (error.name === 'AbortError') {
-                console.warn("[GeminiService] Gemini API call was explicitly aborted.");
+                console.warn("[CodePilot] Banya API call was explicitly aborted.");
                 webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: 'AI 호출이 취소되었습니다.' });
             } else {
                 console.error("Error in handleUserMessageAndRespond:", error);

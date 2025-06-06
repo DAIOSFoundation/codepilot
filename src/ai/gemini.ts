@@ -36,7 +36,7 @@ export class GeminiApi {
         if (apiKey) {
             this.initializeApi(apiKey);
         } else {
-            console.warn('Gemini API Key is not provided at construction.');
+            console.warn('Banya API Key is not provided at construction.');
         }
     }
 
@@ -47,9 +47,9 @@ export class GeminiApi {
                 model: this.MODEL_NAME,
                 safetySettings: this.defaultSafetySettings,
             });
-            console.log(`Gemini API initialized with model: ${this.MODEL_NAME}${systemInstructionText ? " and system instruction." : "."}`);
+            console.log(`Banya API initialized with model: ${this.MODEL_NAME}${systemInstructionText ? " and system instruction." : "."}`);
         } catch (error) {
-            console.error('Error initializing Gemini API:', error);
+            console.error('Error initializing Banya API:', error);
             this.genAI = undefined;
             this.model = undefined;
         }
@@ -58,11 +58,11 @@ export class GeminiApi {
     updateApiKey(apiKey: string | undefined): void {
         if (apiKey) {
             this.initializeApi(apiKey);
-            console.log('Gemini API Key updated.');
+            console.log('Banya API Key updated.');
         } else {
             this.genAI = undefined;
             this.model = undefined;
-            console.warn('Gemini API Key removed. API is now uninitialized.');
+            console.warn('Banya API Key removed. API is now uninitialized.');
         }
     }
 
@@ -73,7 +73,7 @@ export class GeminiApi {
     // <-- 수정: sendMessage 메서드에 RequestOptions를 두 번째 인자로 전달 -->
     async sendMessage(message: string, generationConfigParam?: GenerationConfig, options?: RequestOptions): Promise<string> {
         if (!this.isInitialized()) {
-            throw new Error("Gemini API is not initialized. Please set your API Key in the CodePilot settings (License section).");
+            throw new Error("Banya API is not initialized. Please set your API Key in the CodePilot settings (License section).");
         }
 
         try {
@@ -89,10 +89,10 @@ export class GeminiApi {
 
             const response = result.response;
             const text = response.text();
-            console.log('Gemini Response (sendMessage):', text.substring(0, 100) + "...");
+            console.log('Banya Response (sendMessage):', text);
             return text;
         } catch (error: any) {
-            console.error('Error calling Gemini API (sendMessage):', error);
+            console.error('Error calling Banya API (sendMessage):', error);
             return this.handleApiError(error);
         }
     }
@@ -101,7 +101,7 @@ export class GeminiApi {
     // <-- 수정: sendMessageWithSystemPrompt 메서드에 RequestOptions를 두 번째 인자로 전달 -->
     async sendMessageWithSystemPrompt(systemInstructionText: string, userPrompt: string, options?: RequestOptions): Promise<string> { // options?: RequestOptions 유지
         if (!this.genAI) {
-            throw new Error("Gemini API (GoogleGenerativeAI instance) is not initialized. Please set your API Key.");
+            throw new Error("Banya API (GoogleGenerativeAI instance) is not initialized. Please set your API Key.");
         }
 
         try {
@@ -122,15 +122,15 @@ export class GeminiApi {
 
             const response = result.response;
             if (response.promptFeedback && response.promptFeedback.blockReason) {
-                console.warn(`Gemini API response blocked. Reason: ${response.promptFeedback.blockReason}`, response.promptFeedback);
+                console.warn(`Banya API response blocked. Reason: ${response.promptFeedback.blockReason}`, response.promptFeedback);
                 throw new Error(`Response was blocked by safety settings. Reason: ${response.promptFeedback.blockReason}. Please adjust your prompt or safety settings.`);
             }
             const text = response.text();
-            console.log('Gemini Response (sendMessageWithSystemPrompt):', text.substring(0, 100) + "...");
+            console.log('Banya Response (sendMessageWithSystemPrompt):', text);
             return text;
 
         } catch (error: any) {
-            console.error('Error calling Gemini API (sendMessageWithSystemPrompt):', error);
+            console.error('Error calling Banya API (sendMessageWithSystemPrompt):', error);
             return this.handleApiError(error);
         }
     }
@@ -138,14 +138,14 @@ export class GeminiApi {
 
     private handleApiError(error: any): string {
         if (error.name === 'AbortError') {
-            return "Error: Gemini API call was cancelled.";
+            return "Error: Banya API call was cancelled.";
         }
         if (error.message) {
             if (error.message.includes('API key not valid') || error.message.includes('invalid api key')) {
-                return "Error: Invalid Gemini API Key. Please check and update it in the CodePilot settings (License section).";
+                return "Error: Invalid Banya API Key. Please check and update it in the CodePilot settings (License section).";
             }
             if (error.message.includes('quota') || error.message.includes('Quota')) {
-                return "Error: Gemini API quota exceeded. Please check your Google Cloud Project billing and quotas.";
+                return "Error: Banya API quota exceeded. Please check your Google Cloud Project billing and quotas.";
             }
             if (error.message.includes('Billing account not found')) {
                 return "Error: Billing account not found or not associated with the project. Please check your Google Cloud Project billing settings.";
@@ -156,8 +156,8 @@ export class GeminiApi {
             if (error.message.includes('Response was blocked')) {
                 return error.message;
             }
-            return `Error communicating with Gemini API: ${error.message}`;
+            return `Error communicating with Banya API: ${error.message}`;
         }
-        return "Error: An unknown error occurred while communicating with the Gemini API.";
+        return "Error: An unknown error occurred while communicating with the Banya API.";
     }
 }

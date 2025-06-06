@@ -106,9 +106,9 @@
         "codepilot.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Gemini API Key를 설정합니다. Secret Storage에 안전하게 저장됩니다.",
+          "description": "Banya API Key를 설정합니다. Secret Storage에 안전하게 저장됩니다.",
           "scope": "resource",
-          "markdownDescription": "Gemini API Key를 설정합니다. 이는 VS Code의 Secret Storage에 안전하게 저장되며, 확장이 이 키를 사용하여 Gemini API에 접근합니다. [여기](https://aistudio.google.com/app/apikey)에서 API 키를 얻을 수 있습니다."
+          "markdownDescription": "Banya API Key를 설정합니다. 이는 VS Code의 Secret Storage에 안전하게 저장되며, 확장이 이 키를 사용하여 Gemini API에 접근합니다. [여기](https://aistudio.google.com/app/apikey)에서 API 키를 얻을 수 있습니다."
         },
         "codepilot.autoUpdateFiles": {
           "type": "boolean",

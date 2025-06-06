@@ -41,7 +41,7 @@ Not yet
 ### 0.5b
 
 - Settings, License, Custom menu
-- Gemini API registration
+- Banya API registration
 - CHAT panel
   - Webview implementation with javascript bundle(Look over webpack configuration webpack.config.js)
   - Gemini response
