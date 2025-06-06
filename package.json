@@ -40,7 +40,7 @@
       "codepilot": [
         {
           "id": "codepilot.chatView",
-          "name": "Chat",
+          "name": "CODE",
           "type": "webview",
           "icon": "$(comment-discussion)"
         }
