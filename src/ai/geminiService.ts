@@ -91,8 +91,8 @@ export class GeminiService {
                 webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: 'AI 호출이 취소되었습니다.' });
             } else {
                 console.error("Error in handleUserMessageAndRespond:", error);
-                this.notificationService.showErrorMessage(`Error: ${error.message || 'Failed to process request.'}`);
-                webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: `Error: ${error.message || 'Failed to process request.'}` });
+                this.notificationService.showErrorMessage(`Error: Failed to process request.'}`);
+                webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: `Failed to process request.'}` });
             }
         } finally {
             this.currentGeminiCallController = null;

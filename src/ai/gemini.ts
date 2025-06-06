@@ -101,7 +101,7 @@ export class GeminiApi {
     // <-- 수정: sendMessageWithSystemPrompt 메서드에 RequestOptions를 두 번째 인자로 전달 -->
     async sendMessageWithSystemPrompt(systemInstructionText: string, userPrompt: string, options?: RequestOptions): Promise<string> { // options?: RequestOptions 유지
         if (!this.genAI) {
-            throw new Error("Banya API (GoogleGenerativeAI instance) is not initialized. Please set your API Key.");
+            throw new Error("Banya Gemma 27B Tunded is not initialized. Please set your API Key.");
         }
 
         try {
@@ -145,18 +145,18 @@ export class GeminiApi {
                 return "Error: Invalid Banya API Key. Please check and update it in the CodePilot settings (License section).";
             }
             if (error.message.includes('quota') || error.message.includes('Quota')) {
-                return "Error: Banya API quota exceeded. Please check your Google Cloud Project billing and quotas.";
+                return "Error: Banya API quota exceeded. Please check your Banya Lincese detail.";
             }
             if (error.message.includes('Billing account not found')) {
-                return "Error: Billing account not found or not associated with the project. Please check your Google Cloud Project billing settings.";
+                return "Error: Billing account not found or not associated with the project. Please check your Banya Codepilot payment account.";
             }
             if (error.message.includes('LOCATION_INVALID')) {
-                return "Error: Invalid location or model not available in the region. Please check model availability for your project's region.";
+                return "Error: Invalid location or model not available in the region. Please check model availability.";
             }
             if (error.message.includes('Response was blocked')) {
                 return error.message;
             }
-            return `Error communicating with Banya API: ${error.message}`;
+            return `Error communicating with Banya API: Banya agent ochestration service aborted LLM calling`;
         }
         return "Error: An unknown error occurred while communicating with the Banya API.";
     }
