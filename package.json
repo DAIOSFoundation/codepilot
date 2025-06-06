@@ -20,10 +20,12 @@
   ],
   "activationEvents": [
     "onView:codepilot.chatView",
+    "onView:codepilot.askView",
     "onCommand:codepilot.openSettingsPanel",
     "onCommand:codepilot.openLicensePanel",
     "onCommand:codepilot.openCustomizingPanel",
-    "onCommand:codepilot.openChatView"
+    "onCommand:codepilot.openChatView",
+    "onCommand:codepilot.openAskView"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -44,6 +46,14 @@
           "type": "webview",
           "icon": "$(comment-discussion)"
         }
+      ],
+      "explorer": [
+        {
+          "id": "codepilot.askView",
+          "name": "ASK",
+          "type": "webview",
+          "icon": "$(lightbulb-sparkle)"
+        }
       ]
     },
     "commands": [
@@ -61,7 +71,11 @@
       },
       {
         "command": "codepilot.openChatView",
-        "title": "Open Banya Chat"
+        "title": "Open CodePilot Chat"
+      },
+      {
+        "command": "codepilot.openAskView",
+        "title": "Open CodePilot Ask"
       }
     ],
     "menus": {

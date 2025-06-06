@@ -70,10 +70,11 @@ export class LlmResponseProcessor {
         const projectRoot = await this.getProjectRootPath();
         console.log(`[LLM Response Processor] Resolved project root for operations: ${projectRoot || 'Not found'}`);
         
+        // 새 파일 생성을 위한 프로젝트 루트가 없으면 경고
         if (!projectRoot && llmResponse.includes("새 파일:")) {
             this.notificationService.showErrorMessage("새 파일 생성을 위해 프로젝트 루트 경로를 찾을 수 없습니다. CodePilot 설정에서 'Project Root'를 설정하거나, 워크스페이스를 여십시오.");
             webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: "오류: 새 파일 생성을 위한 프로젝트 루트 경로를 찾을 수 없습니다." });
-            return; // Cannot proceed with new file creation without root
+            // 여기서 return하지 않고, 아래 루프에서 새 파일 생성을 건너뛰도록 처리
         }
 
         while ((match = codeBlockRegex.exec(llmResponse)) !== null) {

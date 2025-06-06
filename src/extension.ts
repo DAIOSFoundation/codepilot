@@ -3,56 +3,56 @@ import * as vscode from 'vscode';
 // 사용자 정의 모듈 임포트
 import { StorageService } from './services/storage';
 import { GeminiApi } from './ai/gemini';
-import { ConfigurationService } from './services/configurationService'; // 새로 추가
-import { NotificationService } from './services/notificationService';   // 새로 추가
-import { CodebaseContextService } from './ai/codebaseContextService';   // 새로 추가
-import { LlmResponseProcessor } from './ai/llmResponseProcessor';     // 새로 추가
-import { GeminiService } from './ai/geminiService'; // 의존성 추가
+import { ConfigurationService } from './services/configurationService';
+import { NotificationService } from './services/notificationService';
+import { CodebaseContextService } from './ai/codebaseContextService';
+import { LlmResponseProcessor } from './ai/llmResponseProcessor';
+import { GeminiService } from './ai/geminiService';
 import { ChatViewProvider } from './webview/chatViewProvider';
+import { AskViewProvider } from './webview/askViewProvider'; // 새로 추가된 AskViewProvider 임포트
 import { getCodePilotTerminal } from './terminal/terminalManager';
 import { openSettingsPanel, openLicensePanel, openBlankPanel } from './webview/panelManager';
 
 // 전역 변수
 let storageService: StorageService;
 let geminiApi: GeminiApi;
-let configurationService: ConfigurationService; // 새로 추가
-let notificationService: NotificationService;   // 새로 추가
-let codebaseContextService: CodebaseContextService; // 새로 추가
-let llmResponseProcessor: LlmResponseProcessor;     // 새로 추가
-let geminiService: GeminiService; // 변경: 더 많은 의존성 주입
+let configurationService: ConfigurationService;
+let notificationService: NotificationService;
+let codebaseContextService: CodebaseContextService;
+let llmResponseProcessor: LlmResponseProcessor;
+let geminiService: GeminiService;
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, CodePilot is now active!');
 
     // 서비스 초기화 (순서 중요: 의존성 주입)
     storageService = new StorageService(context.secrets);
-    notificationService = new NotificationService(); // notificationService 초기화
-    configurationService = new ConfigurationService(); // configurationService 초기화
+    notificationService = new NotificationService();
+    configurationService = new ConfigurationService();
 
     const initialApiKey = await storageService.getApiKey();
     if (!initialApiKey) {
         notificationService.showWarningMessage('CodePilot: Gemini API Key is not set. Please set it in the License panel for AI features.');
     }
-    geminiApi = new GeminiApi(initialApiKey || ''); // 변경: API 키가 undefined일 경우 빈 문자열로 전달
+    geminiApi = new GeminiApi(initialApiKey || '');
 
     // AI 관련 서비스 초기화
-    codebaseContextService = new CodebaseContextService(configurationService, notificationService); // config, noti 서비스 주입
-    llmResponseProcessor = new LlmResponseProcessor(context, configurationService, notificationService); // context, config, noti 서비스 주입
+    codebaseContextService = new CodebaseContextService(configurationService, notificationService);
+    llmResponseProcessor = new LlmResponseProcessor(context, configurationService, notificationService);
     geminiService = new GeminiService(
         storageService,
         geminiApi,
-        codebaseContextService, // 새로 추가
-        llmResponseProcessor,   // 새로 추가
-        notificationService,    // 새로 추가
-        configurationService    // Add configurationService here
+        codebaseContextService,
+        llmResponseProcessor,
+        notificationService,
+        configurationService
     );
 
-    // ChatViewProvider 인스턴스 생성 및 등록
+    // ChatViewProvider 인스턴스 생성 및 등록 (CODE 탭)
     const chatViewProvider = new ChatViewProvider(
         context.extensionUri,
         context,
         geminiService,
-        // 패널 열기 함수 바인딩 (이제 configurationService, storageService를 직접 전달)
         (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService),
         (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService),
         (viewColumn: vscode.ViewColumn) => openBlankPanel(context.extensionUri, context, viewColumn)
@@ -64,9 +64,30 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    // Command 등록 (기존과 동일, 필요한 경우 패널 열기 함수에 변경된 서비스 주입)
+    // AskViewProvider 인스턴스 생성 및 등록 (ASK 탭)
+    const askViewProvider = new AskViewProvider(
+        context.extensionUri,
+        context,
+        geminiService,
+        (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService),
+        (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService),
+        (viewColumn: vscode.ViewColumn) => openBlankPanel(context.extensionUri, context, viewColumn)
+    );
+
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(AskViewProvider.viewType, askViewProvider, {
+            webviewOptions: { retainContextWhenHidden: true }
+        })
+    );
+
+    // Command 등록
     context.subscriptions.push(vscode.commands.registerCommand('codepilot.openChatView', () => {
         vscode.commands.executeCommand('workbench.view.extension.codepilotViewContainer');
+        vscode.commands.executeCommand(`${ChatViewProvider.viewType}.focus`); // CODE 탭으로 포커스
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('codepilot.openAskView', () => {
+        vscode.commands.executeCommand('workbench.view.extension.codepilotViewContainer');
+        vscode.commands.executeCommand(`${AskViewProvider.viewType}.focus`); // ASK 탭으로 포커스
     }));
     context.subscriptions.push(vscode.commands.registerCommand('codepilot.openSettingsPanel', () => {
         openSettingsPanel(context.extensionUri, context, vscode.ViewColumn.One, configurationService);
@@ -88,4 +109,3 @@ export function deactivate() {
         terminal.dispose();
     }
 }
-
