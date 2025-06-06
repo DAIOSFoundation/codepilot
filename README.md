@@ -66,6 +66,10 @@ Not yet
   - Auto updating after LLM output response(User can determine if he can update codes immediately or check the difference with Diff)
   - Notification for updated files by AI
 
+### 1.3b 2025/06/07
+
+- ASK tab added. ASK feature is that user can ask AI general knowledge.
+
 ## Following extension guidelines
 
 Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
