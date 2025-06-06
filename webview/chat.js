@@ -11,7 +11,7 @@ const vscode = acquireVsCodeApi();
 const sendButton = document.getElementById('send-button');
 const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages'); // 스크롤 컨테이너
-const cleanHistoryButton = document.getElementById('clean-history-button'); // Clean History 버튼 참조
+const cleanHistoryButton = document.getElementById('clean-history-button'); // Clear History 버튼 참조
 const cancelButton = document.getElementById('cancel-call-button'); // Cancel 버튼 참조
 
 
@@ -96,6 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (chatInput) {
         autoResizeTextarea();
     }
+    // 초기 로드 시 Cancel 버튼 비활성화
+    if (cancelButton) {
+        cancelButton.disabled = true;
+    }
 });
 
 window.addEventListener('message', event => {
@@ -173,6 +177,14 @@ function showLoading() {
     chatMessages.appendChild(messageContainer);
     thinkingBubbleElement = messageContainer; // 엘리먼트 참조 저장
 
+    // 로딩 애니메이션이 보일 때 Clear 버튼 비활성화, Cancel 버튼 활성화
+    if (cleanHistoryButton) {
+        cleanHistoryButton.disabled = true;
+    }
+    if (cancelButton) {
+        cancelButton.disabled = false;
+    }
+
     // showLoading에서도 로딩 애니메이션이 보이도록 스크롤
     requestAnimationFrame(() => { // DOM 업데이트 후 스크롤 되도록 지연
         if (thinkingBubbleElement) {
@@ -190,6 +202,13 @@ function hideLoading() {
         chatMessages.removeChild(thinkingBubbleElement);
         thinkingBubbleElement = null;
     }
+    // 로딩 애니메이션이 사라질 때 Clear 버튼 활성화, Cancel 버튼 비활성화
+    if (cleanHistoryButton) {
+        cleanHistoryButton.disabled = false;
+    }
+    if (cancelButton) {
+        cancelButton.disabled = true;
+    }
 }
 
 // 채팅 기록을 모두 삭제하는 함수
@@ -200,6 +219,13 @@ function handleCleanHistory() {
         }
         thinkingBubbleElement = null; // 로딩 애니메이션 참조도 초기화
         console.log('Chat history cleared.');
+    }
+    // Clear 버튼 클릭 시 항상 초기 상태로 버튼들을 되돌립니다.
+    if (cleanHistoryButton) {
+        cleanHistoryButton.disabled = false;
+    }
+    if (cancelButton) {
+        cancelButton.disabled = true;
     }
 }
 
@@ -222,7 +248,7 @@ function displayCodePilotMessage(markdownText) {
     bubbleElement.classList.add('message-bubble');
 
     // --- Markdown 텍스트를 코드 블록 기준으로 분할 및 조합 ---
-const codeBlockRegex = /```(\S*?)\n([\s\S]*?)```/g;
+   const codeBlockRegex = /```(\S*?)\n([\s\S]*?)```/g;
     let lastIndex = 0;
     const tempHtmlElements = document.createElement('div'); // 임시 컨테이너
 
