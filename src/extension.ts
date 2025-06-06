@@ -33,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
     if (!initialApiKey) {
         notificationService.showWarningMessage('CodePilot: Gemini API Key is not set. Please set it in the License panel for AI features.');
     }
-    geminiApi = new GeminiApi(initialApiKey || undefined);
+    geminiApi = new GeminiApi(initialApiKey || ''); // 변경: API 키가 undefined일 경우 빈 문자열로 전달
 
     // AI 관련 서비스 초기화
     codebaseContextService = new CodebaseContextService(configurationService, notificationService); // config, noti 서비스 주입
@@ -88,3 +88,4 @@ export function deactivate() {
         terminal.dispose();
     }
 }
+
