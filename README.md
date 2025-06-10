@@ -56,7 +56,7 @@ Not yet
 - Settings
   - Project root setting
   - Source directory and file path recognizble
-  - Source path update and redering bug fixed
+  - Source path update and rendering bug fixed
 - CHAT panel
   - Cancel button and API canceling feature implemented
   - Chat contents clear feature added
@@ -66,9 +66,26 @@ Not yet
   - Auto updating after LLM output response(User can determine if he can update codes immediately or check the difference with Diff)
   - Notification for updated files by AI
 
-### 1.3b 2025/06/07
+### 2.0b 2025/06/10
 
-- ASK tab added. ASK feature is that user can ask AI general knowledge.
+- Main
+  - Implement call cancellation feature
+  - Fix abort option argument issue in "@google/generative-ai": "^0.16.0" version
+- Settings
+  - Source path update and rendering bug fixed
+- CHAT panel
+  - Code block html tag expression bug fixed
+  - Code copy bug fixed
+  - Cancel button added
+  - ASK tab added. ASK feature is that user can ask AI general knowledge.
+  - Image copy with clipboard
+  - Image thumbnail in the input message and chat window
+- AI
+  - Code generation by image analysis
+  - Swfit language support
+  - Git Diff support
+- Etc
+  - Fixed a bug where the thinking animation would not reappear after clearing
 
 ## Following extension guidelines
 

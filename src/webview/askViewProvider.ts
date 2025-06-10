@@ -38,7 +38,7 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
             switch (data.command) {
                 case 'sendMessage':
                     // ASK 탭에서는 GENERAL_ASK 프롬프트 타입을 사용
-                    await this.geminiService.handleUserMessageAndRespond(data.text, webviewView.webview, PromptType.GENERAL_ASK);
+                    await this.geminiService.handleUserMessageAndRespond(data.text, webviewView.webview, PromptType.GENERAL_ASK, data.imageData, data.imageMimeType);
                     break;
                 case 'openPanel':
                     let panelViewColumn = vscode.ViewColumn.Beside;

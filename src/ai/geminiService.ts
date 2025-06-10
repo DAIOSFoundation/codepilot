@@ -5,7 +5,7 @@ import { CodebaseContextService } from './codebaseContextService';
 import { LlmResponseProcessor } from './llmResponseProcessor';
 import { NotificationService } from '../services/notificationService';
 import { ConfigurationService } from '../services/configurationService';
-import { RequestOptions } from '@google/generative-ai';
+import { RequestOptions, Part } from '@google/generative-ai'; // Part 임포트
 
 export enum PromptType {
     CODE_GENERATION = 'CODE_GENERATION',
@@ -47,7 +47,13 @@ export class GeminiService {
         }
     }
 
-    public async handleUserMessageAndRespond(userQuery: string, webviewToRespond: vscode.Webview, promptType: PromptType): Promise<void> {
+    public async handleUserMessageAndRespond(
+        userQuery: string,
+        webviewToRespond: vscode.Webview,
+        promptType: PromptType,
+        imageData?: string, // 이미지 데이터 추가
+        imageMimeType?: string // 이미지 MIME 타입 추가
+    ): Promise<void> {
         const apiKey = await this.storageService.getApiKey();
         if (!apiKey) {
             webviewToRespond.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: "Error: Banya API Key is not set. Please set it via CodePilot settings." });
@@ -115,17 +121,32 @@ ${projectRootInfo}
                 systemPrompt = `당신은 유용한 AI 어시스턴트입니다. 사용자의 요청에 대해 답변해주세요.`;
             }
 
+            // 사용자 쿼리와 이미지 데이터를 포함하는 Parts 배열 생성
+            const userParts: Part[] = [];
+            if (userQuery) {
+                userParts.push({ text: `사용자 요청: ${userQuery}` });
+            }
+            if (imageData && imageMimeType) {
+                userParts.push({
+                    inlineData: {
+                        data: imageData,
+                        mimeType: imageMimeType
+                    }
+                });
+            }
+
             // GENERAL_ASK 타입일 때는 참조 코드 컨텍스트를 포함하지 않음
-            const fullPrompt = `사용자 요청: ${userQuery}\n\n` +
-                               (promptType === PromptType.CODE_GENERATION && fileContentsContext.trim() !== ""
-                                   ? `--- 참조 코드 컨텍스트 ---\n${fileContentsContext}`
-                                   : "--- 참조 코드 컨텍스트 ---\n참조 코드가 제공되지 않았습니다.");
+            const contextPart: Part = (promptType === PromptType.CODE_GENERATION && fileContentsContext.trim() !== "")
+                ? { text: `--- 참조 코드 컨텍스트 ---\n${fileContentsContext}` }
+                : { text: "--- 참조 코드 컨텍스트 ---\n참조 코드가 제공되지 않았습니다." };
+
+            const fullParts: Part[] = [...userParts, contextPart];
 
             console.log("[To Banya] System Prompt:", systemPrompt);
-            console.log("[To Banya] Full Prompt:", fullPrompt);
+            console.log("[To Banya] Full Parts:", fullParts);
 
             const requestOptions: RequestOptions = { signal: abortSignal };
-            let llmResponse = await this.geminiApi.sendMessageWithSystemPrompt(systemPrompt, fullPrompt, requestOptions);
+            let llmResponse = await this.geminiApi.sendMessageWithSystemPrompt(systemPrompt, fullParts, requestOptions); // userParts 전달
 
             // GENERAL_ASK 타입일 때는 파일 업데이트를 위한 컨텍스트 파일을 넘기지 않음
             await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(

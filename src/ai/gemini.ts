@@ -13,7 +13,8 @@ export class GeminiApi {
     private genAI: GoogleGenerativeAI | undefined;
     private model: any; // SDK의 GenerativeModel 타입으로 지정 권장 (GenerativeModel)
 
-    private readonly MODEL_NAME = "gemini-2.5-flash-preview-05-20";
+    //private readonly MODEL_NAME = "gemini-2.5-flash-preview-05-20";
+    private readonly MODEL_NAME = "gemini-2.5-pro-preview-05-06";
 
     private readonly defaultGenerationConfig: GenerationConfig = {
         temperature: 0.7,
@@ -96,7 +97,8 @@ export class GeminiApi {
     // <-- 수정 끝 -->
 
     // <-- 수정: sendMessageWithSystemPrompt 메서드에 RequestOptions를 두 번째 인자로 전달 -->
-    async sendMessageWithSystemPrompt(systemInstructionText: string, userPrompt: string, options?: RequestOptions): Promise<string> { // options?: RequestOptions 유지
+    // userPrompt: string 대신 userParts: Part[]를 받도록 변경
+    async sendMessageWithSystemPrompt(systemInstructionText: string, userParts: Part[], options?: RequestOptions): Promise<string> {
         if (!this.genAI) {
             throw new Error("Banya Gemma 27B Tunded is not initialized. Please set your API Key.");
         }
@@ -109,7 +111,7 @@ export class GeminiApi {
             });
 
             const request: GenerateContentRequest = {
-                contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+                contents: [{ role: "user", parts: userParts }], // userParts 배열 사용
                 generationConfig: this.defaultGenerationConfig,
             };
 

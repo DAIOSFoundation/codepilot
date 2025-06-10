@@ -75,6 +75,9 @@
             background-color: var(--vscode-editor-background); /* 배경색 */
             box-sizing: border-box;
             z-index: 10;
+            /* <-- 추가: 이미지 썸네일 영역을 위해 min-height 조정 가능 --> */
+            min-height: 50px; /* 텍스트 에어리어의 최소 높이보다 크게 설정하여 썸네일 공간 확보 */
+            flex-wrap: wrap; /* 썸네일과 입력창이 한 줄에 안 들어갈 경우 줄바꿈 */
         }
 
         /* <-- chatInput 스타일 (기존 스타일 유지하며 자동조절 속성 추가) --> */
@@ -176,6 +179,9 @@
             padding: 0 10px;
             box-sizing: border-box;
             width: 100%;
+            display: flex; /* 이미지와 텍스트를 함께 표시하기 위해 flex 사용 */
+            flex-direction: column; /* 이미지와 텍스트를 세로로 쌓음 */
+            align-items: flex-start;
         }
 
         .message-separator {
@@ -353,6 +359,65 @@
             color: var(--vscode-textLink-activeForeground);
         }
 
+        /* <-- Image Preview Styles --> */
+        #image-preview-container {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            background-color: var(--vscode-input-background);
+            border-radius: 5px;
+            margin-bottom: 8px; /* 텍스트 에어리어와의 간격 */
+            position: relative;
+            max-width: 150px; /* 썸네일 최대 너비 */
+            max-height: 150px; /* 썸네일 최대 높이 */
+            overflow: hidden; /* 이미지 오버플로우 숨김 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #image-preview-container.hidden {
+            display: none;
+        }
+
+        #image-preview {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* 이미지 비율 유지하며 컨테이너에 맞춤 */
+            border-radius: 3px;
+        }
+
+        #remove-image-button {
+            position: absolute;
+            top: -5px; /* 컨테이너 밖으로 약간 빼서 썸네일 안 가리게 */
+            right: -5px;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-foreground);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        #remove-image-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+            color: var(--vscode-button-foreground);
+        }
+
+        /* User message image style */
+        .user-message-image {
+            max-width: 200px; /* 사용자 메시지 안의 이미지 최대 너비 */
+            height: auto;
+            border-radius: 5px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            border: 1px solid var(--vscode-panel-border);
+        }
 
     </style>
 </head>
@@ -362,6 +427,11 @@
     </div>
 
     <div id="chat-input-area">
+        <!-- Image Preview Container -->
+        <div id="image-preview-container" class="hidden">
+            <img id="image-preview" src="#" alt="Image thumbnail" />
+            <button id="remove-image-button" title="Remove image">×</button>
+        </div>
         <textarea id="chat-input" rows="4" placeholder="메시지를 입력하세요..."></textarea>
         <!-- <-- 추가: 버튼 그룹을 포함하는 div -->
         <div class="button-group">

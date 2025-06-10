@@ -13,9 +13,14 @@ const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages'); // 스크롤 컨테이너
 const cleanHistoryButton = document.getElementById('clean-history-button'); // Clear History 버튼 참조
 const cancelButton = document.getElementById('cancel-call-button'); // Cancel 버튼 참조
+const imagePreviewContainer = document.getElementById('image-preview-container');
+const imagePreview = document.getElementById('image-preview');
+const removeImageButton = document.getElementById('remove-image-button');
 
 
 let thinkingBubbleElement = null;
+let selectedImageBase64 = null; // Base64 인코딩된 이미지 데이터를 저장할 변수
+let selectedImageMimeType = null; // 이미지 MIME 타입 저장
 
 const md = markdownit({
     html: false,
@@ -46,6 +51,7 @@ if (sendButton && chatInput) {
     });
 
     chatInput.addEventListener('input', autoResizeTextarea);
+    chatInput.addEventListener('paste', handlePaste); // 붙여넣기 이벤트 리스너 추가
 }
 
 // Clean History 버튼 클릭 이벤트 리스너
@@ -62,21 +68,66 @@ if (cancelButton) {
     });
 }
 
+// 이미지 제거 버튼 클릭 이벤트 리스너
+if (removeImageButton) {
+    removeImageButton.addEventListener('click', removeAttachedImage);
+}
+
+function handlePaste(event) {
+    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    let imageFound = false;
+
+    for (const item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    selectedImageBase64 = e.target.result.split(',')[1]; // Get base64 string without data:image/...
+                    selectedImageMimeType = file.type;
+
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                    autoResizeTextarea(); // 썸네일 추가 후 입력창 높이 재조정
+                    chatInput.focus();
+                };
+                reader.readAsDataURL(file);
+                imageFound = true;
+                break; // 한 개의 이미지만 처리
+            }
+        }
+    }
+    if (imageFound) {
+        event.preventDefault(); // 이미지가 붙여넣어졌으면 기본 텍스트 붙여넣기 방지
+    }
+}
+
+function removeAttachedImage() {
+    selectedImageBase64 = null;
+    selectedImageMimeType = null;
+    imagePreview.src = '#';
+    imagePreviewContainer.classList.add('hidden');
+    autoResizeTextarea(); // 썸네일 제거 후 입력창 높이 재조정
+    chatInput.focus();
+}
 
 function handleSendMessage() {
     if (!chatInput) return;
     const text = chatInput.value.trimEnd(); // trim() 대신 trimEnd() 사용 (기존 로직 유지)
-    if (text) {
-        window.displayUserMessage(text);
+    if (text || selectedImageBase64) { // 텍스트 또는 이미지가 있을 때만 전송
+        window.displayUserMessage(text, selectedImageBase64); // 이미지 데이터도 함께 전달
         window.showLoading(); // 로딩 애니메이션 표시
 
         vscode.postMessage({
             command: 'sendMessage',
-            text: text
+            text: text,
+            imageData: selectedImageBase64, // 이미지 데이터 전송
+            imageMimeType: selectedImageMimeType // 이미지 MIME 타입 전송
         });
 
         chatInput.value = '';
         chatInput.style.height = 'auto';
+        removeAttachedImage(); // 이미지 전송 후 썸네일 제거
         autoResizeTextarea();
         chatInput.focus();
     }
@@ -100,6 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelButton) {
         cancelButton.disabled = true;
     }
+    // 이미지 프리뷰 초기 숨김
+    if (imagePreviewContainer) {
+        imagePreviewContainer.classList.add('hidden');
+    }
 });
 
 window.addEventListener('message', event => {
@@ -107,9 +162,9 @@ window.addEventListener('message', event => {
 
     switch (message.command) {
         case 'displayUserMessage':
-            console.log('Received command to display user message:', message.text);
-            if (message.text !== undefined) {
-                window.displayUserMessage(message.text);
+            console.log('Received command to display user message:', message.text, message.imageData);
+            if (message.text !== undefined || message.imageData !== undefined) { // 텍스트 또는 이미지가 있을 때
+                window.displayUserMessage(message.text, message.imageData);
             }
             break;
 
@@ -141,13 +196,27 @@ window.addEventListener('message', event => {
 // 이 함수들을 window 객체에 할당하여 메시지 핸들러에서 접근 가능하게 합니다.
 
 // 사용자 메시지를 일반 텍스트와 구분선으로 표시하는 함수
-function displayUserMessage(text) {
+function displayUserMessage(text, imageData = null) { // imageData 파라미터 추가
     if (!chatMessages) return;
     const userMessageElement = document.createElement('div');
     userMessageElement.classList.add('user-plain-message');
-    // DOMPurify.sanitize(text)는 HTML 태그를 제거하고 안전한 텍스트를 반환합니다.
-    // .replace(/\n/g, '<br>')를 사용하여 줄바꿈을 HTML <br> 태그로 변환합니다.
-    userMessageElement.innerHTML = '🧇 ' + DOMPurify.sanitize(text).replace(/\n/g, '<br>');
+
+    // 이미지 데이터가 있으면 이미지 표시
+    if (imageData) {
+        const imgElement = document.createElement('img');
+        imgElement.classList.add('user-message-image');
+        imgElement.src = `data:image/png;base64,${imageData}`; // MIME 타입은 PNG로 가정하거나, 전송된 MIME 타입 사용
+        userMessageElement.appendChild(imgElement);
+    }
+
+    // 텍스트가 있으면 텍스트 표시
+    if (text) {
+        const textNode = document.createElement('span');
+        // DOMPurify.sanitize(text)는 HTML 태그를 제거하고 안전한 텍스트를 반환합니다.
+        // .replace(/\n/g, '<br>')를 사용하여 줄바꿈을 HTML <br> 태그로 변환합니다.
+        textNode.innerHTML = '🧇 ' + DOMPurify.sanitize(text).replace(/\n/g, '<br>');
+        userMessageElement.appendChild(textNode);
+    }
 
     const separatorElement = document.createElement('hr');
     separatorElement.classList.add('message-separator');

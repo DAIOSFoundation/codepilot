@@ -36,7 +36,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async (data: any) => {
             switch (data.command) {
                 case 'sendMessage':
-                    await this.geminiService.handleUserMessageAndRespond(data.text, webviewView.webview, PromptType.CODE_GENERATION);
+                    // 이미지 데이터와 MIME 타입도 함께 전달
+                    await this.geminiService.handleUserMessageAndRespond(data.text, webviewView.webview, PromptType.CODE_GENERATION, data.imageData, data.imageMimeType);
                     break;
                 case 'openPanel':
                     let panelViewColumn = vscode.ViewColumn.Beside;
@@ -54,6 +55,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     console.log('[Extension Host] Received cancelGeminiCall command.');
                     this.geminiService.cancelCurrentCall();
                     webviewView.webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: 'AI 호출이 취소되었습니다.' });
+                    break;
+                case 'displayUserMessage': // 웹뷰 자체에서 사용자 메시지 표시를 요청할 때, 이미지도 포함
+                    console.log('Received command to display user message from webview:', data.text, data.imageData);
+                    if (data.text !== undefined || data.imageData !== undefined) {
+                        webviewView.webview.postMessage({ command: 'displayUserMessage', text: data.text, imageData: data.imageData });
+                    }
                     break;
             }
         });
