@@ -12,6 +12,7 @@ export function getFileType(filePath: string): string {
         case '.html': return 'html';
         case '.css': return 'css';
         case '.java': return 'java';
+        case '.swift': return 'swift';
         case '.c': return 'c';
         case '.cpp': return 'cpp';
         case '.go': return 'go';
