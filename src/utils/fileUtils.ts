@@ -23,6 +23,7 @@ export function getFileType(filePath: string): string {
         case '.sh': return 'shell';
         case '.rb': return 'ruby';
         case '.php': return 'php';
+        case '.sql': return 'sql';
         default: return '';
     }
 }

@@ -229,13 +229,6 @@ function handleCleanHistory() {
     }
 }
 
-// <-- 수정: HTML 엔티티를 디코딩하는 헬퍼 함수 (재확인) -->
-// 이 함수는 텍스트 내의 HTML 엔티티를 브라우저가 렌더링 가능한 문자로 디코딩합니다.
-function decodeHtmlEntities(html) {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    return doc.documentElement.textContent;
-}
-
 // CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시
 function displayCodePilotMessage(markdownText) {
     if (!chatMessages) return;
@@ -266,9 +259,8 @@ function displayCodePilotMessage(markdownText) {
         // 2. 코드 블록 처리 (Markdown 포맷 미적용, 원본 텍스트 그대로)
         const preElement = document.createElement('pre');
         const codeElement = document.createElement('code');
-        // <-- 수정: decodeHtmlEntities를 사용하여 엔티티 디코딩 후 textContent 설정 -->
-        codeElement.textContent = decodeHtmlEntities(DOMPurify.sanitize(codeContent, { RETURN_TYPE: 'text' }));
-        // <-- 수정 끝 -->
+        // HTML 엔티티를 디코딩하지 않고 순수 텍스트로 설정하여 '전혀 반영되지 않게' 처리
+        codeElement.textContent = DOMPurify.sanitize(codeContent, { RETURN_TYPE: 'text' });
         // if (lang) { // language- 클래스를 추가하지 않음 (요구사항: 코드 블록 내 plain text)
         //     codeElement.classList.add(`language-${lang.trim()}`);
         // }
