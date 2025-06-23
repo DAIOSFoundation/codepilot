@@ -29,8 +29,17 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewContainers": {
+      "activitybar": [
+        {
+          "id": "codepilot",
+          "title": "CodePilot",
+          "icon": "./media/codepilot.svg"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "codepilot": [
         {
           "id": "codepilot.chatView",
           "name": "CODE",
