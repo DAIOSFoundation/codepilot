@@ -196,6 +196,74 @@
             color: var(--vscode-textLink-activeForeground);
         }
 
+        /* API 키 섹션 스타일 */
+        .api-key-section {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 5px;
+            background-color: var(--vscode-input-background);
+        }
+
+        .api-key-section h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--vscode-textLink-foreground);
+            font-size: 1.1em;
+        }
+
+        .api-key-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .api-key-input-group input[type="password"] {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            outline: none;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            border-radius: 3px;
+        }
+
+        .api-key-input-group input[type="password"]:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .api-key-input-group button {
+            padding: 8px 15px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+        }
+
+        .api-key-input-group button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .api-key-section .info-message {
+            margin-top: 8px;
+            margin-bottom: 0;
+        }
+
+        .api-key-section a {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: none;
+        }
+
+        .api-key-section a:hover {
+            text-decoration: underline;
+        }
+
     </style>
 </head>
 <body>
@@ -237,6 +305,44 @@
             <span class="toggle-label-text">파일 자동 업데이트 활성화</span>
         </div>
         <p id="auto-update-status" class="info-message" style="margin-top: 5px;"></p>
+    </div>
+
+    <div class="section-container">
+        <h2>외부 API 키 설정</h2>
+        <p class="info-message">실시간 정보 기능을 사용하기 위한 외부 API 키들을 설정합니다. 각 서비스의 웹사이트에서 API 키를 발급받아 입력하세요.</p>
+        
+        <!-- 기상청 API 키 -->
+        <div class="api-key-section">
+            <h3>🌤️ 기상청 API 키</h3>
+            <p class="info-message">한국의 정확한 날씨 정보를 제공합니다. <a href="https://apihub.kma.go.kr/" target="_blank">기상청 API 허브</a>에서 발급받을 수 있습니다.</p>
+            <div class="api-key-input-group">
+                <input type="password" id="weather-api-key-input" placeholder="기상청 API 키를 입력하세요...">
+                <button id="save-weather-api-key-button">저장</button>
+            </div>
+            <p id="weather-api-key-status" class="info-message"></p>
+        </div>
+
+        <!-- 뉴스 API 키 -->
+        <div class="api-key-section">
+            <h3>📰 뉴스 API 키</h3>
+            <p class="info-message">최신 뉴스 정보를 제공합니다. <a href="https://newsapi.org/" target="_blank">NewsAPI</a>에서 발급받을 수 있습니다.</p>
+            <div class="api-key-input-group">
+                <input type="password" id="news-api-key-input" placeholder="NewsAPI 키를 입력하세요...">
+                <button id="save-news-api-key-button">저장</button>
+            </div>
+            <p id="news-api-key-status" class="info-message"></p>
+        </div>
+
+        <!-- 주식 API 키 -->
+        <div class="api-key-section">
+            <h3>📈 주식 API 키</h3>
+            <p class="info-message">실시간 주식 정보를 제공합니다. <a href="https://www.alphavantage.co/" target="_blank">Alpha Vantage</a>에서 발급받을 수 있습니다.</p>
+            <div class="api-key-input-group">
+                <input type="password" id="stock-api-key-input" placeholder="Alpha Vantage API 키를 입력하세요...">
+                <button id="save-stock-api-key-button">저장</button>
+            </div>
+            <p id="stock-api-key-status" class="info-message"></p>
+        </div>
     </div>
 
     <!-- Nonce가 적용된 스크립트 로드 -->

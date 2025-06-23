@@ -6,6 +6,7 @@ import { LlmResponseProcessor } from './llmResponseProcessor';
 import { NotificationService } from '../services/notificationService';
 import { ConfigurationService } from '../services/configurationService';
 import { RequestOptions, Part } from '@google/generative-ai'; // Part 임포트
+import { ExternalApiService } from './externalApiService'; // 새로 추가
 
 export enum PromptType {
     CODE_GENERATION = 'CODE_GENERATION',
@@ -19,6 +20,7 @@ export class GeminiService {
     private llmResponseProcessor: LlmResponseProcessor;
     private notificationService: NotificationService;
     private configurationService: ConfigurationService;
+    private externalApiService: ExternalApiService; // 새로 추가
     private currentGeminiCallController: AbortController | null = null;
 
     constructor(
@@ -35,6 +37,7 @@ export class GeminiService {
         this.llmResponseProcessor = llmResponseProcessor;
         this.notificationService = notificationService;
         this.configurationService = configurationService;
+        this.externalApiService = new ExternalApiService(configurationService); // 수정: configurationService 전달
     }
 
     public cancelCurrentCall(): void {
@@ -181,18 +184,36 @@ ${projectRootInfo}
                 });
             }
 
+            // 실시간 정보 요청인지 확인하고 처리
+            let realTimeInfo = '';
+            if (promptType === PromptType.GENERAL_ASK) {
+                realTimeInfo = await this.processRealTimeInfoRequest(userQuery);
+            }
+
             // 컨텍스트가 있는 경우에만 포함 (CODE_GENERATION 또는 선택된 파일이 있는 경우)
             const contextPart: Part = (fileContentsContext.trim() !== "")
                 ? { text: `--- 참조 코드 컨텍스트 ---\n${fileContentsContext}` }
                 : { text: "--- 참조 코드 컨텍스트 ---\n참조 코드가 제공되지 않았습니다." };
 
+            // 실시간 정보가 있으면 추가
+            const realTimePart: Part = realTimeInfo 
+                ? { text: `--- 실시간 정보 ---\n${realTimeInfo}` }
+                : { text: "" };
+
             const fullParts: Part[] = [...userParts, contextPart];
+            if (realTimeInfo) {
+                fullParts.push(realTimePart);
+            }
 
             // console.log("[To Banya] System Prompt:", systemPrompt);
             console.log("[To Banya] Full Parts:", fullParts);
 
             const requestOptions: RequestOptions = { signal: abortSignal };
-            let llmResponse = await this.geminiApi.sendMessageWithSystemPrompt(systemPrompt, fullParts, requestOptions); // userParts 전달
+            let llmResponse = await this.geminiApi.sendMessageWithSystemPrompt(
+                systemPrompt, 
+                fullParts, 
+                requestOptions
+            ); // userParts 전달
 
             // GENERAL_ASK 타입일 때는 파일 업데이트를 위한 컨텍스트 파일을 넘기지 않음
             await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(
@@ -215,5 +236,115 @@ ${projectRootInfo}
             this.currentGeminiCallController = null;
             webviewToRespond.postMessage({ command: 'hideLoading' });
         }
+    }
+
+    /**
+     * 실시간 정보 요청을 처리합니다
+     */
+    private async processRealTimeInfoRequest(userQuery: string): Promise<string> {
+        const query = userQuery.toLowerCase();
+        let realTimeInfo = '';
+
+        try {
+            // 날씨 정보 요청 확인
+            if (query.includes('날씨') || query.includes('weather')) {
+                const cityMatch = query.match(/(?:날씨|weather)\s*(?:는|이|가|의)?\s*([가-힣a-zA-Z\s]+)/);
+                const city = cityMatch ? cityMatch[1].trim() : '서울';
+                
+                const weather = await this.externalApiService.getWeatherData(city);
+                if (weather) {
+                    realTimeInfo += `### 🌤️ ${weather.location} 날씨\n`;
+                    realTimeInfo += `- 온도: ${weather.temperatureText}\n`;
+                    realTimeInfo += `- 날씨: ${weather.forecast}\n`;
+                    realTimeInfo += `- 하늘상태: ${weather.skyCondition}\n`;
+                    realTimeInfo += `- 강수: ${weather.precipitation}`;
+                    if (weather.precipitationProbability) {
+                        realTimeInfo += ` (확률: ${weather.precipitationProbability})`;
+                    }
+                    realTimeInfo += `\n`;
+                    realTimeInfo += `- 풍향: ${weather.windDirection}\n`;
+                    if (weather.windSpeedText) {
+                        realTimeInfo += `- 풍속: ${weather.windSpeedText}\n`;
+                    }
+                    realTimeInfo += `\n`;
+                } else {
+                    // API 키가 설정되지 않았거나 오류가 발생한 경우
+                    const weatherApiKey = await this.configurationService.getWeatherApiKey();
+                    if (!weatherApiKey) {
+                        realTimeInfo += `### 🌤️ 날씨 정보\n`;
+                        realTimeInfo += `날씨 정보를 가져오려면 기상청 API 키가 필요합니다.\n`;
+                        realTimeInfo += `CodePilot 설정에서 기상청 API 키를 설정해주세요.\n`;
+                        realTimeInfo += `[기상청 API 허브](https://apihub.kma.go.kr/)에서 API 키를 발급받을 수 있습니다.\n\n`;
+                    } else {
+                        realTimeInfo += `### 🌤️ 날씨 정보\n`;
+                        realTimeInfo += `날씨 정보를 가져오는 중 오류가 발생했습니다.\n`;
+                        realTimeInfo += `API 키를 확인하거나 잠시 후 다시 시도해주세요.\n\n`;
+                    }
+                }
+            }
+
+            // 뉴스 정보 요청 확인
+            if (query.includes('뉴스') || query.includes('news')) {
+                const newsQuery = query.includes('뉴스') ? 'general' : 'general';
+                const news = await this.externalApiService.getNewsData(newsQuery, 3);
+                if (news.length > 0) {
+                    realTimeInfo += `### 📰 최신 뉴스\n`;
+                    news.forEach((item, index) => {
+                        realTimeInfo += `${index + 1}. **${item.title}**\n`;
+                        realTimeInfo += `   - ${item.description}\n`;
+                        realTimeInfo += `   - 출처: ${item.source} (${item.publishedAt})\n\n`;
+                    });
+                } else {
+                    // 뉴스 API 키가 설정되지 않았거나 오류가 발생한 경우
+                    const newsApiKey = await this.configurationService.getNewsApiKey();
+                    if (!newsApiKey) {
+                        realTimeInfo += `### 📰 뉴스 정보\n`;
+                        realTimeInfo += `뉴스 정보를 가져오려면 NewsAPI 키가 필요합니다.\n`;
+                        realTimeInfo += `CodePilot 설정에서 NewsAPI 키를 설정해주세요.\n`;
+                        realTimeInfo += `[NewsAPI](https://newsapi.org/)에서 API 키를 발급받을 수 있습니다.\n\n`;
+                    } else {
+                        realTimeInfo += `### 📰 뉴스 정보\n`;
+                        realTimeInfo += `뉴스 정보를 가져오는 중 오류가 발생했습니다.\n`;
+                        realTimeInfo += `API 키를 확인하거나 잠시 후 다시 시도해주세요.\n\n`;
+                    }
+                }
+            }
+
+            // 주식 정보 요청 확인
+            if (query.includes('주식') || query.includes('stock') || query.includes('주가')) {
+                // 일반적인 주식 심볼들
+                const commonStocks = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN'];
+                const stocks = await this.externalApiService.getMultipleStockData(commonStocks);
+                if (stocks.length > 0) {
+                    realTimeInfo += `### 📈 주요 주식 정보\n`;
+                    stocks.forEach(stock => {
+                        const changeIcon = stock.change >= 0 ? '📈' : '📉';
+                        realTimeInfo += `- **${stock.symbol}**: $${stock.price.toFixed(2)} `;
+                        realTimeInfo += `${changeIcon} ${stock.change >= 0 ? '+' : ''}${stock.change.toFixed(2)} `;
+                        realTimeInfo += `(${stock.changePercent >= 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%)\n`;
+                    });
+                    realTimeInfo += '\n';
+                } else {
+                    // 주식 API 키가 설정되지 않았거나 오류가 발생한 경우
+                    const stockApiKey = await this.configurationService.getStockApiKey();
+                    if (!stockApiKey) {
+                        realTimeInfo += `### 📈 주식 정보\n`;
+                        realTimeInfo += `주식 정보를 가져오려면 Alpha Vantage API 키가 필요합니다.\n`;
+                        realTimeInfo += `CodePilot 설정에서 Alpha Vantage API 키를 설정해주세요.\n`;
+                        realTimeInfo += `[Alpha Vantage](https://www.alphavantage.co/)에서 API 키를 발급받을 수 있습니다.\n\n`;
+                    } else {
+                        realTimeInfo += `### 📈 주식 정보\n`;
+                        realTimeInfo += `주식 정보를 가져오는 중 오류가 발생했습니다.\n`;
+                        realTimeInfo += `API 키를 확인하거나 잠시 후 다시 시도해주세요.\n\n`;
+                    }
+                }
+            }
+
+        } catch (error) {
+            console.error('Error processing real-time info request:', error);
+            realTimeInfo += '실시간 정보를 가져오는 중 오류가 발생했습니다.\n\n';
+        }
+
+        return realTimeInfo;
     }
 }

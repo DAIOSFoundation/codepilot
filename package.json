@@ -133,6 +133,24 @@
           "default": "",
           "description": "CodePilot이 프로젝트의 최상위 경로로 인식할 디렉토리를 설정합니다. 이 경로는 파일 경로를 참조할 때 기준점으로 사용될 수 있습니다.",
           "scope": "resource"
+        },
+        "codepilot.weatherApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "기상청 API 키를 설정합니다. 날씨 정보 조회에 사용됩니다. (https://apihub.kma.go.kr/)",
+          "scope": "resource"
+        },
+        "codepilot.newsApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "NewsAPI 키를 설정합니다. 뉴스 정보 조회에 사용됩니다.",
+          "scope": "resource"
+        },
+        "codepilot.stockApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Alpha Vantage API 키를 설정합니다. 주식 정보 조회에 사용됩니다.",
+          "scope": "resource"
         }
       }
     }

@@ -12,7 +12,8 @@ export function openSettingsPanel(
     extensionUri: vscode.Uri,
     context: vscode.ExtensionContext,
     viewColumn: vscode.ViewColumn,
-    configurationService: ConfigurationService // configurationService 주입
+    configurationService: ConfigurationService, // configurationService 주입
+    notificationService: NotificationService // notificationService 주입
 ) {
     createAndSetupWebviewPanel(extensionUri, context, 'settings', 'CodePilot Settings', 'settings', viewColumn,
         async (data, panel) => {
@@ -59,6 +60,48 @@ export function openSettingsPanel(
                     } else if (data.clear) { // Root 경로를 비우는 옵션 추가 (선택하지 않고 닫았을 때)
                          await configurationService.updateProjectRoot(undefined); // undefined를 저장하여 설정에서 제거 또는 빈 문자열로 설정
                          panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: '' });
+                    }
+                    break;
+                case 'loadApiKeys':
+                    // API 키 상태 로드
+                    const weatherApiKey = await configurationService.getWeatherApiKey();
+                    const newsApiKey = await configurationService.getNewsApiKey();
+                    const stockApiKey = await configurationService.getStockApiKey();
+                    panel.webview.postMessage({ 
+                        command: 'currentApiKeys', 
+                        weatherApiKey: weatherApiKey || '', 
+                        newsApiKey: newsApiKey || '', 
+                        stockApiKey: stockApiKey || '' 
+                    });
+                    break;
+                case 'saveWeatherApiKey':
+                    try {
+                        await configurationService.updateWeatherApiKey(data.apiKey);
+                        panel.webview.postMessage({ command: 'weatherApiKeySaved' });
+                        notificationService.showInfoMessage('CodePilot: Weather API key saved.');
+                    } catch (error: any) {
+                        panel.webview.postMessage({ command: 'weatherApiKeyError', error: error.message });
+                        notificationService.showErrorMessage(`Error saving weather API key: ${error.message}`);
+                    }
+                    break;
+                case 'saveNewsApiKey':
+                    try {
+                        await configurationService.updateNewsApiKey(data.apiKey);
+                        panel.webview.postMessage({ command: 'newsApiKeySaved' });
+                        notificationService.showInfoMessage('CodePilot: News API key saved.');
+                    } catch (error: any) {
+                        panel.webview.postMessage({ command: 'newsApiKeyError', error: error.message });
+                        notificationService.showErrorMessage(`Error saving news API key: ${error.message}`);
+                    }
+                    break;
+                case 'saveStockApiKey':
+                    try {
+                        await configurationService.updateStockApiKey(data.apiKey);
+                        panel.webview.postMessage({ command: 'stockApiKeySaved' });
+                        notificationService.showInfoMessage('CodePilot: Stock API key saved.');
+                    } catch (error: any) {
+                        panel.webview.postMessage({ command: 'stockApiKeyError', error: error.message });
+                        notificationService.showErrorMessage(`Error saving stock API key: ${error.message}`);
                     }
                     break;
             }

@@ -14,6 +14,19 @@ const selectProjectRootButton = document.getElementById('select-project-root-but
 const clearProjectRootButton = document.getElementById('clear-project-root-button');
 const projectRootStatus = document.getElementById('project-root-status');
 
+// API 키 관련 요소들
+const weatherApiKeyInput = document.getElementById('weather-api-key-input');
+const saveWeatherApiKeyButton = document.getElementById('save-weather-api-key-button');
+const weatherApiKeyStatus = document.getElementById('weather-api-key-status');
+
+const newsApiKeyInput = document.getElementById('news-api-key-input');
+const saveNewsApiKeyButton = document.getElementById('save-news-api-key-button');
+const newsApiKeyStatus = document.getElementById('news-api-key-status');
+
+const stockApiKeyInput = document.getElementById('stock-api-key-input');
+const saveStockApiKeyButton = document.getElementById('save-stock-api-key-button');
+const stockApiKeyStatus = document.getElementById('stock-api-key-status');
+
 // UI 업데이트 함수 (소스 경로)
 function updateSourcePathsList(paths) {
     sourcePathsList.innerHTML = '';
@@ -105,6 +118,31 @@ if (autoUpdateToggle) {
     });
 }
 
+// API 키 저장 이벤트 리스너들
+if (saveWeatherApiKeyButton) {
+    saveWeatherApiKeyButton.addEventListener('click', () => {
+        const apiKey = weatherApiKeyInput.value.trim();
+        vscode.postMessage({ command: 'saveWeatherApiKey', apiKey: apiKey });
+        showStatus(weatherApiKeyStatus, '기상청 API 키 저장 중...', 'info');
+    });
+}
+
+if (saveNewsApiKeyButton) {
+    saveNewsApiKeyButton.addEventListener('click', () => {
+        const apiKey = newsApiKeyInput.value.trim();
+        vscode.postMessage({ command: 'saveNewsApiKey', apiKey: apiKey });
+        showStatus(newsApiKeyStatus, '뉴스 API 키 저장 중...', 'info');
+    });
+}
+
+if (saveStockApiKeyButton) {
+    saveStockApiKeyButton.addEventListener('click', () => {
+        const apiKey = stockApiKeyInput.value.trim();
+        vscode.postMessage({ command: 'saveStockApiKey', apiKey: apiKey });
+        showStatus(stockApiKeyStatus, '주식 API 키 저장 중...', 'info');
+    });
+}
+
 // 확장으로부터 메시지 수신
 window.addEventListener('message', event => {
     const message = event.data;
@@ -154,6 +192,45 @@ window.addEventListener('message', event => {
         case 'projectRootError':
             showStatus(projectRootStatus, `오류 (프로젝트 Root 설정): ${message.error}`, 'error');
             break;
+        case 'currentApiKeys':
+            // API 키 상태 로드
+            if (weatherApiKeyInput && typeof message.weatherApiKey === 'string') {
+                weatherApiKeyInput.value = message.weatherApiKey;
+                const status = message.weatherApiKey ? '기상청 API 키가 설정되어 있습니다.' : '기상청 API 키가 설정되지 않았습니다.';
+                showStatus(weatherApiKeyStatus, status, message.weatherApiKey ? 'success' : 'info');
+            }
+            if (newsApiKeyInput && typeof message.newsApiKey === 'string') {
+                newsApiKeyInput.value = message.newsApiKey;
+                const status = message.newsApiKey ? '뉴스 API 키가 설정되어 있습니다.' : '뉴스 API 키가 설정되지 않았습니다.';
+                showStatus(newsApiKeyStatus, status, message.newsApiKey ? 'success' : 'info');
+            }
+            if (stockApiKeyInput && typeof message.stockApiKey === 'string') {
+                stockApiKeyInput.value = message.stockApiKey;
+                const status = message.stockApiKey ? '주식 API 키가 설정되어 있습니다.' : '주식 API 키가 설정되지 않았습니다.';
+                showStatus(stockApiKeyStatus, status, message.stockApiKey ? 'success' : 'info');
+            }
+            break;
+        case 'weatherApiKeySaved':
+            showStatus(weatherApiKeyStatus, '기상청 API 키가 저장되었습니다.', 'success');
+            weatherApiKeyInput.value = '';
+            break;
+        case 'weatherApiKeyError':
+            showStatus(weatherApiKeyStatus, `기상청 API 키 저장 실패: ${message.error}`, 'error');
+            break;
+        case 'newsApiKeySaved':
+            showStatus(newsApiKeyStatus, '뉴스 API 키가 저장되었습니다.', 'success');
+            newsApiKeyInput.value = '';
+            break;
+        case 'newsApiKeyError':
+            showStatus(newsApiKeyStatus, `뉴스 API 키 저장 실패: ${message.error}`, 'error');
+            break;
+        case 'stockApiKeySaved':
+            showStatus(stockApiKeyStatus, '주식 API 키가 저장되었습니다.', 'success');
+            stockApiKeyInput.value = '';
+            break;
+        case 'stockApiKeyError':
+            showStatus(stockApiKeyStatus, `주식 API 키 저장 실패: ${message.error}`, 'error');
+            break;
     }
 });
 
@@ -163,4 +240,10 @@ document.addEventListener('DOMContentLoaded', () => {
     showStatus(sourcePathStatus, '설정 로드 중...', 'info');
     autoUpdateStatus.textContent = '자동 업데이트 설정 로드 중...';
     projectRootStatus.textContent = '프로젝트 Root 설정 로드 중...';
+    
+    // API 키 상태 요청
+    vscode.postMessage({ command: 'loadApiKeys' });
+    showStatus(weatherApiKeyStatus, 'API 키 로드 중...', 'info');
+    showStatus(newsApiKeyStatus, 'API 키 로드 중...', 'info');
+    showStatus(stockApiKeyStatus, 'API 키 로드 중...', 'info');
 });

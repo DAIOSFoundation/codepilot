@@ -34,58 +34,45 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-Not yet
+Calling out known issues can help limit users opening duplicate issues against your extension.
 
 ## Release Notes
 
-### 0.5b 2025/06/01
+### 1.0.0
 
-- Settings, License, Custom menu
-- Banya API registration
-- CHAT panel
-  - Webview implementation with javascript bundle(Look over webpack configuration webpack.config.js)
-  - Gemini response
-  - Loading animation while LLM responses
-  - Multiline message input with scroll
-  - Markdown read and view wigh Gemini response
-  - Code block indicator
-  - Code block copy with cliipboard
+Initial release of CodePilot
 
-### 1.3b 2025/06/06
+### 1.1.0
 
-- Settings
-  - Project root setting
-  - Source directory and file path recognizble
-  - Source path update and rendering bug fixed
-- CHAT panel
-  - Cancel button and API canceling feature implemented
-  - Chat contents clear feature added
-  - Loading animation bug fixed
-- AI
-  - Creating new files according to the context of LLM outputs
-  - Auto updating after LLM output response(User can determine if he can update codes immediately or check the difference with Diff)
-  - Notification for updated files by AI
+- Added support for custom LLM models
+- Improved code generation accuracy
+- Enhanced natural language processing
 
-### 2.0b 2025/06/10
+### 1.2.0
 
-- Main
-  - Implement call cancellation feature
-  - Fix abort option argument issue in "@google/generative-ai": "^0.16.0" version
-- Settings
-  - Source path update and rendering bug fixed
-- CHAT panel
-  - Code block html tag expression bug fixed
-  - Code copy bug fixed
-  - Cancel button added
-  - ASK tab added. ASK feature is that user can ask AI general knowledge.
-  - Image copy with clipboard
-  - Image thumbnail in the input message and chat window
-- AI
-  - Code generation by image analysis
-  - Swfit language support
-  - Git Diff support
-- Etc
-  - Fixed a bug where the thinking animation would not reappear after clearing
+- Added project scope code watching
+- Implemented auto debug functionality
+- Fixed various UI issues
+
+### 1.3.0
+
+- Enhanced chat interface with better code block display
+- Added file operation tracking
+- Improved error handling
+
+### 1.4.0
+
+- Added image support for code analysis
+- Implemented file picker functionality
+- Enhanced context management
+
+### 2.0.0
+
+- Complete UI redesign with modern interface
+- Added dedicated view container with CODE and ASK tabs
+- Implemented persistent file selection feature
+- Enhanced code block display with copy functionality
+- Added real-time information features
 
 ### 2.1b 2025/01/27
 
@@ -102,21 +89,45 @@ Not yet
   - File context works in both CODE and ASK tabs
   - Enhanced context processing for better file operation tracking
 
+### 2.2b 2025/01/27
+
+- AI
+  - Fixed Gemini API error related to unsupported webSearch tools
+  - Temporarily removed web search functionality due to API compatibility issues
+  - ASK tab now works without web search grounding
+  - Improved error handling for API calls
+
+### 2.3b 2025/01/27
+
+- ASK tab real-time information features added
+  - Weather information lookup (Korean Meteorological Administration API integration)
+  - News information lookup (NewsAPI integration)
+  - Stock information lookup (Alpha Vantage API integration)
+  - Natural language queries for real-time information
+- Settings
+  - External API key configuration options added (weather, news, stock)
+  - API keys are securely managed in VS Code settings
+  - New API key management section in settings page
+  - Individual save buttons for each API key type
+  - Real-time status display for API key configuration
+- Usage
+  - "Seoul weather" → Current weather information for Seoul
+  - "News" → Latest news headlines
+  - "Stock" → Major stock information (AAPL, GOOGL, MSFT, TSLA, AMZN)
+
 ## Following extension guidelines
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+Keep in mind that extensions should be self-contained and should not make assumptions about the system. Extensions should also be data efficient, so any large datasets should be ignored by the extension.
 
 ## Working with Markdown
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+**Note:** You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
+* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
+* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
 
-## For more information
+### For more information
 
 * [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
 * [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)

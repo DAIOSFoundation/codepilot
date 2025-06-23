@@ -5,6 +5,9 @@ export class ConfigurationService {
     private readonly SOURCE_PATHS_KEY = 'sourcePaths';
     private readonly AUTO_UPDATE_KEY = 'autoUpdateFiles';
     private readonly PROJECT_ROOT_KEY = 'projectRoot';
+    private readonly WEATHER_API_KEY = 'weatherApiKey';
+    private readonly NEWS_API_KEY = 'newsApiKey';
+    private readonly STOCK_API_KEY = 'stockApiKey';
 
     constructor() {}
 
@@ -41,5 +44,39 @@ export class ConfigurationService {
         // If path is undefined, save an empty string to clear the setting.
         // VS Code stores empty strings, not `undefined` for string settings.
         await config.update(this.PROJECT_ROOT_KEY, path || '', vscode.ConfigurationTarget.Global);
+    }
+
+    // 외부 API 키 관리 메서드들
+    public async getWeatherApiKey(): Promise<string | undefined> {
+        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        const key = config.get<string>(this.WEATHER_API_KEY);
+        return key === '' ? undefined : key;
+    }
+
+    public async updateWeatherApiKey(key: string | undefined): Promise<void> {
+        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        await config.update(this.WEATHER_API_KEY, key || '', vscode.ConfigurationTarget.Global);
+    }
+
+    public async getNewsApiKey(): Promise<string | undefined> {
+        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        const key = config.get<string>(this.NEWS_API_KEY);
+        return key === '' ? undefined : key;
+    }
+
+    public async updateNewsApiKey(key: string | undefined): Promise<void> {
+        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        await config.update(this.NEWS_API_KEY, key || '', vscode.ConfigurationTarget.Global);
+    }
+
+    public async getStockApiKey(): Promise<string | undefined> {
+        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        const key = config.get<string>(this.STOCK_API_KEY);
+        return key === '' ? undefined : key;
+    }
+
+    public async updateStockApiKey(key: string | undefined): Promise<void> {
+        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        await config.update(this.STOCK_API_KEY, key || '', vscode.ConfigurationTarget.Global);
     }
 }
