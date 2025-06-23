@@ -453,45 +453,11 @@
             font-size: 11px;
         }
 
-        /* 토글 버튼 스타일 */
-        .code-toggle-button {
-            background: var(--vscode-button-background);
-            border: 1px solid var(--vscode-button-border);
-            color: var(--vscode-button-foreground);
-            cursor: pointer;
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 3px;
-            transition: background-color 0.2s;
-            user-select: none;
-            -webkit-user-select: none;
-            position: relative;
-            z-index: 10;
-            min-width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto;
-            outline: none;
-        }
-
-        .code-toggle-button:hover {
-            background-color: var(--vscode-button-hoverBackground);
-        }
-
-        .code-toggle-button:active {
-            background-color: var(--vscode-button-activeBackground);
-        }
-
-        .code-toggle-button:focus {
-            outline: 2px solid var(--vscode-focusBorder);
-            outline-offset: 2px;
-        }
-
         /* 코드 컨테이너 스타일 */
         .code-container {
             position: relative;
+            max-height: 300px; /* 최대 높이 설정 */
+            overflow-y: auto; /* 수직 스크롤 추가 */
         }
 
         .code-container pre {
@@ -503,6 +469,7 @@
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 13px;
             line-height: 1.4;
+            white-space: pre;
         }
 
         .code-container code {
@@ -514,59 +481,22 @@
             color: var(--vscode-editor-foreground);
         }
 
-        /* 축약된 코드 스타일 */
-        .collapsed-code {
-            /* 높이 제한 제거 - 실제로 축약된 내용만 표시하므로 불필요 */
-            overflow: visible;
-            position: relative;
-            display: block !important;
+        /* 스크롤바 스타일링 */
+        .code-container::-webkit-scrollbar {
+            width: 8px;
         }
 
-        /* 전체 코드 스타일 */
-        .full-code {
-            white-space: pre;
-            font-family: var(--vscode-editor-font-family);
-            font-size: var(--vscode-editor-font-size);
-            line-height: 1.4;
-            overflow: visible;
-            display: block !important;
+        .code-container::-webkit-scrollbar-track {
+            background: var(--vscode-editor-background);
         }
 
-        /* 전체 pre 요소 스타일 */
-        .full-pre {
-            margin: 0;
-            padding: 0;
-            background: transparent;
-            border: none;
-            display: none !important;
+        .code-container::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-background);
+            border-radius: 4px;
         }
 
-        /* 축약된 pre 요소 스타일 */
-        .code-container pre:not(.full-pre) {
-            display: block !important;
-        }
-
-        /* 펼쳐진 상태 스타일 */
-        .code-block-container.expanded .code-container {
-            max-height: none;
-            overflow: visible;
-        }
-
-        /* 접힌 상태에서 마지막 줄에 그라데이션 효과 */
-        .collapsed-code::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 20px;
-            background: linear-gradient(transparent, var(--vscode-editor-background));
-            pointer-events: none;
-        }
-
-        /* 펼쳐진 상태에서는 그라데이션 제거 */
-        .expanded .collapsed-code::after {
-            display: none;
+        .code-container::-webkit-scrollbar-thumb:hover {
+            background: var(--vscode-scrollbarSlider-hoverBackground);
         }
 
         /* 8줄 이하인 경우 헤더 스타일 조정 */

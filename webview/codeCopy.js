@@ -61,12 +61,8 @@ export function addCopyButtonsToCodeBlocks(bubbleElement) { // <-- export 키워
     const codeBlockContainers = bubbleElement.querySelectorAll('.code-block-container');
     
     codeBlockContainers.forEach(container => {
-        // 코드 컨테이너 내부의 전체 코드 요소를 찾습니다
-        const fullCodeElement = container.querySelector('.full-code');
-        const collapsedCodeElement = container.querySelector('.collapsed-code');
-        
-        // 전체 코드가 있으면 그것을 사용하고, 없으면 축약된 코드를 사용
-        const codeElement = fullCodeElement || collapsedCodeElement;
+        // 코드 컨테이너 내부의 code 요소를 찾습니다
+        const codeElement = container.querySelector('code');
         
         if (codeElement) {
             // 복사 버튼 생성
