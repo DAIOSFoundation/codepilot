@@ -17,10 +17,16 @@ const imagePreviewContainer = document.getElementById('image-preview-container')
 const imagePreview = document.getElementById('image-preview');
 const removeImageButton = document.getElementById('remove-image-button');
 
+// 파일 선택 관련 요소들
+const fileSelectionArea = document.getElementById('file-selection-area');
+const selectedFilesContainer = document.getElementById('selected-files-container');
+const clearFilesButton = document.getElementById('clear-files-button');
+const filePickerButton = document.getElementById('file-picker-button');
 
 let thinkingBubbleElement = null;
 let selectedImageBase64 = null; // Base64 인코딩된 이미지 데이터를 저장할 변수
 let selectedImageMimeType = null; // 이미지 MIME 타입 저장
+let selectedFiles = []; // 선택된 파일 목록
 
 const md = markdownit({
     html: false,
@@ -73,6 +79,15 @@ if (removeImageButton) {
     removeImageButton.addEventListener('click', removeAttachedImage);
 }
 
+// 파일 선택 관련 이벤트 리스너들
+if (filePickerButton) {
+    filePickerButton.addEventListener('click', openFilePicker);
+}
+
+if (clearFilesButton) {
+    clearFilesButton.addEventListener('click', clearAllSelectedFiles);
+}
+
 function handlePaste(event) {
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;
     let imageFound = false;
@@ -114,7 +129,7 @@ function removeAttachedImage() {
 function handleSendMessage() {
     if (!chatInput) return;
     const text = chatInput.value.trimEnd(); // trim() 대신 trimEnd() 사용 (기존 로직 유지)
-    if (text || selectedImageBase64) { // 텍스트 또는 이미지가 있을 때만 전송
+    if (text || selectedImageBase64 || selectedFiles.length > 0) { // 텍스트, 이미지, 또는 선택된 파일이 있을 때만 전송
         window.displayUserMessage(text, selectedImageBase64); // 이미지 데이터도 함께 전달
         window.showLoading(); // 로딩 애니메이션 표시
 
@@ -122,7 +137,8 @@ function handleSendMessage() {
             command: 'sendMessage',
             text: text,
             imageData: selectedImageBase64, // 이미지 데이터 전송
-            imageMimeType: selectedImageMimeType // 이미지 MIME 타입 전송
+            imageMimeType: selectedImageMimeType, // 이미지 MIME 타입 전송
+            selectedFiles: selectedFiles.map(file => file.path) // 선택된 파일 경로들 전송
         });
 
         chatInput.value = '';
@@ -184,6 +200,13 @@ window.addEventListener('message', event => {
 
             if (message.sender === 'CodePilot' && message.text !== undefined) {
                  window.displayCodePilotMessage(message.text); // CodePilot 메시지 표시
+            }
+            break;
+
+        case 'fileSelected':
+            console.log('File selected:', message.filePath, message.fileName);
+            if (message.filePath && message.fileName) {
+                addSelectedFile(message.filePath, message.fileName);
             }
             break;
 
@@ -430,3 +453,64 @@ window.displayUserMessage = displayUserMessage;
 window.showLoading = showLoading;
 window.hideLoading = hideLoading;
 window.displayCodePilotMessage = displayCodePilotMessage;
+
+// 파일 선택기 열기
+function openFilePicker() {
+    console.log('Opening file picker...');
+    vscode.postMessage({ command: 'openFilePicker' });
+}
+
+// 선택된 파일 추가
+function addSelectedFile(filePath, fileName) {
+    // 중복 파일 체크
+    if (selectedFiles.some(file => file.path === filePath)) {
+        console.log('File already selected:', filePath);
+        return;
+    }
+
+    selectedFiles.push({ path: filePath, name: fileName });
+    updateFileSelectionDisplay();
+}
+
+// 선택된 파일 제거
+function removeSelectedFile(filePath) {
+    selectedFiles = selectedFiles.filter(file => file.path !== filePath);
+    updateFileSelectionDisplay();
+}
+
+// 모든 선택된 파일 제거
+function clearAllSelectedFiles() {
+    selectedFiles = [];
+    updateFileSelectionDisplay();
+}
+
+// 파일 선택 영역 UI 업데이트
+function updateFileSelectionDisplay() {
+    if (!selectedFilesContainer || !fileSelectionArea) return;
+
+    selectedFilesContainer.innerHTML = '';
+
+    if (selectedFiles.length === 0) {
+        fileSelectionArea.classList.add('hidden');
+        return;
+    }
+
+    fileSelectionArea.classList.remove('hidden');
+
+    selectedFiles.forEach(file => {
+        const fileTag = document.createElement('div');
+        fileTag.classList.add('selected-file-tag');
+        fileTag.innerHTML = `
+            <span class="file-name" title="${file.path}">${file.name}</span>
+            <button class="remove-file" data-path="${file.path}" title="Remove file">×</button>
+        `;
+
+        // 개별 파일 제거 버튼 이벤트
+        const removeButton = fileTag.querySelector('.remove-file');
+        removeButton.addEventListener('click', () => {
+            removeSelectedFile(file.path);
+        });
+
+        selectedFilesContainer.appendChild(fileTag);
+    });
+}

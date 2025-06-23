@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CodePilot Chat</title>
+    <title>CodePilot Ask</title>
     <style>
         /* (기존 스타일 유지) */
         body {
@@ -39,17 +39,10 @@
         .icon-button:hover { color: var(--vscode-textLink-activeForeground); }
          .icon-button img { width: 18px; height: 18px; vertical-align: middle; filter: var(--vscode-icon-foreground-filter); }
 
-        /* 메인 컨테이너 - 채팅 영역과 입력 영역을 포함 */
-        .main-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
 
         #chat-container {
             /* <-- 수정: 하단 입력창 높이(약 100px)보다 더 여유롭게 패딩을 줘서 로딩 애니메이션이 가려지지 않도록 함 --> */
-            padding: 10px 10px 10px; /* <-- 수정: padding-bottom을 줄임 */
+            padding: 10px 10px 150px; /* <-- 수정: padding-bottom을 150px로 더 늘림 (더 긴 스크롤 영역 확보) */
             overflow-y: auto; /* 내용 넘칠 시 세로 스크롤 생성 */
             flex-grow: 1; /* 부모 flex 컨테이너의 남은 공간을 모두 차지 */
             display: flex;
@@ -58,6 +51,7 @@
             width: 100%;
             max-width: 100%;
             box-sizing: border-box;
+            height: 100%; /* <-- chat-container가 flex-grow 1을 적용받도록 height 100% 명시 */
         }
 
         #chat-messages {
@@ -67,26 +61,20 @@
             align-items: flex-start;
         }
 
-        /* 하단 고정 영역 - 파일 선택 영역과 입력 영역 */
-        .bottom-fixed-area {
-            position: fixed;
+        #chat-input-area {
+            position: fixed; /* 고정 위치 */
             bottom: 0;
             left: 0;
-            width: 100%;
-            background-color: var(--vscode-editor-background);
-            border-top: 1px solid var(--vscode-panel-border);
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #chat-input-area {
+            width: 100%; /* 너비 전체 사용 */
+            max-width: 100%;
             display: flex; /* <-- 필수: 입력 필드와 버튼 그룹을 가로로 배치 (상위 컨테이너) */
             flex-direction: row; /* <-- 필수: 가로 배치 */
             align-items: flex-end; /* <-- 필수: 전체 그룹을 하단으로 정렬 */
             padding: 10px; /* 내부 패딩 */
+            border-top: 1px solid var(--vscode-panel-border); /* 상단 구분선 */
             background-color: var(--vscode-editor-background); /* 배경색 */
             box-sizing: border-box;
+            z-index: 10;
             /* <-- 추가: 이미지 썸네일 영역을 위해 min-height 조정 가능 --> */
             min-height: 50px; /* 텍스트 에어리어의 최소 높이보다 크게 설정하여 썸네일 공간 확보 */
             flex-wrap: wrap; /* 썸네일과 입력창이 한 줄에 안 들어갈 경우 줄바꿈 */
@@ -156,13 +144,12 @@
 
         /* 붉은색 Cancel 버튼 고유 스타일 */
         #cancel-call-button {
-            background-color: #ff4444; /* 빨간색 배경 */
-            color: white; /* 텍스트 색상 (흰색) */
-            margin-bottom: 0; /* 하단 마진 제거 (top-button-row에서 관리) */
-            width: 50%; /* 크기를 절반으로 줄임 */
+            background-color: var(--vscode-debug-disconnectButtonBackground); /* 붉은색 계열 */
+            color: var(--vscode-button-foreground); /* 텍스트 색상 (밝은 색) */
+            margin-bottom: 8px; /* <-- 수정: Clear 버튼과의 간격 */
         }
         #cancel-call-button:hover {
-            background-color: #ff6666; /* 호버 시 약간 밝은 빨간색 */
+            background-color: var(--vscode-debug-disconnectButtonHoverBackground);
         }
         /* <-- 수정 끝 --> */
 
@@ -176,16 +163,6 @@
             height: auto; /* 내용에 따라 높이 조절 (Textarea 높이에 맞춰 늘어남) */
             flex-shrink: 0; /* 줄어들지 않음 */
             width: 100px; /* <-- 수정: 버튼 그룹 고정 너비 (필요시 조정) */
-        }
-
-        /* @ 버튼과 Cancel 버튼을 가로로 배치하는 컨테이너 */
-        .top-button-row {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 4px; /* 버튼 사이 간격 */
-            margin-bottom: 8px;
-            width: 100%;
         }
         /* <-- 추가 끝 --> */
 
@@ -531,186 +508,34 @@
             font-size: 10px;
         }
 
-        /* File Selection Area Styles */
-        #file-selection-area {
-            display: flex;
-            align-items: flex-start; /* 상단 정렬로 변경 */
-            padding: 4px 8px; /* 패딩 최소화 */
-            background-color: var(--vscode-input-background);
-            border-radius: 3px; /* 둥근 모서리 감소 */
-            margin: 4px 10px; /* 상하좌우 마진 조정 */
-            max-width: calc(100% - 20px); /* 좌우 마진 고려 */
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 그림자 감소 */
-            min-height: 24px; /* 최소 높이 감소 */
-            max-height: 80px; /* 최대 높이 제한 */
-            overflow-y: auto; /* 세로 스크롤 추가 */
-            border: 1px solid var(--vscode-panel-border); /* 테두리 추가 */
-            flex-shrink: 0; /* 크기 고정 */
-        }
-
-        #file-selection-area.hidden {
-            display: none;
-        }
-
-        #selected-files-container {
-            flex-grow: 1;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 3px; /* 간격 최소화 */
-            margin-right: 20px; /* Clear 버튼 공간 확보 */
-            align-items: flex-start; /* 상단 정렬 */
-        }
-
-        .selected-file-tag {
-            display: inline-flex; /* inline-flex로 변경 */
-            align-items: center;
-            background-color: var(--vscode-button-secondary-background);
-            color: var(--vscode-button-secondary-foreground);
-            border: 1px solid var(--vscode-button-secondary-border);
-            border-radius: 2px; /* 둥근 모서리 최소화 */
-            padding: 2px 4px; /* 패딩 최소화 */
-            font-size: 10px; /* 폰트 크기 최소화 */
-            max-width: 120px; /* 최대 너비 감소 */
-            min-width: 40px; /* 최소 너비 감소 */
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* 그림자 최소화 */
-            transition: all 0.15s ease; /* 전환 시간 단축 */
-        }
-
-        .selected-file-tag:hover {
-            background-color: var(--vscode-button-secondary-hoverBackground);
-            transform: translateY(-1px); /* 호버 시 살짝 위로 이동 */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-        }
-
-        .selected-file-tag .file-name {
-            flex-grow: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-weight: 400; /* 폰트 굵기 감소 */
-        }
-
-        .selected-file-tag .remove-file {
-            background: none;
-            border: none;
-            color: inherit;
-            cursor: pointer;
-            margin-left: 3px; /* 간격 최소화 */
-            padding: 1px; /* 패딩 최소화 */
-            font-size: 10px; /* 폰트 크기 최소화 */
-            line-height: 1;
-            border-radius: 50%; /* 원형 버튼 */
-            width: 12px; /* 너비 감소 */
-            height: 12px; /* 높이 감소 */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s ease;
-        }
-
-        .selected-file-tag .remove-file:hover {
-            color: var(--vscode-errorForeground);
-            background-color: var(--vscode-button-secondary-hoverBackground);
-            transform: scale(1.1); /* 호버 시 살짝 확대 */
-        }
-
-        #clear-files-button {
-            position: absolute;
-            top: 2px; /* 위치 조정 */
-            right: 2px; /* 위치 조정 */
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-foreground);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 50%;
-            width: 14px; /* 크기 감소 */
-            height: 14px; /* 크기 감소 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 10px; /* 폰트 크기 감소 */
-            cursor: pointer;
-            line-height: 1;
-            padding: 0;
-            transition: all 0.15s ease;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        #clear-files-button:hover {
-            background-color: var(--vscode-button-hoverBackground);
-            color: var(--vscode-button-foreground);
-            transform: scale(1.1); /* 호버 시 살짝 확대 */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-        }
-
-        /* File Picker Button Style */
-        #file-picker-button {
-            background-color: var(--vscode-button-secondary-background);
-            color: var(--vscode-button-secondary-foreground);
-            border: 1px solid var(--vscode-button-secondary-border);
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: background-color 0.2s;
-            width: 50%; /* Cancel 버튼과 같은 크기 */
-            margin-bottom: 0; /* 하단 마진 제거 (top-button-row에서 관리) */
-        }
-
-        #file-picker-button:hover {
-            background-color: var(--vscode-button-secondary-hoverBackground);
-        }
-
-        #file-picker-button:active {
-            background-color: var(--vscode-button-secondary-activeBackground);
-        }
-
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <div id="chat-container">
-            <div id="chat-messages"></div>
-        </div>
+    <div id="chat-container">
+        <div id="chat-messages"></div>
     </div>
 
-    <div class="bottom-fixed-area">
-        <!-- File Selection Area - 입력창과 채팅 출력창 사이로 이동 -->
-        <div id="file-selection-area" class="hidden">
-            <div id="selected-files-container">
-                <!-- 선택된 파일들이 여기에 표시됩니다 -->
-            </div>
-            <button id="clear-files-button" title="Clear all selected files">×</button>
+    <div id="chat-input-area">
+        <!-- Image Preview Container -->
+        <div id="image-preview-container" class="hidden">
+            <img id="image-preview" src="#" alt="Image thumbnail" />
+            <button id="remove-image-button" title="Remove image">×</button>
         </div>
-
-        <div id="chat-input-area">
-            <!-- Image Preview Container -->
-            <div id="image-preview-container" class="hidden">
-                <img id="image-preview" src="#" alt="Image thumbnail" />
-                <button id="remove-image-button" title="Remove image">×</button>
-            </div>
-            
-            <textarea id="chat-input" rows="4" placeholder="메시지를 입력하세요..."></textarea>
-            <!-- <-- 추가: 버튼 그룹을 포함하는 div -->
-            <div class="button-group">
-                <div class="top-button-row">
-                    <button id="file-picker-button" title="파일 선택">@</button>
-                    <button id="cancel-call-button" class="cancel-button">Cancel</button>
-                </div>
-                <button id="clean-history-button">Clear</button> <!-- <-- Clean -> Clear 이름 변경, ID는 그대로 유지 -->
-                <button id="send-button">Send</button>
-            </div>
-            <!-- <-- 추가 끝 -->
+        
+        <textarea id="chat-input" rows="4" placeholder="메시지를 입력하세요..."></textarea>
+        <!-- <-- 추가: 버튼 그룹을 포함하는 div -->
+        <div class="button-group">
+            <button id="cancel-call-button" class="cancel-button">Cancel</button>
+            <button id="clean-history-button">Clear</button> <!-- <-- Clean -> Clear 이름 변경, ID는 그대로 유지 -->
+            <button id="send-button">Send</button>
         </div>
+        <!-- <-- 추가 끝 -->
     </div>
 
     <script>
-        console.log("✅ chat.html loaded");
+        console.log("✅ ask.html loaded");
     </script>
     <script src="{{scriptUri}}"></script>
     <script src="{{codeCopyScriptUri}}"></script>
 </body>
-</html>
+</html> 

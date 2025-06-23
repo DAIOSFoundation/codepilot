@@ -55,7 +55,9 @@ export async function activate(context: vscode.ExtensionContext) {
         geminiService,
         (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService),
         (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService),
-        (viewColumn: vscode.ViewColumn) => openBlankPanel(context.extensionUri, context, viewColumn)
+        (viewColumn: vscode.ViewColumn) => openBlankPanel(context.extensionUri, context, viewColumn),
+        configurationService,
+        notificationService
     );
 
     context.subscriptions.push(
@@ -71,7 +73,9 @@ export async function activate(context: vscode.ExtensionContext) {
         geminiService,
         (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService),
         (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService),
-        (viewColumn: vscode.ViewColumn) => openBlankPanel(context.extensionUri, context, viewColumn)
+        (viewColumn: vscode.ViewColumn) => openBlankPanel(context.extensionUri, context, viewColumn),
+        configurationService,
+        notificationService
     );
 
     context.subscriptions.push(

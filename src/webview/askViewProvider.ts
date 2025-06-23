@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { getHtmlContentWithUris } from './panelUtils';
 import { GeminiService, PromptType } from '../ai/geminiService'; // GeminiService 및 PromptType 임포트
+import { ConfigurationService } from '../services/configurationService';
+import { NotificationService } from '../services/notificationService';
 
 export class AskViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'codepilot.askView'; // 새로운 뷰 타입
@@ -12,7 +14,9 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
         private readonly geminiService: GeminiService, // GeminiService 인스턴스 주입
         private readonly openSettingsPanel: (viewColumn: vscode.ViewColumn) => void,
         private readonly openLicensePanel: (viewColumn: vscode.ViewColumn) => void,
-        private readonly openBlankPanel: (viewColumn: vscode.ViewColumn) => void
+        private readonly openBlankPanel: (viewColumn: vscode.ViewColumn) => void,
+        private readonly configurationService: ConfigurationService,
+        private readonly notificationService: NotificationService
     ) {}
 
     public resolveWebviewView(
@@ -31,14 +35,21 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                 vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview')
             ]
         };
-        // ASK 탭도 기존 CHAT UI를 재사용
-        webviewView.webview.html = getHtmlContentWithUris(this.extensionUri, 'chat', webviewView.webview);
+        // ASK 탭은 ask.html을 사용
+        webviewView.webview.html = getHtmlContentWithUris(this.extensionUri, 'ask', webviewView.webview);
 
         webviewView.webview.onDidReceiveMessage(async (data: any) => {
             switch (data.command) {
                 case 'sendMessage':
                     // ASK 탭에서는 GENERAL_ASK 프롬프트 타입을 사용
-                    await this.geminiService.handleUserMessageAndRespond(data.text, webviewView.webview, PromptType.GENERAL_ASK, data.imageData, data.imageMimeType);
+                    await this.geminiService.handleUserMessageAndRespond(
+                        data.text, 
+                        webviewView.webview, 
+                        PromptType.GENERAL_ASK, 
+                        data.imageData, 
+                        data.imageMimeType,
+                        data.selectedFiles // 선택된 파일들 전달
+                    );
                     break;
                 case 'openPanel':
                     let panelViewColumn = vscode.ViewColumn.Beside;

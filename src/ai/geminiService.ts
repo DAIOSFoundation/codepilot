@@ -52,7 +52,8 @@ export class GeminiService {
         webviewToRespond: vscode.Webview,
         promptType: PromptType,
         imageData?: string, // 이미지 데이터 추가
-        imageMimeType?: string // 이미지 MIME 타입 추가
+        imageMimeType?: string, // 이미지 MIME 타입 추가
+        selectedFiles?: string[] // 선택된 파일 경로들 추가
     ): Promise<void> {
         const apiKey = await this.storageService.getApiKey();
         if (!apiKey) {
@@ -136,6 +137,27 @@ ${projectRootInfo}
 `;
             } else {
                 systemPrompt = `당신은 유용한 AI 어시스턴트입니다. 사용자의 요청에 대해 답변해주세요.`;
+            }
+
+            // 선택된 파일들의 내용을 읽어서 컨텍스트에 추가
+            if (selectedFiles && selectedFiles.length > 0) {
+                let selectedFilesContext = "";
+                for (const filePath of selectedFiles) {
+                    try {
+                        const fileUri = vscode.Uri.file(filePath);
+                        const contentBytes = await vscode.workspace.fs.readFile(fileUri);
+                        const content = Buffer.from(contentBytes).toString('utf8');
+                        const fileName = filePath.split(/[/\\]/).pop() || 'Unknown';
+                        selectedFilesContext += `파일명: ${fileName}\n경로: ${filePath}\n코드:\n\`\`\`\n${content}\n\`\`\`\n\n`;
+                    } catch (error) {
+                        console.error(`Error reading selected file ${filePath}:`, error);
+                        selectedFilesContext += `파일명: ${filePath.split(/[/\\]/).pop() || 'Unknown'}\n경로: ${filePath}\n오류: 파일을 읽을 수 없습니다.\n\n`;
+                    }
+                }
+                
+                if (selectedFilesContext) {
+                    fileContentsContext += `\n--- 사용자가 선택한 추가 파일들 ---\n${selectedFilesContext}`;
+                }
             }
 
             // 사용자 쿼리와 이미지 데이터를 포함하는 Parts 배열 생성
