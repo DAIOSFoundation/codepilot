@@ -143,7 +143,13 @@
         "codepilot.newsApiKey": {
           "type": "string",
           "default": "",
-          "description": "NewsAPI 키를 설정합니다. 뉴스 정보 조회에 사용됩니다.",
+          "description": "네이버 API Client ID를 설정합니다. 뉴스 정보 조회에 사용됩니다. (https://developers.naver.com/)",
+          "scope": "resource"
+        },
+        "codepilot.newsApiSecret": {
+          "type": "string",
+          "default": "",
+          "description": "네이버 API Client Secret을 설정합니다. 뉴스 정보 조회에 사용됩니다. (https://developers.naver.com/)",
           "scope": "resource"
         },
         "codepilot.stockApiKey": {

@@ -1,0 +1,260 @@
+/* Settings page specific styles */
+
+/* Settings container */
+.settings-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Section styling */
+.section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: var(--vscode-panel-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 5px;
+}
+
+.section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--vscode-textLink-foreground);
+    font-size: 1.2em;
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--vscode-foreground);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: var(--vscode-focusBorder);
+    outline: none;
+}
+
+/* Button groups */
+.button-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.button-group button {
+    flex-shrink: 0;
+}
+
+/* Status messages */
+.status-message {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.status-message.success {
+    background-color: rgba(78, 201, 176, 0.1);
+    color: var(--vscode-terminal-ansiGreen);
+    border: 1px solid rgba(78, 201, 176, 0.3);
+}
+
+.status-message.error {
+    background-color: rgba(244, 71, 71, 0.1);
+    color: var(--vscode-terminal-ansiRed);
+    border: 1px solid rgba(244, 71, 71, 0.3);
+}
+
+.status-message.info {
+    background-color: rgba(0, 122, 204, 0.1);
+    color: var(--vscode-textLink-foreground);
+    border: 1px solid rgba(0, 122, 204, 0.3);
+}
+
+/* Toggle switches */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--vscode-input-border);
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: var(--vscode-button-background);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+/* File list styling */
+.file-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: var(--vscode-input-background);
+}
+
+.file-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.file-list li:last-child {
+    border-bottom: none;
+}
+
+.file-list li:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.file-name {
+    flex-grow: 1;
+    margin-right: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.remove-button {
+    background: none;
+    border: none;
+    color: var(--vscode-textLink-foreground);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.remove-button:hover {
+    background-color: var(--vscode-list-hoverBackground);
+    color: var(--vscode-textLink-activeForeground);
+}
+
+/* API key sections */
+.api-key-section {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 5px;
+    background-color: var(--vscode-input-background);
+}
+
+.api-key-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--vscode-textLink-foreground);
+    font-size: 1.1em;
+}
+
+.api-key-input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.api-key-input-group input[type="password"] {
+    flex-grow: 1;
+}
+
+.api-key-input-group button {
+    flex-shrink: 0;
+}
+
+/* Help text */
+.help-text {
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9em;
+    margin-top: 5px;
+    line-height: 1.4;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+    .settings-container {
+        padding: 10px;
+    }
+    
+    .section {
+        padding: 15px;
+    }
+    
+    .button-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .button-group button {
+        width: 100%;
+    }
+    
+    .api-key-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .api-key-input-group button {
+        width: 100%;
+    }
+} 

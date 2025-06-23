@@ -60,15 +60,18 @@ interface KmaWeatherApiResponse {
     };
 }
 
-interface NewsApiResponse {
-    articles: Array<{
+// 네이버 뉴스 API 응답 타입 정의
+interface NaverNewsApiResponse {
+    lastBuildDate: string;
+    total: number;
+    start: number;
+    display: number;
+    items: Array<{
         title: string;
-        description: string | null;
-        url: string;
-        publishedAt: string;
-        source: {
-            name: string;
-        };
+        originallink: string;
+        link: string;
+        description: string;
+        pubDate: string;
     }>;
 }
 
@@ -279,36 +282,92 @@ export class ExternalApiService {
     }
 
     /**
-     * 뉴스 정보를 가져옵니다 (NewsAPI 사용)
+     * 뉴스 정보를 가져옵니다 (네이버 뉴스 검색 API 사용)
      */
-    async getNewsData(query: string = 'general', count: number = 5): Promise<NewsData[]> {
+    async getNewsData(query: string = 'IT', count: number = 10): Promise<NewsData[]> {
         try {
-            const apiKey = await this.configurationService.getNewsApiKey();
-            if (!apiKey) {
-                console.warn('News API key not configured');
+            const clientId = await this.configurationService.getNewsApiKey();
+            const clientSecret = await this.configurationService.getNewsApiSecret();
+            
+            if (!clientId || !clientSecret) {
+                console.warn('Naver News API credentials not configured');
                 return [];
             }
 
+            // 네이버 API는 한 번에 최대 100개까지 요청 가능하지만, 
+            // 실제로는 10-20개 정도가 적절한 응답 시간을 보장
+            const displayCount = Math.min(count, 20);
+            
             const response = await fetch(
-                `https://newsapi.org/v2/top-headlines?q=${encodeURIComponent(query)}&language=ko&pageSize=${count}&apiKey=${apiKey}`
+                `https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=${displayCount}&sort=date`,
+                {
+                    headers: {
+                        'X-Naver-Client-Id': clientId,
+                        'X-Naver-Client-Secret': clientSecret
+                    }
+                }
             );
             
             if (!response.ok) {
-                throw new Error(`News API error: ${response.status}`);
+                throw new Error(`Naver News API error: ${response.status}`);
             }
 
-            const data = await response.json() as NewsApiResponse;
+            const data = await response.json() as NaverNewsApiResponse;
             
-            return data.articles.map((article) => ({
-                title: article.title,
-                description: article.description || '',
-                url: article.url,
-                publishedAt: new Date(article.publishedAt).toLocaleString('ko-KR'),
-                source: article.source.name
+            return data.items.map((item) => ({
+                title: this.decodeHtmlEntities(item.title),
+                description: this.decodeHtmlEntities(item.description),
+                url: item.link,
+                publishedAt: new Date(item.pubDate).toLocaleString('ko-KR'),
+                source: this.extractSourceFromUrl(item.originallink)
             }));
         } catch (error) {
             console.error('Error fetching news data:', error);
             return [];
+        }
+    }
+
+    /**
+     * HTML 엔티티를 디코딩합니다 (네이버 API 응답에서 HTML 태그 제거)
+     */
+    private decodeHtmlEntities(text: string): string {
+        return text
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/<[^>]*>/g, '') // HTML 태그 제거
+            .trim();
+    }
+
+    /**
+     * URL에서 뉴스 소스를 추출합니다
+     */
+    private extractSourceFromUrl(url: string): string {
+        try {
+            const urlObj = new URL(url);
+            const hostname = urlObj.hostname;
+            
+            // 주요 뉴스 사이트 매핑
+            const sourceMap: { [key: string]: string } = {
+                'news.naver.com': '네이버뉴스',
+                'www.chosun.com': '조선일보',
+                'www.donga.com': '동아일보',
+                'www.hani.co.kr': '한겨레',
+                'www.khan.co.kr': '경향신문',
+                'www.kyunghyang.com': '경향신문',
+                'www.mk.co.kr': '매일경제',
+                'www.hankyung.com': '한국경제',
+                'www.etnews.com': '전자신문',
+                'www.zdnet.co.kr': 'ZDNet Korea',
+                'www.itworld.co.kr': 'ITWorld',
+                'www.ciokorea.com': 'CIO Korea'
+            };
+            
+            return sourceMap[hostname] || hostname.replace('www.', '');
+        } catch {
+            return '알 수 없음';
         }
     }
 

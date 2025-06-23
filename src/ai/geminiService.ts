@@ -283,29 +283,162 @@ ${projectRootInfo}
                 }
             }
 
-            // 뉴스 정보 요청 확인
-            if (query.includes('뉴스') || query.includes('news')) {
-                const newsQuery = query.includes('뉴스') ? 'general' : 'general';
-                const news = await this.externalApiService.getNewsData(newsQuery, 3);
+            // 뉴스 정보 요청 확인 (키워드 기반)
+            const newsKeywords = ['뉴스', 'news', '최신', 'latest', '최근', 'recent', '정보', 'info', '소식', 'announcement', '발표', 'announce'];
+            const hasNewsKeyword = newsKeywords.some(keyword => query.includes(keyword));
+            
+            if (hasNewsKeyword) {
+                // 키워드에 따라 뉴스 개수 결정
+                let newsCount = 3; // 기본값
+                let newsQuery = 'general';
+                
+                // 특정 키워드가 있으면 더 많은 뉴스를 가져옴
+                if (query.includes('최신') || query.includes('latest') || query.includes('최근') || query.includes('recent')) {
+                    newsCount = 5;
+                }
+                if (query.includes('많이') || query.includes('more') || query.includes('전체') || query.includes('all')) {
+                    newsCount = 10;
+                }
+                if (query.includes('모든') || query.includes('everything')) {
+                    newsCount = 15;
+                }
+                
+                // 특정 주제 키워드 추출
+                const topicKeywords = ['IT', '기술', 'tech', '프로그래밍', 'programming', '개발', 'development', 
+                                     'AI', '인공지능', 'artificial intelligence', '머신러닝', 'machine learning',
+                                     '블록체인', 'blockchain', '클라우드', 'cloud', '보안', 'security',
+                                     '모바일', 'mobile', '웹', 'web', '앱', 'app', '소프트웨어', 'software',
+                                     '게임', 'game', '엔터테인먼트', 'entertainment', '영화', 'movie',
+                                     '음악', 'music', '스포츠', 'sports', '경제', 'economy', '금융', 'finance',
+                                     '정치', 'politics', '사회', 'society', '교육', 'education', '의료', 'medical',
+                                     '건강', 'health', '환경', 'environment', '과학', 'science', '우주', 'space',
+                                     '자동차', 'car', '자동차', 'automotive', '부동산', 'real estate', '여행', 'travel',
+                                     '음식', 'food', '요리', 'cooking', '패션', 'fashion', '뷰티', 'beauty'];
+                
+                // 사용자 쿼리에서 주제 키워드 찾기
+                let foundTopic = false;
+                for (const keyword of topicKeywords) {
+                    if (query.includes(keyword)) {
+                        newsQuery = keyword;
+                        newsCount = Math.max(newsCount, 8); // 주제별 뉴스는 최소 8개
+                        foundTopic = true;
+                        break;
+                    }
+                }
+                
+                // 주제 키워드가 없으면 사용자 쿼리에서 주요 단어 추출
+                if (!foundTopic) {
+                    // 한국어와 영어 단어 추출 (2글자 이상)
+                    const words = query.match(/[가-힣a-zA-Z]{2,}/g) || [];
+                    // 뉴스 관련 키워드 제외
+                    const filteredWords = words.filter(word => 
+                        !newsKeywords.some(newsKeyword => 
+                            word.toLowerCase().includes(newsKeyword.toLowerCase())
+                        )
+                    );
+                    
+                    if (filteredWords.length > 0) {
+                        // 가장 긴 단어를 우선 선택 (더 구체적인 키워드)
+                        newsQuery = filteredWords.sort((a, b) => b.length - a.length)[0];
+                        newsCount = Math.max(newsCount, 5); // 일반 키워드는 최소 5개
+                    } else {
+                        // 추출된 단어가 없으면 전체 쿼리를 사용 (뉴스 관련 키워드 제거)
+                        newsQuery = query.replace(new RegExp(newsKeywords.join('|'), 'gi'), '').trim();
+                        if (newsQuery.length > 0) {
+                            newsCount = Math.max(newsCount, 5);
+                        }
+                    }
+                }
+                
+                const news = await this.externalApiService.getNewsData(newsQuery, newsCount);
                 if (news.length > 0) {
-                    realTimeInfo += `### 📰 최신 뉴스\n`;
+                    realTimeInfo += `### 📰 ${newsQuery} 관련 뉴스 (${news.length}건)\n\n`;
                     news.forEach((item, index) => {
-                        realTimeInfo += `${index + 1}. **${item.title}**\n`;
-                        realTimeInfo += `   - ${item.description}\n`;
-                        realTimeInfo += `   - 출처: ${item.source} (${item.publishedAt})\n\n`;
+                        realTimeInfo += `#### 📄 ${index + 1}. ${item.title}\n\n`;
+                        realTimeInfo += `> ${item.description}\n\n`;
+                        realTimeInfo += `**📰 출처:** ${item.source}  \n`;
+                        realTimeInfo += `**🕒 발행:** ${item.publishedAt}  \n`;
+                        realTimeInfo += `**🔗 [원문 보기](${item.url})**\n\n`;
+                        realTimeInfo += `---\n\n`;
                     });
                 } else {
                     // 뉴스 API 키가 설정되지 않았거나 오류가 발생한 경우
                     const newsApiKey = await this.configurationService.getNewsApiKey();
-                    if (!newsApiKey) {
+                    const newsApiSecret = await this.configurationService.getNewsApiSecret();
+                    if (!newsApiKey || !newsApiSecret) {
                         realTimeInfo += `### 📰 뉴스 정보\n`;
-                        realTimeInfo += `뉴스 정보를 가져오려면 NewsAPI 키가 필요합니다.\n`;
-                        realTimeInfo += `CodePilot 설정에서 NewsAPI 키를 설정해주세요.\n`;
-                        realTimeInfo += `[NewsAPI](https://newsapi.org/)에서 API 키를 발급받을 수 있습니다.\n\n`;
+                        realTimeInfo += `뉴스 정보를 가져오려면 네이버 API 인증 정보가 필요합니다.\n`;
+                        realTimeInfo += `CodePilot 설정에서 네이버 API Client ID와 Client Secret을 설정해주세요.\n`;
+                        realTimeInfo += `[네이버 개발자 센터](https://developers.naver.com/)에서 API 인증 정보를 발급받을 수 있습니다.\n\n`;
                     } else {
                         realTimeInfo += `### 📰 뉴스 정보\n`;
                         realTimeInfo += `뉴스 정보를 가져오는 중 오류가 발생했습니다.\n`;
-                        realTimeInfo += `API 키를 확인하거나 잠시 후 다시 시도해주세요.\n\n`;
+                        realTimeInfo += `API 인증 정보를 확인하거나 잠시 후 다시 시도해주세요.\n\n`;
+                    }
+                }
+            } else {
+                // 뉴스 키워드가 없어도 사용자 쿼리가 충분히 구체적이면 뉴스 검색 시도
+                // 뉴스 키워드 제거 후 남은 텍스트가 의미있는 길이인지 확인
+                const queryWithoutNewsKeywords = query.replace(new RegExp(newsKeywords.join('|'), 'gi'), '').trim();
+                
+                // 3글자 이상의 의미있는 쿼리인 경우 뉴스 검색 시도
+                if (queryWithoutNewsKeywords.length >= 3) {
+                    let newsCount = 3; // 기본 뉴스 개수
+                    let newsQuery = queryWithoutNewsKeywords;
+                    
+                    // 쿼리 길이에 따라 뉴스 개수 조정
+                    if (queryWithoutNewsKeywords.length >= 10) {
+                        newsCount = 5;
+                    }
+                    if (queryWithoutNewsKeywords.length >= 20) {
+                        newsCount = 8;
+                    }
+                    
+                    // 특정 주제 키워드가 있으면 더 많은 뉴스
+                    const topicKeywords = ['IT', '기술', 'tech', '프로그래밍', 'programming', '개발', 'development', 
+                                         'AI', '인공지능', 'artificial intelligence', '머신러닝', 'machine learning',
+                                         '블록체인', 'blockchain', '클라우드', 'cloud', '보안', 'security',
+                                         '모바일', 'mobile', '웹', 'web', '앱', 'app', '소프트웨어', 'software',
+                                         '게임', 'game', '엔터테인먼트', 'entertainment', '영화', 'movie',
+                                         '음악', 'music', '스포츠', 'sports', '경제', 'economy', '금융', 'finance',
+                                         '정치', 'politics', '사회', 'society', '교육', 'education', '의료', 'medical',
+                                         '건강', 'health', '환경', 'environment', '과학', 'science', '우주', 'space',
+                                         '자동차', 'car', '자동차', 'automotive', '부동산', 'real estate', '여행', 'travel',
+                                         '음식', 'food', '요리', 'cooking', '패션', 'fashion', '뷰티', 'beauty'];
+                    
+                    for (const keyword of topicKeywords) {
+                        if (queryWithoutNewsKeywords.includes(keyword)) {
+                            newsCount = Math.max(newsCount, 8);
+                            break;
+                        }
+                    }
+                    
+                    const news = await this.externalApiService.getNewsData(newsQuery, newsCount);
+                    if (news.length > 0) {
+                        realTimeInfo += `### 📰 "${newsQuery}" 관련 뉴스 (${news.length}건)\n\n`;
+                        realTimeInfo += `*사용자 질문과 관련된 최신 뉴스를 찾았습니다.*\n\n`;
+                        news.forEach((item, index) => {
+                            realTimeInfo += `#### 📄 ${index + 1}. ${item.title}\n\n`;
+                            realTimeInfo += `> ${item.description}\n\n`;
+                            realTimeInfo += `**📰 출처:** ${item.source}  \n`;
+                            realTimeInfo += `**🕒 발행:** ${item.publishedAt}  \n`;
+                            realTimeInfo += `**🔗 [원문 보기](${item.url})**\n\n`;
+                            realTimeInfo += `---\n\n`;
+                        });
+                    } else {
+                        // 뉴스 API 키가 설정되지 않았거나 오류가 발생한 경우
+                        const newsApiKey = await this.configurationService.getNewsApiKey();
+                        const newsApiSecret = await this.configurationService.getNewsApiSecret();
+                        if (!newsApiKey || !newsApiSecret) {
+                            realTimeInfo += `### 📰 뉴스 정보\n`;
+                            realTimeInfo += `뉴스 정보를 가져오려면 네이버 API 인증 정보가 필요합니다.\n`;
+                            realTimeInfo += `CodePilot 설정에서 네이버 API Client ID와 Client Secret을 설정해주세요.\n`;
+                            realTimeInfo += `[네이버 개발자 센터](https://developers.naver.com/)에서 API 인증 정보를 발급받을 수 있습니다.\n\n`;
+                        } else {
+                            realTimeInfo += `### 📰 뉴스 정보\n`;
+                            realTimeInfo += `"${newsQuery}" 관련 뉴스를 찾지 못했습니다.\n`;
+                            realTimeInfo += `다른 키워드로 다시 시도해보세요.\n\n`;
+                        }
                     }
                 }
             }

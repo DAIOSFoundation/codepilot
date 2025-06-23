@@ -7,6 +7,7 @@ export class ConfigurationService {
     private readonly PROJECT_ROOT_KEY = 'projectRoot';
     private readonly WEATHER_API_KEY = 'weatherApiKey';
     private readonly NEWS_API_KEY = 'newsApiKey';
+    private readonly NEWS_API_SECRET = 'newsApiSecret';
     private readonly STOCK_API_KEY = 'stockApiKey';
 
     constructor() {}
@@ -67,6 +68,17 @@ export class ConfigurationService {
     public async updateNewsApiKey(key: string | undefined): Promise<void> {
         const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
         await config.update(this.NEWS_API_KEY, key || '', vscode.ConfigurationTarget.Global);
+    }
+
+    public async getNewsApiSecret(): Promise<string | undefined> {
+        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        const secret = config.get<string>(this.NEWS_API_SECRET);
+        return secret === '' ? undefined : secret;
+    }
+
+    public async updateNewsApiSecret(secret: string | undefined): Promise<void> {
+        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        await config.update(this.NEWS_API_SECRET, secret || '', vscode.ConfigurationTarget.Global);
     }
 
     public async getStockApiKey(): Promise<string | undefined> {

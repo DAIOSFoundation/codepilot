@@ -23,6 +23,10 @@ const newsApiKeyInput = document.getElementById('news-api-key-input');
 const saveNewsApiKeyButton = document.getElementById('save-news-api-key-button');
 const newsApiKeyStatus = document.getElementById('news-api-key-status');
 
+const newsApiSecretInput = document.getElementById('news-api-secret-input');
+const saveNewsApiSecretButton = document.getElementById('save-news-api-secret-button');
+const newsApiSecretStatus = document.getElementById('news-api-secret-status');
+
 const stockApiKeyInput = document.getElementById('stock-api-key-input');
 const saveStockApiKeyButton = document.getElementById('save-stock-api-key-button');
 const stockApiKeyStatus = document.getElementById('stock-api-key-status');
@@ -131,7 +135,15 @@ if (saveNewsApiKeyButton) {
     saveNewsApiKeyButton.addEventListener('click', () => {
         const apiKey = newsApiKeyInput.value.trim();
         vscode.postMessage({ command: 'saveNewsApiKey', apiKey: apiKey });
-        showStatus(newsApiKeyStatus, '뉴스 API 키 저장 중...', 'info');
+        showStatus(newsApiKeyStatus, '네이버 API Client ID 저장 중...', 'info');
+    });
+}
+
+if (saveNewsApiSecretButton) {
+    saveNewsApiSecretButton.addEventListener('click', () => {
+        const apiSecret = newsApiSecretInput.value.trim();
+        vscode.postMessage({ command: 'saveNewsApiSecret', apiSecret: apiSecret });
+        showStatus(newsApiSecretStatus, '네이버 API Client Secret 저장 중...', 'info');
     });
 }
 
@@ -201,8 +213,13 @@ window.addEventListener('message', event => {
             }
             if (newsApiKeyInput && typeof message.newsApiKey === 'string') {
                 newsApiKeyInput.value = message.newsApiKey;
-                const status = message.newsApiKey ? '뉴스 API 키가 설정되어 있습니다.' : '뉴스 API 키가 설정되지 않았습니다.';
+                const status = message.newsApiKey ? '네이버 API Client ID가 설정되어 있습니다.' : '네이버 API Client ID가 설정되지 않았습니다.';
                 showStatus(newsApiKeyStatus, status, message.newsApiKey ? 'success' : 'info');
+            }
+            if (newsApiSecretInput && typeof message.newsApiSecret === 'string') {
+                newsApiSecretInput.value = message.newsApiSecret;
+                const status = message.newsApiSecret ? '네이버 API Client Secret이 설정되어 있습니다.' : '네이버 API Client Secret이 설정되지 않았습니다.';
+                showStatus(newsApiSecretStatus, status, message.newsApiSecret ? 'success' : 'info');
             }
             if (stockApiKeyInput && typeof message.stockApiKey === 'string') {
                 stockApiKeyInput.value = message.stockApiKey;
@@ -218,11 +235,18 @@ window.addEventListener('message', event => {
             showStatus(weatherApiKeyStatus, `기상청 API 키 저장 실패: ${message.error}`, 'error');
             break;
         case 'newsApiKeySaved':
-            showStatus(newsApiKeyStatus, '뉴스 API 키가 저장되었습니다.', 'success');
+            showStatus(newsApiKeyStatus, '네이버 API Client ID가 저장되었습니다.', 'success');
             newsApiKeyInput.value = '';
             break;
         case 'newsApiKeyError':
-            showStatus(newsApiKeyStatus, `뉴스 API 키 저장 실패: ${message.error}`, 'error');
+            showStatus(newsApiKeyStatus, `네이버 API Client ID 저장 실패: ${message.error}`, 'error');
+            break;
+        case 'newsApiSecretSaved':
+            showStatus(newsApiSecretStatus, '네이버 API Client Secret이 저장되었습니다.', 'success');
+            newsApiSecretInput.value = '';
+            break;
+        case 'newsApiSecretError':
+            showStatus(newsApiSecretStatus, `네이버 API Client Secret 저장 실패: ${message.error}`, 'error');
             break;
         case 'stockApiKeySaved':
             showStatus(stockApiKeyStatus, '주식 API 키가 저장되었습니다.', 'success');

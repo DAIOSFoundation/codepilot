@@ -66,11 +66,13 @@ export function openSettingsPanel(
                     // API 키 상태 로드
                     const weatherApiKey = await configurationService.getWeatherApiKey();
                     const newsApiKey = await configurationService.getNewsApiKey();
+                    const newsApiSecret = await configurationService.getNewsApiSecret();
                     const stockApiKey = await configurationService.getStockApiKey();
                     panel.webview.postMessage({ 
                         command: 'currentApiKeys', 
                         weatherApiKey: weatherApiKey || '', 
                         newsApiKey: newsApiKey || '', 
+                        newsApiSecret: newsApiSecret || '',
                         stockApiKey: stockApiKey || '' 
                     });
                     break;
@@ -92,6 +94,16 @@ export function openSettingsPanel(
                     } catch (error: any) {
                         panel.webview.postMessage({ command: 'newsApiKeyError', error: error.message });
                         notificationService.showErrorMessage(`Error saving news API key: ${error.message}`);
+                    }
+                    break;
+                case 'saveNewsApiSecret':
+                    try {
+                        await configurationService.updateNewsApiSecret(data.apiSecret);
+                        panel.webview.postMessage({ command: 'newsApiSecretSaved' });
+                        notificationService.showInfoMessage('CodePilot: News API secret saved.');
+                    } catch (error: any) {
+                        panel.webview.postMessage({ command: 'newsApiSecretError', error: error.message });
+                        notificationService.showErrorMessage(`Error saving news API secret: ${error.message}`);
                     }
                     break;
                 case 'saveStockApiKey':
