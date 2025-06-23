@@ -43,6 +43,10 @@ export function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: s
             mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'chat.js')).toString();
             secondaryScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'codeCopy.js')).toString();
             htmlContent = htmlContent.replace('{{codeCopyScriptUri}}', secondaryScriptUri);
+        } else if (htmlFileName === 'ask') {
+            mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'ask.js')).toString();
+            secondaryScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'codeCopy.js')).toString();
+            htmlContent = htmlContent.replace('{{codeCopyScriptUri}}', secondaryScriptUri);
         } else if (htmlFileName === 'settings') {
             mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'settings.js')).toString();
         } else if (htmlFileName === 'license') {

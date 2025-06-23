@@ -353,7 +353,7 @@ function displayCodePilotMessage(markdownText) {
         const preElement = document.createElement('pre');
         const codeElement = document.createElement('code');
         
-        // HTML 태그와 엔티티를 완전히 제거하고 순수 텍스트로 변환
+        // HTML 엔티티만 디코딩하고 HTML 태그는 보존
         let cleanCodeContent = codeContent;
         
         // HTML 엔티티 디코딩
@@ -361,10 +361,8 @@ function displayCodePilotMessage(markdownText) {
         textarea.innerHTML = cleanCodeContent;
         cleanCodeContent = textarea.value;
         
-        // HTML 태그 제거
-        cleanCodeContent = cleanCodeContent.replace(/<[^>]*>/g, '');
-        
-        // 추가적인 HTML 엔티티 정리
+        // HTML 태그는 제거하지 않고 보존 (HTML 엔티티만 디코딩)
+        // 추가적인 HTML 엔티티 정리 (이미 디코딩된 것들은 다시 인코딩)
         cleanCodeContent = cleanCodeContent
             .replace(/&amp;/g, '&')
             .replace(/&lt;/g, '<')
