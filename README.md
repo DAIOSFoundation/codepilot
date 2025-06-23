@@ -87,6 +87,21 @@ Not yet
 - Etc
   - Fixed a bug where the thinking animation would not reappear after clearing
 
+### 2.1b 2025/01/27
+
+- CHAT panel
+  - File selection feature with @ button in CODE tab
+  - Selected files are displayed as context tags with white borders
+  - Selected files remain persistent across messages for continuous context
+  - Horizontal divider line between file selection area and input area
+  - Vertical center alignment for selected file tags
+  - File picker starts at configured project root path
+  - Multiple file selection support
+- AI
+  - Selected files from @ button are included as additional context to LLM
+  - File context works in both CODE and ASK tabs
+  - Enhanced context processing for better file operation tracking
+
 ## Following extension guidelines
 
 Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
