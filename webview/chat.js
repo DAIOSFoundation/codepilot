@@ -490,12 +490,21 @@ function updateFileSelectionDisplay() {
 
     selectedFilesContainer.innerHTML = '';
 
+    // 구분선 요소 찾기
+    const divider = document.querySelector('.file-input-divider');
+
     if (selectedFiles.length === 0) {
         fileSelectionArea.classList.add('hidden');
+        if (divider) {
+            divider.classList.add('hidden');
+        }
         return;
     }
 
     fileSelectionArea.classList.remove('hidden');
+    if (divider) {
+        divider.classList.remove('hidden');
+    }
 
     selectedFiles.forEach(file => {
         const fileTag = document.createElement('div');
