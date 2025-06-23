@@ -15,6 +15,16 @@ export interface WeatherData {
     precipitationProbability: string;
     windSpeedText: string;
     waveHeight: string;
+    // 중기 예보 관련 필드 추가
+    mediumTermForecast?: {
+        date: string;
+        minTemp: number;
+        maxTemp: number;
+        skyCondition: string;
+        precipitation: string;
+        precipitationProbability: string;
+        forecast: string;
+    }[];
 }
 
 export interface NewsData {
@@ -60,6 +70,47 @@ interface KmaWeatherApiResponse {
     };
 }
 
+// 기상청 중기 예보 API 응답 타입 정의
+interface KmaMediumTermApiResponse {
+    response: {
+        header: {
+            resultCode: string;
+            resultMsg: string;
+        };
+        body: {
+            items: {
+                item: Array<{
+                    REG_ID: string;
+                    TM_ST: string;
+                    TM_ED: string;
+                    REG_SP: string;
+                    STN_ID: string;
+                    TM_FC: string;
+                    TM_IN: string;
+                    CNT: string;
+                    TM_EF: string;
+                    MOD: string;
+                    STN: string;
+                    C: string;
+                    SKY: string;
+                    PRE: string;
+                    CONF: string;
+                    WF: string;
+                    RN_ST: string;
+                    MIN: string;
+                    MAX: string;
+                    MIN_L: string;
+                    MIN_H: string;
+                    MAX_L: string;
+                    MAX_H: string;
+                    WH_A: string;
+                    WH_B: string;
+                }>;
+            };
+        };
+    };
+}
+
 // 네이버 뉴스 API 응답 타입 정의
 interface NaverNewsApiResponse {
     lastBuildDate: string;
@@ -93,7 +144,7 @@ export class ExternalApiService {
     }
 
     /**
-     * 날씨 정보를 가져옵니다 (기상청 육상예보 API 사용)
+     * 날씨 정보를 가져옵니다 (기상청 육상예보 API + 중기예보 API 사용)
      */
     async getWeatherData(city: string): Promise<WeatherData | null> {
         try {
@@ -215,6 +266,18 @@ export class ExternalApiService {
                 windSpeedText = windSpeedMap[weatherData.wsIt] || '알 수 없음';
             }
 
+            // 중기 예보 데이터 가져오기
+            let mediumTermForecast: WeatherData['mediumTermForecast'] = [];
+            try {
+                const mediumTermData = await this.getMediumTermForecast(regId, apiKey);
+                if (mediumTermData && mediumTermData.length > 0) {
+                    mediumTermForecast = mediumTermData;
+                }
+            } catch (error) {
+                console.warn('Failed to fetch medium-term forecast:', error);
+                // 중기 예보 실패해도 단기 예보는 계속 진행
+            }
+
             return {
                 location: city,
                 temperature: temperature,
@@ -228,7 +291,8 @@ export class ExternalApiService {
                 temperatureText: temperatureText,
                 precipitationProbability: precipitationProbability,
                 windSpeedText: windSpeedText,
-                waveHeight: '' // 육상예보에는 파고 정보가 없음
+                waveHeight: '', // 육상예보에는 파고 정보가 없음
+                mediumTermForecast: mediumTermForecast
             };
         } catch (error) {
             console.error('Error fetching weather data:', error);
@@ -278,6 +342,137 @@ export class ExternalApiService {
         } catch (error) {
             console.error('Error parsing weather XML response:', error);
             return null;
+        }
+    }
+
+    /**
+     * 기상청 중기 예보 데이터를 가져옵니다
+     */
+    private async getMediumTermForecast(regId: string, apiKey: string): Promise<WeatherData['mediumTermForecast']> {
+        try {
+            // 현재 날짜 기준으로 내일부터 7일간의 예보 요청
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            
+            const tmef1 = tomorrow.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+            const tmef2 = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, ''); // 7일 후
+
+            const response = await fetch(
+                `https://apihub.kma.go.kr/api/typ01/url/fct_afs_wc.php?reg=${regId}&tmef1=${tmef1}&tmef2=${tmef2}&disp=0&help=0&authKey=${apiKey}`
+            );
+
+            if (!response.ok) {
+                throw new Error(`Medium-term forecast API error: ${response.status}`);
+            }
+
+            const xmlText = await response.text();
+            console.log('Medium-term forecast API response preview:', xmlText.substring(0, 300));
+
+            return this.parseMediumTermForecastXml(xmlText);
+        } catch (error) {
+            console.error('Error fetching medium-term forecast:', error);
+            return [];
+        }
+    }
+
+    /**
+     * 기상청 중기 예보 XML 응답을 파싱합니다
+     */
+    private parseMediumTermForecastXml(xmlText: string): WeatherData['mediumTermForecast'] {
+        try {
+            const forecasts: WeatherData['mediumTermForecast'] = [];
+            
+            // XML에서 각 예보 항목을 추출
+            const itemMatches = xmlText.match(/<item>([\s\S]*?)<\/item>/g);
+            
+            if (!itemMatches) {
+                console.warn('No forecast items found in medium-term forecast XML');
+                return [];
+            }
+
+            // 하늘상태 코드 매핑
+            const skyCodeMap: { [key: string]: string } = {
+                'WB01': '맑음',
+                'WB02': '구름조금',
+                'WB03': '구름많음',
+                'WB04': '흐림'
+            };
+
+            // 강수 코드 매핑
+            const precipitationCodeMap: { [key: string]: string } = {
+                'WB09': '비',
+                'WB11': '비/눈',
+                'WB13': '눈/비',
+                'WB12': '눈'
+            };
+
+            for (const itemMatch of itemMatches) {
+                // 각 필드 추출
+                const tmStMatch = itemMatch.match(/<TM_ST>([^<]+)<\/TM_ST>/);
+                const tmEdMatch = itemMatch.match(/<TM_ED>([^<]+)<\/TM_ED>/);
+                const skyMatch = itemMatch.match(/<SKY>([^<]+)<\/SKY>/);
+                const preMatch = itemMatch.match(/<PRE>([^<]+)<\/PRE>/);
+                const wfMatch = itemMatch.match(/<WF>([^<]+)<\/WF>/);
+                const rnStMatch = itemMatch.match(/<RN_ST>([^<]+)<\/RN_ST>/);
+                const minMatch = itemMatch.match(/<MIN>([^<]+)<\/MIN>/);
+                const maxMatch = itemMatch.match(/<MAX>([^<]+)<\/MAX>/);
+
+                if (tmStMatch && tmEdMatch) {
+                    const startDate = tmStMatch[1].substring(0, 8); // YYYYMMDD
+                    const endDate = tmEdMatch[1].substring(0, 8);
+                    
+                    // 날짜 형식 변환 (YYYYMMDD -> YYYY-MM-DD)
+                    const formattedDate = `${startDate.substring(0, 4)}-${startDate.substring(4, 6)}-${startDate.substring(6, 8)}`;
+                    
+                    // 최저/최고 기온 처리
+                    let minTemp = 0;
+                    let maxTemp = 0;
+                    
+                    if (minMatch && minMatch[1] !== '-99' && minMatch[1].trim() !== '') {
+                        const tempValue = parseFloat(minMatch[1]);
+                        if (!isNaN(tempValue)) {
+                            minTemp = tempValue;
+                        }
+                    }
+                    
+                    if (maxMatch && maxMatch[1] !== '-99' && maxMatch[1].trim() !== '') {
+                        const tempValue = parseFloat(maxMatch[1]);
+                        if (!isNaN(tempValue)) {
+                            maxTemp = tempValue;
+                        }
+                    }
+
+                    // 강수확률 처리
+                    let precipitationProbability = '';
+                    if (rnStMatch && rnStMatch[1] !== '-99' && rnStMatch[1].trim() !== '') {
+                        const probValue = parseFloat(rnStMatch[1]);
+                        if (!isNaN(probValue)) {
+                            precipitationProbability = `${probValue}%`;
+                        }
+                    }
+
+                    forecasts.push({
+                        date: formattedDate,
+                        minTemp: minTemp,
+                        maxTemp: maxTemp,
+                        skyCondition: skyMatch ? (skyCodeMap[skyMatch[1]] || '알 수 없음') : '알 수 없음',
+                        precipitation: preMatch ? (precipitationCodeMap[preMatch[1]] || '없음') : '없음',
+                        precipitationProbability: precipitationProbability,
+                        forecast: wfMatch ? wfMatch[1].trim() : '예보 정보 없음'
+                    });
+                }
+            }
+
+            // 날짜순으로 정렬하고 중복 제거 (같은 날짜의 경우 첫 번째 항목만 유지)
+            const uniqueForecasts = forecasts.filter((forecast, index, self) => 
+                index === self.findIndex(f => f.date === forecast.date)
+            );
+
+            return uniqueForecasts.sort((a, b) => a.date.localeCompare(b.date));
+        } catch (error) {
+            console.error('Error parsing medium-term forecast XML:', error);
+            return [];
         }
     }
 

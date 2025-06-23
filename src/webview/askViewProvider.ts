@@ -12,9 +12,6 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
         private readonly extensionUri: vscode.Uri,
         private readonly context: vscode.ExtensionContext,
         private readonly geminiService: GeminiService, // GeminiService 인스턴스 주입
-        private readonly openSettingsPanel: (viewColumn: vscode.ViewColumn) => void,
-        private readonly openLicensePanel: (viewColumn: vscode.ViewColumn) => void,
-        private readonly openBlankPanel: (viewColumn: vscode.ViewColumn) => void,
         private readonly configurationService: ConfigurationService,
         private readonly notificationService: NotificationService
     ) {}
@@ -50,15 +47,6 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                         data.imageMimeType,
                         data.selectedFiles // 선택된 파일들 전달
                     );
-                    break;
-                case 'openPanel':
-                    let panelViewColumn = vscode.ViewColumn.Beside;
-                    if (vscode.window.activeTextEditor?.viewColumn) {
-                        panelViewColumn = vscode.window.activeTextEditor.viewColumn;
-                    }
-                    if (data.panel === 'settings') this.openSettingsPanel(panelViewColumn);
-                    else if (data.panel === 'license') this.openLicensePanel(panelViewColumn);
-                    else if (data.panel === 'customizing') this.openBlankPanel(panelViewColumn);
                     break;
                 case 'webviewLoaded':
                     console.log('[AskViewProvider] Ask webview loaded.');

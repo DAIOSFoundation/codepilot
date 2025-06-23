@@ -267,6 +267,29 @@ ${projectRootInfo}
                         realTimeInfo += `- 풍속: ${weather.windSpeedText}\n`;
                     }
                     realTimeInfo += `\n`;
+
+                    // 중기 예보 정보 추가
+                    if (weather.mediumTermForecast && weather.mediumTermForecast.length > 0) {
+                        realTimeInfo += `### 📅 ${weather.location} 중기 예보 (내일~7일 후)\n\n`;
+                        weather.mediumTermForecast.forEach((forecast, index) => {
+                            const dateObj = new Date(forecast.date);
+                            const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][dateObj.getDay()];
+                            const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()} (${dayOfWeek})`;
+                            
+                            realTimeInfo += `#### 📆 ${formattedDate}\n`;
+                            if (forecast.minTemp !== 0 || forecast.maxTemp !== 0) {
+                                realTimeInfo += `- 기온: ${forecast.minTemp}°C ~ ${forecast.maxTemp}°C\n`;
+                            }
+                            realTimeInfo += `- 하늘상태: ${forecast.skyCondition}\n`;
+                            realTimeInfo += `- 강수: ${forecast.precipitation}`;
+                            if (forecast.precipitationProbability) {
+                                realTimeInfo += ` (확률: ${forecast.precipitationProbability})`;
+                            }
+                            realTimeInfo += `\n`;
+                            realTimeInfo += `- 예보: ${forecast.forecast}\n`;
+                            realTimeInfo += `---\n\n`;
+                        });
+                    }
                 } else {
                     // API 키가 설정되지 않았거나 오류가 발생한 경우
                     const weatherApiKey = await this.configurationService.getWeatherApiKey();

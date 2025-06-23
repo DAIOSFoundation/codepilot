@@ -71,9 +71,6 @@ export async function activate(context: vscode.ExtensionContext) {
         context.extensionUri,
         context,
         geminiService,
-        (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService, notificationService),
-        (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService),
-        (viewColumn: vscode.ViewColumn) => openBlankPanel(context.extensionUri, context, viewColumn),
         configurationService,
         notificationService
     );
