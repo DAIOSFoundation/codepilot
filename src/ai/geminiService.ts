@@ -148,6 +148,13 @@ ${projectRootInfo}
                         const contentBytes = await vscode.workspace.fs.readFile(fileUri);
                         const content = Buffer.from(contentBytes).toString('utf8');
                         const fileName = filePath.split(/[/\\]/).pop() || 'Unknown';
+                        
+                        // 선택된 파일을 includedFilesForContext 배열에 추가
+                        includedFilesForContext.push({ 
+                            name: fileName, 
+                            fullPath: filePath 
+                        });
+                        
                         selectedFilesContext += `파일명: ${fileName}\n경로: ${filePath}\n코드:\n\`\`\`\n${content}\n\`\`\`\n\n`;
                     } catch (error) {
                         console.error(`Error reading selected file ${filePath}:`, error);
@@ -174,8 +181,8 @@ ${projectRootInfo}
                 });
             }
 
-            // GENERAL_ASK 타입일 때는 참조 코드 컨텍스트를 포함하지 않음
-            const contextPart: Part = (promptType === PromptType.CODE_GENERATION && fileContentsContext.trim() !== "")
+            // 컨텍스트가 있는 경우에만 포함 (CODE_GENERATION 또는 선택된 파일이 있는 경우)
+            const contextPart: Part = (fileContentsContext.trim() !== "")
                 ? { text: `--- 참조 코드 컨텍스트 ---\n${fileContentsContext}` }
                 : { text: "--- 참조 코드 컨텍스트 ---\n참조 코드가 제공되지 않았습니다." };
 
