@@ -163,6 +163,7 @@ window.addEventListener('message', event => {
     switch (message.command) {
         case 'displayUserMessage':
             console.log('Received command to display user message:', message.text, message.imageData);
+            // console.log('Received command to display user message:', message.text, message.imageData);
             if (message.text !== undefined || message.imageData !== undefined) { // 텍스트 또는 이미지가 있을 때
                 window.displayUserMessage(message.text, message.imageData);
             }
@@ -178,7 +179,7 @@ window.addEventListener('message', event => {
              break;
 
         case 'receiveMessage':
-            console.log('Received message from extension:', message.text);
+            // console.log('Received message from extension:', message.text);
             window.hideLoading(); // 응답을 받으면 로딩 버블 제거
 
             if (message.sender === 'CodePilot' && message.text !== undefined) {
@@ -325,16 +326,155 @@ function displayCodePilotMessage(markdownText) {
         const processedPrecedingHtml = md.render(precedingText); // markdown-it 사용
         tempHtmlElements.innerHTML += DOMPurify.sanitize(processedPrecedingHtml);
 
-        // 2. 코드 블록 처리 (Markdown 포맷 미적용, 원본 텍스트 그대로)
+        // 2. 코드 블록 처리 (HTML 태그 완전 제거, 순수 텍스트만)
         const preElement = document.createElement('pre');
         const codeElement = document.createElement('code');
-        // HTML 엔티티를 디코딩하지 않고 순수 텍스트로 설정하여 '전혀 반영되지 않게' 처리
-        codeElement.textContent = DOMPurify.sanitize(codeContent, { RETURN_TYPE: 'text' });
-        // if (lang) { // language- 클래스를 추가하지 않음 (요구사항: 코드 블록 내 plain text)
-        //     codeElement.classList.add(`language-${lang.trim()}`);
-        // }
-        preElement.appendChild(codeElement);
-        tempHtmlElements.appendChild(preElement);
+        
+        // HTML 태그와 엔티티를 완전히 제거하고 순수 텍스트로 변환
+        let cleanCodeContent = codeContent;
+        
+        // HTML 엔티티 디코딩
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = cleanCodeContent;
+        cleanCodeContent = textarea.value;
+        
+        // HTML 태그 제거
+        cleanCodeContent = cleanCodeContent.replace(/<[^>]*>/g, '');
+        
+        // 추가적인 HTML 엔티티 정리
+        cleanCodeContent = cleanCodeContent
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&nbsp;/g, ' ');
+        
+        // 코드 라인 수 계산
+        const codeLines = cleanCodeContent.split('\n');
+        const totalLines = codeLines.length;
+        
+        // 코드 블록 컨테이너 생성
+        const codeBlockContainer = document.createElement('div');
+        codeBlockContainer.classList.add('code-block-container');
+        
+        // 코드 블록 헤더 생성 (언어 표시 + 접기/펼치기 버튼)
+        const codeHeader = document.createElement('div');
+        codeHeader.classList.add('code-block-header');
+        
+        const languageLabel = document.createElement('span');
+        languageLabel.classList.add('code-language');
+        languageLabel.textContent = lang || 'text';
+        
+        const toggleButton = document.createElement('button');
+        toggleButton.classList.add('code-toggle-button');
+        
+        const lineCountLabel = document.createElement('span');
+        lineCountLabel.classList.add('code-line-count');
+        lineCountLabel.textContent = `${totalLines} lines`;
+        
+        codeHeader.appendChild(languageLabel);
+        codeHeader.appendChild(lineCountLabel);
+        codeHeader.appendChild(toggleButton);
+        
+        // 코드 컨테이너 생성
+        const codeContainer = document.createElement('div');
+        codeContainer.classList.add('code-container');
+        
+        // 전체 코드 요소 (숨김)
+        const fullCodeElement = document.createElement('code');
+        fullCodeElement.textContent = cleanCodeContent;
+        fullCodeElement.classList.add('full-code');
+        
+        // 축약된 코드 요소 (기본 표시) - 8줄만 표시
+        const collapsedCodeElement = document.createElement('code');
+        const collapsedContent = totalLines > 8 
+            ? codeLines.slice(0, 8).join('\n') + '\n...'
+            : cleanCodeContent;
+        collapsedCodeElement.textContent = collapsedContent;
+        collapsedCodeElement.classList.add('collapsed-code');
+        
+        // pre 요소에 축약된 코드 추가
+        preElement.appendChild(collapsedCodeElement);
+        preElement.style.display = 'block'; // 명시적으로 block으로 설정
+        codeContainer.appendChild(preElement);
+        
+        // 전체 코드용 pre 요소 (숨김)
+        const fullPreElement = document.createElement('pre');
+        fullPreElement.style.display = 'none'; // 명시적으로 none으로 설정
+        fullPreElement.appendChild(fullCodeElement);
+        fullPreElement.classList.add('full-pre');
+        codeContainer.appendChild(fullPreElement);
+        
+        // 토글 기능 추가
+        let isExpanded = false; // 기본적으로 접힌 상태
+        
+        // 토글 버튼 설정
+        toggleButton.innerHTML = '▼'; // 기본적으로 접힌 상태 표시
+        toggleButton.style.cursor = 'pointer';
+        toggleButton.type = 'button';
+        
+        console.log('Creating toggle button for', totalLines, 'lines'); // 디버깅 로그
+        
+        // 고유한 ID 생성
+        const toggleId = 'toggle_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        toggleButton.id = toggleId;
+        
+        // 전역 함수로 토글 함수 등록
+        window[toggleId] = function() {
+            console.log('Toggle function called for', toggleId); // 디버깅 로그
+            
+            // DOM 요소 상태 확인
+            console.log('preElement:', preElement);
+            console.log('fullPreElement:', fullPreElement);
+            console.log('preElement display before:', preElement.style.display);
+            console.log('fullPreElement display before:', fullPreElement.style.display);
+            
+            if (isExpanded) {
+                // 접기
+                console.log('Collapsing...');
+                preElement.style.setProperty('display', 'block', 'important');
+                fullPreElement.style.setProperty('display', 'none', 'important');
+                toggleButton.innerHTML = '▼';
+                codeBlockContainer.classList.remove('expanded');
+                isExpanded = false;
+                
+                console.log('preElement display after:', preElement.style.display);
+                console.log('fullPreElement display after:', fullPreElement.style.display);
+            } else {
+                // 펼치기
+                console.log('Expanding...');
+                preElement.style.setProperty('display', 'none', 'important');
+                fullPreElement.style.setProperty('display', 'block', 'important');
+                toggleButton.innerHTML = '▲';
+                codeBlockContainer.classList.add('expanded');
+                isExpanded = true;
+                
+                console.log('preElement display after:', preElement.style.display);
+                console.log('fullPreElement display after:', fullPreElement.style.display);
+                
+                // 강제로 리플로우 트리거
+                fullPreElement.offsetHeight;
+            }
+        };
+        
+        // 인라인 onclick 이벤트 사용
+        toggleButton.setAttribute('onclick', `${toggleId}()`);
+        
+        // 8줄 이하인 경우 토글 버튼 숨김
+        if (totalLines <= 8) {
+            toggleButton.style.display = 'none';
+            lineCountLabel.style.display = 'none';
+            codeBlockContainer.classList.remove('has-toggle');
+        } else {
+            codeBlockContainer.classList.add('has-toggle');
+        }
+        
+        // 코드 블록 컨테이너에 헤더와 코드 추가
+        codeBlockContainer.appendChild(codeHeader);
+        codeBlockContainer.appendChild(codeContainer);
+        
+        tempHtmlElements.appendChild(codeBlockContainer);
 
         lastIndex = codeBlockRegex.lastIndex; // 다음 검색 시작 위치 업데이트
     }

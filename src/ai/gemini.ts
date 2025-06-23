@@ -125,7 +125,7 @@ export class GeminiApi {
                 throw new Error(`Response was blocked by safety settings. Reason: ${response.promptFeedback.blockReason}. Please adjust your prompt or safety settings.`);
             }
             const text = response.text();
-            console.log('Banya Response (sendMessageWithSystemPrompt):', text);
+            // console.log('Banya Response (sendMessageWithSystemPrompt):', text);
             return text;
 
         } catch (error: any) {
