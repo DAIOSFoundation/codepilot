@@ -3,17 +3,85 @@
 VSCode base code assistant plugin with LLM and LM support.
 
 ## Features
+<img src="https://drive.google.com/uc?export=view&id=1BpN9SVQiEnxi0R67NFzQceRkhgQyogic" width="700" height="500"/><br>
+<img src="https://drive.google.com/uc?export=view&id=1KYN5wO_lE8lBgyrldAtMpKReJYUYnwTO" width="700" height="500"/><br>
+<img src="https://drive.google.com/uc?export=view&id=1sADJQZCmOatGiHyeop1pa0dipg_Zs5SP" width="700" height="500"/><br>
 
-<img src="https://drive.google.com/uc?export=view&id=1Qnb_rdSzjfSR34o4lZB5nDCCTuwD7lLJ" width="700" height="500"/>
 
-> TBD...
+### 🤖 AI-Powered Code Assistance
+- **Gemini AI Integration**: Powered by Google's Gemini 2.5 Flash model for intelligent code generation and analysis
+- **Dual-Mode Interface**: 
+  - **CODE Tab**: Specialized for code generation, modification, and project-specific tasks
+  - **ASK Tab**: General Q&A and real-time information queries
+- **Context-Aware Responses**: Analyzes your project structure and existing code for relevant suggestions
+- **Natural Language Processing**: Understands complex requests in plain English
 
-- No internet installation package support
-- Custom LLM support
-- User define code generation support
-- Natural language commands support
-- Code block indicator in response
-- Project scope codes watching and auto debug by LLM
+### 📁 Advanced File Management
+- **Smart File Selection**: Use the @ button to select specific files for context inclusion
+- **Persistent File Context**: Selected files remain available across multiple conversations
+- **Multi-File Operations**: Support for creating, modifying, and deleting multiple files simultaneously
+- **Project Root Configuration**: Configurable project root path for accurate file operations
+- **Auto File Updates**: Optional automatic file creation and modification based on AI suggestions
+
+### 🖼️ Visual Code Analysis
+- **Image Support**: Upload images for code analysis and debugging
+- **Drag & Drop Interface**: Easy image attachment via clipboard paste
+- **Visual Context**: AI can analyze screenshots, diagrams, and code images
+
+### 🌐 Real-Time Information Services
+- **Weather Information**: Korean Meteorological Administration API integration
+  - Current weather conditions and forecasts
+  - 7-day weather predictions
+  - Location-specific weather data
+- **News Updates**: NewsAPI integration for latest headlines
+  - Topic-specific news searches
+  - Real-time news aggregation
+  - Source attribution and timestamps
+- **Stock Market Data**: Alpha Vantage API integration
+  - Real-time stock prices and changes
+  - Major stock tracking (AAPL, GOOGL, MSFT, TSLA, AMZN)
+  - Percentage change calculations
+
+### ⚙️ Comprehensive Configuration
+- **API Key Management**: Secure storage for multiple external API keys
+  - Weather API key configuration
+  - News API credentials (Client ID & Secret)
+  - Stock API key management
+- **Source Path Configuration**: Customizable paths for code context inclusion
+- **Auto-Update Settings**: Toggle automatic file operations on/off
+- **Project Root Settings**: Flexible project directory configuration
+
+### 💻 Enhanced Development Experience
+- **Code Block Display**: Syntax-highlighted code blocks with language detection
+- **Copy-to-Clipboard**: One-click code copying functionality
+- **File Operation Tracking**: Real-time feedback on file creation, modification, and deletion
+- **Diff Viewing**: Side-by-side comparison of original vs. AI-suggested code
+- **Error Handling**: Comprehensive error reporting and user feedback
+
+### 🔒 Security & Privacy
+- **Secure API Storage**: VS Code SecretStorage for sensitive API keys
+- **Local Processing**: No internet required for core functionality
+- **Privacy-First**: Local code analysis without external data transmission
+
+### 🎨 Modern User Interface
+- **VS Code Integration**: Native VS Code theming and styling
+- **Responsive Design**: Adapts to different screen sizes and themes
+- **Intuitive Navigation**: Easy switching between CODE and ASK modes
+- **Loading Indicators**: Visual feedback during AI processing
+- **Message History**: Persistent chat history with clear conversation flow
+
+### 🚀 Performance Features
+- **Abort Controller**: Ability to cancel ongoing AI requests
+- **Context Optimization**: Smart context length management for optimal performance
+- **File Type Filtering**: Automatic exclusion of binary and non-code files
+- **Memory Management**: Efficient handling of large codebases
+
+### 📋 Usage Examples
+- **Code Generation**: "Create a React component for user authentication"
+- **Code Modification**: "Add error handling to this function"
+- **Real-time Info**: "What's the weather in Seoul?" or "Show me the latest tech news"
+- **Stock Queries**: "What are the current stock prices?"
+- **File Operations**: "Create a new utility file for date formatting"
 
 ## Requirements
 
