@@ -3,10 +3,11 @@
 VSCode base code assistant plugin with LLM and LM support.
 
 ## Features
+
+<img src="https://drive.google.com/uc?export=view&id=1Qnb_rdSzjfSR34o4lZB5nDCCTuwD7lLJ" width="700" height="500"/>
 <img src="https://drive.google.com/uc?export=view&id=1BpN9SVQiEnxi0R67NFzQceRkhgQyogic" width="700" height="500"/><br>
 <img src="https://drive.google.com/uc?export=view&id=1KYN5wO_lE8lBgyrldAtMpKReJYUYnwTO" width="700" height="500"/><br>
 <img src="https://drive.google.com/uc?export=view&id=1sADJQZCmOatGiHyeop1pa0dipg_Zs5SP" width="700" height="500"/><br>
-
 
 ### 🤖 AI-Powered Code Assistance
 - **Gemini AI Integration**: Powered by Google's Gemini 2.5 Flash model for intelligent code generation and analysis
