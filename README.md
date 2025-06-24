@@ -10,7 +10,7 @@ VSCode base code assistant plugin with LLM and LM support.
 <img src="https://drive.google.com/uc?export=view&id=1sADJQZCmOatGiHyeop1pa0dipg_Zs5SP" width="700" height="500"/><br>
 
 ### 🤖 AI-Powered Code Assistance
-- **Gemini AI Integration**: Powered by Google's Gemini 2.5 Flash model for intelligent code generation and analysis
+- **Gemini AI Integration**: Powered by Google's Gemini LLM for intelligent code generation and analysis. Lowest cost for maximum performance.
 - **Dual-Mode Interface**: 
   - **CODE Tab**: Specialized for code generation, modification, and project-specific tasks
   - **ASK Tab**: General Q&A and real-time information queries
