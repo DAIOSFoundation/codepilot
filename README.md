@@ -4,7 +4,7 @@ VSCode base code assistant plugin with LLM and LM support.
 
 ## Features
 
-<img src="https://drive.google.com/uc?export=view&id=1qV7VZvm806HlfrpBSi7BdQxyBlBKnNt7" width="700" height="500"/>
+<img src="https://drive.google.com/uc?export=view&id=1Qnb_rdSzjfSR34o4lZB5nDCCTuwD7lLJ" width="700" height="500"/>
 
 > TBD...
 
