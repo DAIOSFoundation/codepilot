@@ -126,6 +126,7 @@ export class GeminiApi {
             }
             const text = response.text();
             // console.log('Banya Response (sendMessageWithSystemPrompt):', text);
+            console.log('Banya Response (sendMessageWithSystemPrompt):', text);
             return text;
 
         } catch (error: any) {

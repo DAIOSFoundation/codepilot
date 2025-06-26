@@ -168,53 +168,66 @@ export class LlmResponseProcessor {
             }
         }
 
+        // 작업 요약 추출 및 표시
+        const workSummary = this.extractWorkSummary(llmResponse);
+        if (workSummary) {
+            updateSummaryMessages.push(`\n--- AI 작업 요약 ---\n${workSummary}`);
+        }
+
+        // 먼저 AI 응답을 채팅창에 출력
+        let initialWebviewResponse = llmResponse;
+        if (contextFiles.length > 0) {
+            const fileList = contextFiles.map(f => f.name).join(', ');
+            initialWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n${fileList}`;
+        } else if (promptType === PromptType.CODE_GENERATION) {
+            initialWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n(없음)`;
+        }
+
+        console.log("[LLM Response Processor] Sending initial message to webview:", {
+            command: 'receiveMessage',
+            sender: 'CodePilot',
+            textLength: initialWebviewResponse.length,
+            textPreview: initialWebviewResponse.substring(0, 200) + '...'
+        });
+        
+        webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: initialWebviewResponse });
+
+        // 파일 작업이 있는 경우에만 추가 처리
         if (fileOperations.length > 0) {
+            // thinking 애니메이션을 먼저 제거
+            webview.postMessage({ command: 'hideLoading' });
+            
             const autoUpdateEnabled = await this.configurationService.isAutoUpdateEnabled();
 
             for (const operation of fileOperations) {
-                // console.log(`[LLM Response Processor] Processing operation: Type=${operation.type}, Path=${operation.absolutePath}`);
                 const fileUri = vscode.Uri.file(operation.absolutePath);
-                const fileNameForDisplay = operation.llmSpecifiedPath; // Use LLM specified path for display
+                const fileNameForDisplay = operation.llmSpecifiedPath;
 
                 if (autoUpdateEnabled) {
                     try {
                         if (operation.type === 'create') {
-                            // Ensure directory exists for new files
                             const dirPath = path.dirname(operation.absolutePath);
-                            // console.log(`[LLM Response Processor] Attempting to create directory: ${dirPath}`);
                             await vscode.workspace.fs.createDirectory(vscode.Uri.file(dirPath));
-                            // console.log(`[LLM Response Processor] Directory created: ${dirPath}`);
-                            
-                            // Write new file
-                            // console.log(`[LLM Response Processor] Attempting to write file: ${operation.absolutePath}`);
                             await vscode.workspace.fs.writeFile(fileUri, Buffer.from(operation.newContent!, 'utf8'));
                             const successMsg = `✅ 파일이 자동으로 생성되었습니다: ${fileNameForDisplay}`;
                             this.notificationService.showInfoMessage(`CodePilot: ${successMsg}`);
                             updateSummaryMessages.push(successMsg);
-                            // console.log(`[LLM Response Processor] Success: ${successMsg}`);
                         } else if (operation.type === 'modify') {
-                            // Write modified file
-                            // console.log(`[LLM Response Processor] Attempting to write file: ${operation.absolutePath}`);
                             await vscode.workspace.fs.writeFile(fileUri, Buffer.from(operation.newContent!, 'utf8'));
                             const successMsg = `✅ 파일이 자동으로 업데이트되었습니다: ${fileNameForDisplay}`;
                             this.notificationService.showInfoMessage(`CodePilot: ${successMsg}`);
                             updateSummaryMessages.push(successMsg);
-                            // console.log(`[LLM Response Processor] Success: ${successMsg}`);
                         } else if (operation.type === 'delete') {
-                            // Delete file
-                            // console.log(`[LLM Response Processor] Attempting to delete file: ${operation.absolutePath}`);
                             await vscode.workspace.fs.delete(fileUri);
                             const successMsg = `✅ 파일이 자동으로 삭제되었습니다: ${fileNameForDisplay}`;
                             this.notificationService.showInfoMessage(`CodePilot: ${successMsg}`);
                             updateSummaryMessages.push(successMsg);
-                            // console.log(`[LLM Response Processor] Success: ${successMsg}`);
                         }
                     } catch (err: any) {
                         const operationTypeText = operation.type === 'create' ? '생성' : operation.type === 'modify' ? '업데이트' : '삭제';
                         const errorMsg = `❌ 파일 자동 ${operationTypeText} 실패 (${fileNameForDisplay}): ${err.message}`;
                         this.notificationService.showErrorMessage(`CodePilot: ${errorMsg}`);
                         updateSummaryMessages.push(errorMsg);
-                        // console.error(`[LLM Response Processor] Error: ${errorMsg}`, err);
                     }
                 } else {
                     let userChoice: string | undefined;
@@ -239,94 +252,58 @@ export class LlmResponseProcessor {
                         try {
                             if (operation.type === 'create') {
                                 const dirPath = path.dirname(operation.absolutePath);
-                                // console.log(`[LLM Response Processor] Attempting to create directory (manual): ${dirPath}`);
                                 await vscode.workspace.fs.createDirectory(vscode.Uri.file(dirPath));
-                                // console.log(`[LLM Response Processor] Directory created (manual): ${dirPath}`);
-                                
-                                // console.log(`[LLM Response Processor] Attempting to write file (manual): ${operation.absolutePath}`);
                                 await vscode.workspace.fs.writeFile(fileUri, Buffer.from(operation.newContent!, 'utf8'));
                                 const successMsg = `✅ 파일이 생성되었습니다: ${fileNameForDisplay}`;
                                 this.notificationService.showInfoMessage(`CodePilot: ${successMsg}`);
                                 updateSummaryMessages.push(successMsg);
-                                // console.log(`[LLM Response Processor] Success (manual): ${successMsg}`);
                             } else if (operation.type === 'modify') {
-                                // console.log(`[LLM Response Processor] Attempting to write file (manual): ${operation.absolutePath}`);
                                 await vscode.workspace.fs.writeFile(fileUri, Buffer.from(operation.newContent!, 'utf8'));
                                 const successMsg = `✅ 파일이 업데이트되었습니다: ${fileNameForDisplay}`;
                                 this.notificationService.showInfoMessage(`CodePilot: ${successMsg}`);
                                 updateSummaryMessages.push(successMsg);
-                                // console.log(`[LLM Response Processor] Success (manual): ${successMsg}`);
                             } else if (operation.type === 'delete') {
-                                // console.log(`[LLM Response Processor] Attempting to delete file (manual): ${operation.absolutePath}`);
                                 await vscode.workspace.fs.delete(fileUri);
                                 const successMsg = `✅ 파일이 삭제되었습니다: ${fileNameForDisplay}`;
                                 this.notificationService.showInfoMessage(`CodePilot: ${successMsg}`);
                                 updateSummaryMessages.push(successMsg);
-                                // console.log(`[LLM Response Processor] Success (manual): ${successMsg}`);
                             }
                         } catch (err: any) {
                             const operationTypeText = operation.type === 'create' ? '생성' : operation.type === 'modify' ? '업데이트' : '삭제';
                             const errorMsg = `❌ 파일 ${operationTypeText} 실패 (${fileNameForDisplay}): ${err.message}`;
                             this.notificationService.showErrorMessage(`CodePilot: ${errorMsg}`);
                             updateSummaryMessages.push(errorMsg);
-                            // console.error(`[LLM Response Processor] Error (manual): ${errorMsg}`, err);
                         }
-                    } else if (userChoice === "Diff 보기" && operation.type === 'modify') { // Only for modify
+                    } else if (userChoice === "Diff 보기" && operation.type === 'modify') {
                         const tempFileName = `codepilot-suggested-${path.basename(operation.absolutePath)}-${Date.now()}${path.extname(operation.absolutePath)}`;
                         const tempFileUri = vscode.Uri.joinPath(this.context.globalStorageUri, tempFileName);
                         try {
-                            // console.log(`[LLM Response Processor] Attempting to write temp file for Diff: ${tempFileUri.fsPath}`);
                             await vscode.workspace.fs.writeFile(tempFileUri, Buffer.from(operation.newContent!, 'utf8'));
-                            // console.log(`[LLM Response Processor] Showing Diff for: ${fileUri.fsPath} vs ${tempFileUri.fsPath}`);
                             await vscode.commands.executeCommand('vscode.diff', fileUri, tempFileUri, `Original '${fileNameForDisplay}'  vs.  CodePilot Suggestion`);
                             updateSummaryMessages.push(`ℹ️ '${fileNameForDisplay}' 변경 제안 Diff를 표시했습니다.`);
-                            // console.log(`[LLM Response Processor] Diff shown for: ${fileNameForDisplay}`);
                         } catch (diffError: any) {
                             this.notificationService.showErrorMessage(`Diff 표시 중 오류: ${diffError.message}`);
                             updateSummaryMessages.push(`❌ Diff 표시 실패 (${fileNameForDisplay}): ${diffError.message}`);
-                            // console.error(`[LLM Response Processor] Diff error: ${diffError.message}`, diffError);
                         }
                     } else {
                         const operationTypeText = operation.type === 'create' ? '생성' : operation.type === 'modify' ? '업데이트' : '삭제';
                         updateSummaryMessages.push(`ℹ️ 파일 ${operationTypeText}이(가) 취소되었습니다: ${fileNameForDisplay}`);
-                        // console.log(`[LLM Response Processor] Operation cancelled for: ${fileNameForDisplay}`);
                     }
                 }
             }
-        }
 
-        // 작업 요약 추출 및 표시
-        const workSummary = this.extractWorkSummary(llmResponse);
-        if (workSummary) {
-            updateSummaryMessages.push(`\n--- AI 작업 요약 ---\n${workSummary}`);
+            // 파일 작업 결과를 추가로 채팅창에 표시
+            if (updateSummaryMessages.length > 0) {
+                const updateResultMessage = "\n\n--- 파일 업데이트 결과 ---\n" + updateSummaryMessages.join("\n");
+                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: updateResultMessage });
+            }
+        } else if (llmResponse.includes("Copy") && !llmResponse.includes("수정 파일:") && !llmResponse.includes("새 파일:") && !llmResponse.includes("삭제 파일:")) {
+            const infoMessage = "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:', '새 파일:', 또는 '삭제 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요.";
+            webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: infoMessage });
+        } else {
+            // 파일 작업이 없는 경우 thinking 애니메이션 제거
+            webview.postMessage({ command: 'hideLoading' });
         }
-
-        let finalWebviewResponse = llmResponse;
-        if (updateSummaryMessages.length > 0) {
-            finalWebviewResponse += "\n\n--- 파일 업데이트 결과 ---\n" + updateSummaryMessages.join("\n");
-        } else if (fileOperations.length === 0 && llmResponse.includes("Copy") && !llmResponse.includes("수정 파일:") && !llmResponse.includes("새 파일:") && !llmResponse.includes("삭제 파일:")) 
-        { 
-            finalWebviewResponse += "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:', '새 파일:', 또는 '삭제 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요."; 
-            // console.log("[LLM Response Processor] No file operations parsed, but code blocks present without directives."); 
-        } 
-        else if (fileOperations.length === 0 && (llmResponse.includes("수정 파일:") || llmResponse.includes("새 파일:") || llmResponse.includes("삭제 파일:"))) 
-        { 
-            // This case handles when directives were present but no matching context file was found or project root was missing
-            // console.log("[LLM Response Processor] No file operations parsed, possibly due to unmatched directives or missing project root."); 
-        }
-
-        if (contextFiles.length > 0) {
-            const fileList = contextFiles.map(f => f.name).join(', ');
-            finalWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n${fileList}`;
-            // console.log(`[LLM Response Processor] Context files included: ${fileList}`);
-        } else if (promptType === PromptType.CODE_GENERATION) { // Only show (없음) for CODE_GENERATION if no files
-            finalWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n(없음)`;
-            // console.log(`[LLM Response Processor] No context files included for CODE_GENERATION.`);
-        }
-        // For GENERAL_ASK, if contextFiles is empty, nothing is appended.
-    
-        webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: finalWebviewResponse });
-        // console.log("[LLM Response Processor] Finished processing LLM response.");
     }
 
     /**

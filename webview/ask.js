@@ -132,6 +132,43 @@ function handleSendMessage() {
         removeAttachedImage();
         autoResizeTextarea();
         chatInput.focus();
+        
+        // 메시지 전송 후 즉시 스크롤을 thinking 애니메이션으로 이동 (여러 번 시도)
+        scrollToThinkingAnimation();
+    }
+}
+
+// thinking 애니메이션으로 스크롤하는 함수 (여러 번 시도)
+function scrollToThinkingAnimation() {
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    const attemptScroll = () => {
+        attempts++;
+        if (thinkingBubbleElement) {
+            thinkingBubbleElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'end', // 애니메이션을 화면 하단에 위치시킴
+                inline: 'nearest' 
+            });
+            return true; // 성공
+        } else if (attempts < maxAttempts) {
+            // 아직 thinkingBubbleElement가 생성되지 않았으면 다시 시도
+            setTimeout(attemptScroll, 50);
+            return false; // 아직 시도 중
+        } else {
+            // 최대 시도 횟수 초과 시 fallback
+            if (chatMessages) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            return false; // 실패
+        }
+    };
+    
+    // 즉시 첫 번째 시도
+    if (!attemptScroll()) {
+        // 첫 번째 시도가 실패하면 50ms 후 다시 시도
+        setTimeout(attemptScroll, 50);
     }
 }
 
@@ -208,9 +245,15 @@ window.addEventListener('message', event => {
             break;
 
         case 'receiveMessage':
+            console.log('Received message from extension:', {
+                sender: message.sender,
+                textLength: message.text ? message.text.length : 0,
+                textPreview: message.text ? message.text.substring(0, 200) + '...' : 'undefined'
+            });
             window.hideLoading();
 
             if (message.sender === 'CodePilot' && message.text !== undefined) {
+                console.log('Calling displayCodePilotMessage with text length:', message.text.length);
                 window.displayCodePilotMessage(message.text);
             }
             break;
@@ -246,14 +289,43 @@ function displayUserMessage(text, imageData = null) {
     chatMessages.appendChild(userMessageElement);
     chatMessages.appendChild(separatorElement);
     
-    requestAnimationFrame(() => {
-        const lastChild = chatMessages.lastElementChild;
-        if (lastChild) {
-            lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    // 사용자 메시지가 추가된 후 즉시 스크롤을 해당 메시지로 이동 (여러 번 시도)
+    scrollToUserMessage(userMessageElement);
+}
+
+// 사용자 메시지로 스크롤하는 함수 (여러 번 시도)
+function scrollToUserMessage(userMessageElement) {
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    const attemptScroll = () => {
+        attempts++;
+        if (userMessageElement && userMessageElement.offsetHeight > 0) {
+            // 요소가 실제로 렌더링되었는지 확인
+            userMessageElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center', // 메시지를 화면 중앙에 위치시킴
+                inline: 'nearest' 
+            });
+            return true; // 성공
+        } else if (attempts < maxAttempts) {
+            // 아직 요소가 렌더링되지 않았으면 다시 시도
+            setTimeout(attemptScroll, 20);
+            return false; // 아직 시도 중
         } else {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // 최대 시도 횟수 초과 시 fallback
+            if (chatMessages) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            return false; // 실패
         }
-    });
+    };
+    
+    // 즉시 첫 번째 시도
+    if (!attemptScroll()) {
+        // 첫 번째 시도가 실패하면 20ms 후 다시 시도
+        setTimeout(attemptScroll, 20);
+    }
 }
 
 // 로딩 버블 생성 함수
@@ -275,13 +347,43 @@ function showLoading() {
         cancelButton.disabled = false;
     }
 
-    requestAnimationFrame(() => {
-        if (thinkingBubbleElement) {
-            thinkingBubbleElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        } else if (chatMessages) {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+    // thinking 애니메이션이 추가된 후 즉시 스크롤을 해당 애니메이션으로 이동 (여러 번 시도)
+    scrollToThinkingBubble(messageContainer);
+}
+
+// thinking 버블로 스크롤하는 함수 (여러 번 시도)
+function scrollToThinkingBubble(thinkingElement) {
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    const attemptScroll = () => {
+        attempts++;
+        if (thinkingElement && thinkingElement.offsetHeight > 0) {
+            // 요소가 실제로 렌더링되었는지 확인
+            thinkingElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'end', // 애니메이션을 화면 하단에 위치시킴
+                inline: 'nearest' 
+            });
+            return true; // 성공
+        } else if (attempts < maxAttempts) {
+            // 아직 요소가 렌더링되지 않았으면 다시 시도
+            setTimeout(attemptScroll, 20);
+            return false; // 아직 시도 중
+        } else {
+            // 최대 시도 횟수 초과 시 fallback
+            if (chatMessages) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            return false; // 실패
         }
-    });
+    };
+    
+    // 즉시 첫 번째 시도
+    if (!attemptScroll()) {
+        // 첫 번째 시도가 실패하면 20ms 후 다시 시도
+        setTimeout(attemptScroll, 20);
+    }
 }
 
 // 로딩 버블 제거 함수
@@ -317,7 +419,12 @@ function handleCleanHistory() {
 
 // CodePilot 메시지를 코드 블록 제외하고 Markdown 포맷 적용하여 표시
 function displayCodePilotMessage(markdownText) {
-    if (!chatMessages) return;
+    console.log('displayCodePilotMessage called with text length:', markdownText.length);
+    if (!chatMessages) {
+        console.error('chatMessages element not found!');
+        return;
+    }
+    console.log('chatMessages element found, creating message container...');
 
     const messageContainer = document.createElement('div');
     messageContainer.classList.add('codepilot-message-container');
@@ -405,11 +512,16 @@ function displayCodePilotMessage(markdownText) {
 
     chatMessages.appendChild(messageContainer);
 
+    // AI 응답이 추가된 후 스크롤을 해당 응답으로 이동
     requestAnimationFrame(() => {
-        const lastChild = chatMessages.lastElementChild;
-        if (lastChild) {
-            lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        } else {
+        if (messageContainer) {
+            // AI 응답을 화면에 명확하게 보이도록 스크롤
+            messageContainer.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start', // 응답의 시작 부분이 화면 상단에 보이도록
+                inline: 'nearest' 
+            });
+        } else if (chatMessages) { // Fallback
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     });
