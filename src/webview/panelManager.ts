@@ -5,6 +5,9 @@ import { ConfigurationService } from '../services/configurationService'; // 새�
 import { NotificationService } from '../services/notificationService'; // 새로 추가
 import { createAndSetupWebviewPanel } from './panelUtils';
 
+// 전역 webview 배열 - 모든 활성 webview를 추적
+const allWebviews: vscode.Webview[] = [];
+
 /**
  * CodePilot 설정 패널을 엽니다.
  */
@@ -17,7 +20,7 @@ export function openSettingsPanel(
     storageService: StorageService, // StorageService 추가
     geminiApi: GeminiApi // GeminiApi 추가
 ) {
-    createAndSetupWebviewPanel(extensionUri, context, 'settings', 'CodePilot Settings', 'settings', viewColumn,
+    const panel = createAndSetupWebviewPanel(extensionUri, context, 'settings', 'CodePilot Settings', 'settings', viewColumn,
         async (data, panel) => {
             switch (data.command) {
                 case 'initSettings':
@@ -147,7 +150,9 @@ export function openSettingsPanel(
                             notificationService.showInfoMessage(`CodePilot: Language changed to ${language}.`);
                             
                             // 모든 활성 webview에 언어 변경 브로드캐스트
-                            vscode.commands.executeCommand('codepilot.broadcastLanguageChange', language);
+                            allWebviews.forEach(webview => {
+                                webview.postMessage({ command: 'languageChanged', language });
+                            });
                         }
                     } catch (error: any) {
                         panel.webview.postMessage({ command: 'languageSaveError', error: error.message });
@@ -201,6 +206,19 @@ export function openSettingsPanel(
             }
         }
     );
+    
+    // webview를 전역 배열에 등록
+    allWebviews.push(panel.webview);
+    
+    // 패널이 dispose될 때 배열에서 제거
+    panel.onDidDispose(() => {
+        const idx = allWebviews.indexOf(panel.webview);
+        if (idx !== -1) {
+            allWebviews.splice(idx, 1);
+        }
+    }, undefined, context.subscriptions);
+    
+    return panel;
 }
 
 /**
@@ -214,7 +232,7 @@ export function openLicensePanel(
     geminiApi: GeminiApi,
     notificationService: NotificationService // NotificationService 주입
 ) {
-    createAndSetupWebviewPanel(extensionUri, context, 'license', 'CodePilot License', 'license', viewColumn,
+    const panel = createAndSetupWebviewPanel(extensionUri, context, 'license', 'CodePilot License', 'license', viewColumn,
         async (data, panel) => {
             switch (data.command) {
                 case 'saveApiKey':
@@ -241,6 +259,19 @@ export function openLicensePanel(
             }
         }
     );
+    
+    // webview를 전역 배열에 등록
+    allWebviews.push(panel.webview);
+    
+    // 패널이 dispose될 때 배열에서 제거
+    panel.onDidDispose(() => {
+        const idx = allWebviews.indexOf(panel.webview);
+        if (idx !== -1) {
+            allWebviews.splice(idx, 1);
+        }
+    }, undefined, context.subscriptions);
+    
+    return panel;
 }
 
 /**
@@ -251,7 +282,20 @@ export function openBlankPanel(
     context: vscode.ExtensionContext,
     viewColumn: vscode.ViewColumn
 ) {
-    createAndSetupWebviewPanel(extensionUri, context, 'customizing', 'CodePilot Customizing', 'blank', viewColumn,
+    const panel = createAndSetupWebviewPanel(extensionUri, context, 'customizing', 'CodePilot Customizing', 'blank', viewColumn,
         (data, panel) => { console.log(`[BlankPanel] Message:`, data); }
     );
+    
+    // webview를 전역 배열에 등록
+    allWebviews.push(panel.webview);
+    
+    // 패널이 dispose될 때 배열에서 제거
+    panel.onDidDispose(() => {
+        const idx = allWebviews.indexOf(panel.webview);
+        if (idx !== -1) {
+            allWebviews.splice(idx, 1);
+        }
+    }, undefined, context.subscriptions);
+    
+    return panel;
 }

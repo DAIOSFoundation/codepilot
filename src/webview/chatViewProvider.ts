@@ -86,6 +86,43 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         webviewView.webview.postMessage({ command: 'currentLanguage', language: 'ko' });
                     }
                     break;
+                case 'languageChanged':
+                    console.log('[ChatViewProvider] Language changed to:', data.language);
+                    // 언어 변경 시 언어 데이터를 다시 요청
+                    try {
+                        const language = data.language;
+                        if (language && typeof language === 'string') {
+                            // 언어 파일 경로
+                            const languageFilePath = vscode.Uri.joinPath(this.extensionUri, 'webview', 'locales', `lang_${language}.json`);
+                            
+                            // 파일 읽기
+                            const fileContent = await vscode.workspace.fs.readFile(languageFilePath);
+                            const languageData = JSON.parse(Buffer.from(fileContent).toString('utf8'));
+                            
+                            // 웹뷰에 언어 데이터 전송
+                            webviewView.webview.postMessage({ 
+                                command: 'languageDataReceived', 
+                                language: language, 
+                                data: languageData 
+                            });
+                        }
+                    } catch (error: any) {
+                        console.error('Error loading language data in ChatViewProvider:', error);
+                        // 오류 시 기본 한국어 데이터 반환
+                        try {
+                            const defaultLanguagePath = vscode.Uri.joinPath(this.extensionUri, 'webview', 'locales', 'lang_ko.json');
+                            const defaultContent = await vscode.workspace.fs.readFile(defaultLanguagePath);
+                            const defaultData = JSON.parse(Buffer.from(defaultContent).toString('utf8'));
+                            webviewView.webview.postMessage({ 
+                                command: 'languageDataReceived', 
+                                language: 'ko', 
+                                data: defaultData 
+                            });
+                        } catch (fallbackError) {
+                            console.error('Error loading fallback language data in ChatViewProvider:', fallbackError);
+                        }
+                    }
+                    break;
             }
         });
         webviewView.onDidDispose(() => {

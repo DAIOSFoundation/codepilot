@@ -56,15 +56,6 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                     this.geminiService.cancelCurrentCall();
                     webviewView.webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: 'AI 호출이 취소되었습니다.' });
                     break;
-                case 'getLanguage':
-                    try {
-                        const language = await this.configurationService.getLanguage();
-                        webviewView.webview.postMessage({ command: 'currentLanguage', language: language });
-                    } catch (error: any) {
-                        // 오류 시 기본값 반환
-                        webviewView.webview.postMessage({ command: 'currentLanguage', language: 'ko' });
-                    }
-                    break;
             }
         });
         webviewView.onDidDispose(() => {

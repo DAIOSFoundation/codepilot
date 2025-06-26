@@ -162,12 +162,26 @@ Calling out known issues can help limit users opening duplicate issues against y
 </details>
 
 <details>
+<summary>Multi-Language Support</summary>
+
+- Added comprehensive internationalization (i18n) support
+- Supported languages: Korean, English, Chinese, Spanish, German, French, Japanese
+- Dynamic language switching with immediate UI updates
+- Localized settings interface with translated labels and descriptions
+- Persistent language preference storage
+- Real-time language change without requiring page reload
+
+</details>
+
+<details>
 <summary>Technical Improvements</summary>
 
 - Fixed webview message handling and display issues
 - Enhanced code block rendering with proper syntax highlighting
 - Improved context management for better AI responses
 - Better error recovery and user notification system
+- Optimized language data loading and caching
+- Enhanced UI responsiveness for language changes
 
 </details>
 

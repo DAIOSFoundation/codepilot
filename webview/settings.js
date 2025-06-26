@@ -115,6 +115,28 @@ function applyLanguage() {
         console.log('Updated weather API key label:', languageData['weatherApiKeyLabel']);
     }
 
+    // Weather API 설명
+    const weatherApiDescription = document.querySelector('#weather-api-key-label + p');
+    if (weatherApiDescription && languageData['weatherApiDescription']) {
+        weatherApiDescription.textContent = languageData['weatherApiDescription'];
+        console.log('Updated weather API description:', languageData['weatherApiDescription']);
+    }
+
+    // Weather API 등록 방법
+    const weatherApiRegistrationMethod = document.querySelector('#weather-api-key-label + p + p');
+    if (weatherApiRegistrationMethod && languageData['weatherApiRegistrationMethod']) {
+        // 링크는 유지하면서 텍스트만 업데이트
+        const linkMatch = weatherApiRegistrationMethod.innerHTML.match(/<a[^>]*>([^<]*)<\/a>/);
+        if (linkMatch) {
+            const linkText = linkMatch[1];
+            const newText = languageData['weatherApiRegistrationMethod'].replace('기상청 API 허브', `<a href="https://apihub.kma.go.kr/" target="_blank">${linkText}</a>`);
+            weatherApiRegistrationMethod.innerHTML = newText;
+        } else {
+            weatherApiRegistrationMethod.textContent = languageData['weatherApiRegistrationMethod'];
+        }
+        console.log('Updated weather API registration method:', languageData['weatherApiRegistrationMethod']);
+    }
+
     // News API 키 라벨
     const newsApiKeyLabel = document.getElementById('news-api-key-label');
     if (newsApiKeyLabel && languageData['newsApiKeyLabel']) {
@@ -122,11 +144,55 @@ function applyLanguage() {
         console.log('Updated news API key label:', languageData['newsApiKeyLabel']);
     }
 
+    // News API 설명
+    const newsApiDescription = document.querySelector('#news-api-key-label + p');
+    if (newsApiDescription && languageData['newsApiDescription']) {
+        newsApiDescription.textContent = languageData['newsApiDescription'];
+        console.log('Updated news API description:', languageData['newsApiDescription']);
+    }
+
+    // News API 등록 방법
+    const newsApiRegistrationMethod = document.querySelector('#news-api-key-label + p + p');
+    if (newsApiRegistrationMethod && languageData['newsApiRegistrationMethod']) {
+        // 링크는 유지하면서 텍스트만 업데이트
+        const linkMatch = newsApiRegistrationMethod.innerHTML.match(/<a[^>]*>([^<]*)<\/a>/);
+        if (linkMatch) {
+            const linkText = linkMatch[1];
+            const newText = languageData['newsApiRegistrationMethod'].replace('네이버 개발자 센터', `<a href="https://developers.naver.com/apps/#/list" target="_blank">${linkText}</a>`);
+            newsApiRegistrationMethod.innerHTML = newText;
+        } else {
+            newsApiRegistrationMethod.textContent = languageData['newsApiRegistrationMethod'];
+        }
+        console.log('Updated news API registration method:', languageData['newsApiRegistrationMethod']);
+    }
+
     // Stock API 키 라벨
     const stockApiKeyLabel = document.getElementById('stock-api-key-label');
     if (stockApiKeyLabel && languageData['stockApiKeyLabel']) {
         stockApiKeyLabel.textContent = languageData['stockApiKeyLabel'];
         console.log('Updated stock API key label:', languageData['stockApiKeyLabel']);
+    }
+
+    // Stock API 설명
+    const stockApiDescription = document.querySelector('#stock-api-key-label + p');
+    if (stockApiDescription && languageData['stockApiDescription']) {
+        stockApiDescription.textContent = languageData['stockApiDescription'];
+        console.log('Updated stock API description:', languageData['stockApiDescription']);
+    }
+
+    // Stock API 등록 방법
+    const stockApiRegistrationMethod = document.querySelector('#stock-api-key-label + p + p');
+    if (stockApiRegistrationMethod && languageData['stockApiRegistrationMethod']) {
+        // 링크는 유지하면서 텍스트만 업데이트
+        const linkMatch = stockApiRegistrationMethod.innerHTML.match(/<a[^>]*>([^<]*)<\/a>/);
+        if (linkMatch) {
+            const linkText = linkMatch[1];
+            const newText = languageData['stockApiRegistrationMethod'].replace('Alpha Vantage', `<a href="https://www.alphavantage.co/support/#api-key" target="_blank">${linkText}</a>`);
+            stockApiRegistrationMethod.innerHTML = newText;
+        } else {
+            stockApiRegistrationMethod.textContent = languageData['stockApiRegistrationMethod'];
+        }
+        console.log('Updated stock API registration method:', languageData['stockApiRegistrationMethod']);
     }
 
     // 공통 저장 버튼들
@@ -142,6 +208,13 @@ function applyLanguage() {
     if (projectRootLabel && languageData['projectRootLabel']) {
         projectRootLabel.textContent = languageData['projectRootLabel'];
         console.log('Updated project root label:', languageData['projectRootLabel']);
+    }
+
+    // 프로젝트 루트 설명
+    const projectRootDescription = document.getElementById('project-root-description');
+    if (projectRootDescription && languageData['projectRootDescription']) {
+        projectRootDescription.textContent = languageData['projectRootDescription'];
+        console.log('Updated project root description:', languageData['projectRootDescription']);
     }
 
     // 소스 경로 라벨
@@ -359,6 +432,28 @@ function applyLanguage() {
         if (!currentText.includes('/') && !currentText.includes('\\')) {
             updateProjectRootDisplay(null);
         }
+    }
+
+    // Gemini API 설명
+    const geminiApiDescription = document.querySelector('#api-key-section-title + p');
+    if (geminiApiDescription && languageData['geminiApiDescription']) {
+        geminiApiDescription.textContent = languageData['geminiApiDescription'];
+        console.log('Updated Gemini API description:', languageData['geminiApiDescription']);
+    }
+
+    // Gemini API 등록 방법
+    const geminiApiRegistrationMethod = document.querySelector('#api-key-section-title + p + p');
+    if (geminiApiRegistrationMethod && languageData['geminiApiRegistrationMethod']) {
+        // 링크는 유지하면서 텍스트만 업데이트
+        const linkMatch = geminiApiRegistrationMethod.innerHTML.match(/<a[^>]*>([^<]*)<\/a>/);
+        if (linkMatch) {
+            const linkText = linkMatch[1];
+            const newText = languageData['geminiApiRegistrationMethod'].replace('Google AI Studio API 키 페이지', `<a href="https://aistudio.google.com/app/apikey" target="_blank">${linkText}</a>`);
+            geminiApiRegistrationMethod.innerHTML = newText;
+        } else {
+            geminiApiRegistrationMethod.textContent = languageData['geminiApiRegistrationMethod'];
+        }
+        console.log('Updated Gemini API registration method:', languageData['geminiApiRegistrationMethod']);
     }
 }
 

@@ -288,7 +288,7 @@
 
     <div class="section-container">
         <h2 id="project-root-label">프로젝트 Root 설정</h2>
-        <p class="info-message">CodePilot이 프로젝트의 최상위 경로로 인식할 디렉토리를 설정합니다. 이 경로는 파일 경로를 참조할 때 기준점으로 사용될 수 있습니다.</p>
+        <p class="info-message" id="project-root-description">CodePilot이 프로젝트의 최상위 경로로 인식할 디렉토리를 설정합니다. 이 경로는 파일 경로를 참조할 때 기준점으로 사용될 수 있습니다.</p>
         <div id="project-root-container">
             <p id="project-root-path-display" class="path-text">설정된 프로젝트 Root 없음</p>
             <button id="clear-project-root-button" title="프로젝트 Root 지우기">×</button>
@@ -328,7 +328,8 @@
 
     <div class="section-container">
         <h2 id="api-key-section-title">🤖 Gemini API 키 설정</h2>
-        <p class="info-message">CodePilot의 AI 기능을 사용하기 위한 Gemini API 키를 설정합니다. <a href="https://aistudio.google.com/prompts/new_chat" target="_blank">Google AI Studio</a>에서 API 키를 발급받을 수 있습니다.</p>
+        <p class="info-message">CodePilot의 AI 기능을 사용하기 위한 Gemini API 키를 설정합니다.</p>
+        <p class="info-message"><strong>등록 방법:</strong> <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio API 키 페이지</a>에서 새 API 키를 생성하세요.</p>
         
         <div class="api-key-section">
             <h3 id="gemini-api-key-label">Gemini API 키</h3>
@@ -348,7 +349,8 @@
         <!-- 기상청 API 키 -->
         <div class="api-key-section">
             <h3 id="weather-api-key-label">🌤️ 기상청 API 키</h3>
-            <p class="info-message">한국의 정확한 날씨 정보를 제공합니다. <a href="https://apihub.kma.go.kr/" target="_blank">기상청 API 허브</a>에서 발급받을 수 있습니다.</p>
+            <p class="info-message">한국의 정확한 날씨 정보를 제공합니다.</p>
+            <p class="info-message"><strong>등록 방법:</strong> <a href="https://apihub.kma.go.kr/" target="_blank">기상청 API 허브</a>에서 회원가입 후 API 키를 발급받으세요.</p>
             <div class="api-key-input-group">
                 <input type="password" id="weather-api-key-input" placeholder="기상청 API 키를 입력하세요...">
                 <button id="save-weather-api-key-button" class="save-button">저장</button>
@@ -359,7 +361,8 @@
         <!-- 네이버 뉴스 API 키 -->
         <div class="api-key-section">
             <h3 id="news-api-key-label">📰 네이버 뉴스 API</h3>
-            <p class="info-message">한국의 최신 뉴스 정보를 제공합니다. <a href="https://developers.naver.com/" target="_blank">네이버 개발자 센터</a>에서 애플리케이션을 등록하고 Client ID와 Client Secret을 발급받을 수 있습니다.</p>
+            <p class="info-message">한국의 최신 뉴스 정보를 제공합니다.</p>
+            <p class="info-message"><strong>등록 방법:</strong> <a href="https://developers.naver.com/apps/#/list" target="_blank">네이버 개발자 센터</a>에서 애플리케이션을 등록하고 Client ID와 Client Secret을 발급받으세요.</p>
             <div class="api-key-input-group">
                 <input type="password" id="news-api-key-input" placeholder="네이버 API Client ID를 입력하세요...">
                 <button id="save-news-api-key-button" class="save-button">저장</button>
@@ -375,7 +378,8 @@
         <!-- 주식 API 키 -->
         <div class="api-key-section">
             <h3 id="stock-api-key-label">📈 주식 API 키</h3>
-            <p class="info-message">실시간 주식 정보를 제공합니다. <a href="https://www.alphavantage.co/" target="_blank">Alpha Vantage</a>에서 발급받을 수 있습니다.</p>
+            <p class="info-message">실시간 주식 정보를 제공합니다.</p>
+            <p class="info-message"><strong>등록 방법:</strong> <a href="https://www.alphavantage.co/support/#api-key" target="_blank">Alpha Vantage</a>에서 무료 API 키를 발급받으세요.</p>
             <div class="api-key-input-group">
                 <input type="password" id="stock-api-key-input" placeholder="Alpha Vantage API 키를 입력하세요...">
                 <button id="save-stock-api-key-button" class="save-button">저장</button>

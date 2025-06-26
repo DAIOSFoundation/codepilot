@@ -320,11 +320,18 @@ window.addEventListener('message', event => {
             break;
         case 'languageDataReceived':
             if (message.language && message.data) {
-                console.log('Received language data for:', message.language);
+                console.log('=== languageDataReceived ===');
+                console.log('Language:', message.language);
+                console.log('Data keys:', Object.keys(message.data));
+                console.log('inputPlaceholder in received data:', message.data['inputPlaceholder']);
+                
                 languageData = message.data;
                 currentLanguage = message.language;
                 sessionStorage.setItem('codepilotLang', message.language);
+                
+                console.log('About to call applyLanguage...');
                 applyLanguage();
+                console.log('applyLanguage called');
             }
             break;
     }
@@ -721,6 +728,11 @@ async function loadLanguage(lang) {
 }
 
 function applyLanguage() {
+    console.log('=== applyLanguage called ===');
+    console.log('Current language:', currentLanguage);
+    console.log('Language data keys:', Object.keys(languageData));
+    console.log('inputPlaceholder value:', languageData['inputPlaceholder']);
+    
     // 타이틀
     const chatTitle = document.getElementById('chat-title');
     if (chatTitle && languageData['chatTitle']) chatTitle.textContent = languageData['chatTitle'];
@@ -743,17 +755,34 @@ function applyLanguage() {
 
     // 입력창 placeholder
     const chatInput = document.getElementById('chat-input');
-    if (chatInput && languageData['inputPlaceholder']) chatInput.placeholder = languageData['inputPlaceholder'];
+    console.log('Chat input element found:', !!chatInput);
+    if (chatInput) {
+        console.log('Current placeholder:', chatInput.placeholder);
+        console.log('New placeholder value:', languageData['inputPlaceholder']);
+    }
+    if (chatInput && languageData['inputPlaceholder']) {
+        chatInput.placeholder = languageData['inputPlaceholder'];
+        console.log('Placeholder updated to:', chatInput.placeholder);
+    } else {
+        console.log('Failed to update placeholder - chatInput:', !!chatInput, 'inputPlaceholder:', !!languageData['inputPlaceholder']);
+    }
 
     // 파일 선택 버튼
     const filePickerButton = document.getElementById('file-picker-button');
     if (filePickerButton && languageData['filePickerButton']) filePickerButton.textContent = languageData['filePickerButton'];
+    
+    console.log('=== applyLanguage completed ===');
 }
 
 if (languageSelect) {
     languageSelect.addEventListener('change', (e) => {
         const lang = e.target.value;
+        console.log('Language changed to:', lang);
+        currentLanguage = lang;
         loadLanguage(lang);
+        
+        // 언어 변경 시 즉시 저장 요청
+        vscode.postMessage({ command: 'saveLanguage', language: lang });
     });
 }
 
