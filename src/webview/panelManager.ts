@@ -12,8 +12,10 @@ export function openSettingsPanel(
     extensionUri: vscode.Uri,
     context: vscode.ExtensionContext,
     viewColumn: vscode.ViewColumn,
-    configurationService: ConfigurationService, // configurationService 주입
-    notificationService: NotificationService // notificationService 주입
+    configurationService: ConfigurationService,
+    notificationService: NotificationService,
+    storageService: StorageService, // StorageService 추가
+    geminiApi: GeminiApi // GeminiApi 추가
 ) {
     createAndSetupWebviewPanel(extensionUri, context, 'settings', 'CodePilot Settings', 'settings', viewColumn,
         async (data, panel) => {
@@ -21,33 +23,33 @@ export function openSettingsPanel(
                 case 'initSettings':
                     panel.webview.postMessage({
                         command: 'currentSettings',
-                        sourcePaths: await configurationService.getSourcePaths(), // ConfigurationService 사용
-                        autoUpdateEnabled: await configurationService.isAutoUpdateEnabled(), // ConfigurationService 사용
-                        projectRoot: await configurationService.getProjectRoot() // 프로젝트 Root 추가
+                        sourcePaths: await configurationService.getSourcePaths(),
+                        autoUpdateEnabled: await configurationService.isAutoUpdateEnabled(),
+                        projectRoot: await configurationService.getProjectRoot()
                     });
                     break;
                 case 'addDirectory':
                     const uris = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: true, canSelectMany: true, openLabel: 'Select Sources' });
                     if (uris && uris.length > 0) {
                         const newPaths = uris.map(u => u.fsPath);
-                        const current = await configurationService.getSourcePaths(); // Promise를 기다립니다.
+                        const current = await configurationService.getSourcePaths();
                         const updatedPaths = Array.from(new Set([...current, ...newPaths]));
-                        await configurationService.updateSourcePaths(updatedPaths); // ConfigurationService 사용
+                        await configurationService.updateSourcePaths(updatedPaths);
                         panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
                     }
                     break;
                 case 'removeDirectory':
                     const pathToRemove = data.path;
                     if (pathToRemove) {
-                        const current = await configurationService.getSourcePaths(); // Promise를 기다립니다.
+                        const current = await configurationService.getSourcePaths();
                         const updatedPaths = current.filter(p => p !== pathToRemove);
-                        await configurationService.updateSourcePaths(updatedPaths); // ConfigurationService 사용
+                        await configurationService.updateSourcePaths(updatedPaths);
                         panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
                     }
                     break;
                 case 'setAutoUpdate':
                     if (typeof data.enabled === 'boolean') {
-                        await configurationService.updateAutoUpdateEnabled(data.enabled); // ConfigurationService 사용
+                        await configurationService.updateAutoUpdateEnabled(data.enabled);
                         panel.webview.postMessage({ command: 'autoUpdateStatusChanged', enabled: data.enabled });
                     }
                     break;
@@ -57,8 +59,8 @@ export function openSettingsPanel(
                         const newRootPath = rootUris[0].fsPath;
                         await configurationService.updateProjectRoot(newRootPath);
                         panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: newRootPath });
-                    } else if (data.clear) { // Root 경로를 비우는 옵션 추가 (선택하지 않고 닫았을 때)
-                         await configurationService.updateProjectRoot(undefined); // undefined를 저장하여 설정에서 제거 또는 빈 문자열로 설정
+                    } else if (data.clear) {
+                         await configurationService.updateProjectRoot(undefined);
                          panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: '' });
                     }
                     break;
@@ -68,13 +70,32 @@ export function openSettingsPanel(
                     const newsApiKey = await configurationService.getNewsApiKey();
                     const newsApiSecret = await configurationService.getNewsApiSecret();
                     const stockApiKey = await configurationService.getStockApiKey();
+                    const geminiApiKey = await storageService.getApiKey(); // Gemini API 키 추가
                     panel.webview.postMessage({ 
                         command: 'currentApiKeys', 
                         weatherApiKey: weatherApiKey || '', 
                         newsApiKey: newsApiKey || '', 
                         newsApiSecret: newsApiSecret || '',
-                        stockApiKey: stockApiKey || '' 
+                        stockApiKey: stockApiKey || '',
+                        geminiApiKey: geminiApiKey || '' // Gemini API 키 추가
                     });
+                    break;
+                case 'saveApiKey': // Gemini API 키 저장 케이스 추가
+                    const apiKeyToSave = data.apiKey;
+                    if (apiKeyToSave && typeof apiKeyToSave === 'string') {
+                        try {
+                            await storageService.saveApiKey(apiKeyToSave);
+                            geminiApi.updateApiKey(apiKeyToSave);
+                            panel.webview.postMessage({ command: 'apiKeySaved' });
+                            notificationService.showInfoMessage('CodePilot: Gemini API Key saved.');
+                        } catch (error: any) {
+                            panel.webview.postMessage({ command: 'apiKeySaveError', error: error.message });
+                            notificationService.showErrorMessage(`Error saving Gemini API Key: ${error.message}`);
+                        }
+                    } else {
+                        panel.webview.postMessage({ command: 'apiKeySaveError', error: 'API Key empty.' });
+                        notificationService.showErrorMessage('Gemini API Key is empty.');
+                    }
                     break;
                 case 'saveWeatherApiKey':
                     try {

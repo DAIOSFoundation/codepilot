@@ -31,6 +31,11 @@ const stockApiKeyInput = document.getElementById('stock-api-key-input');
 const saveStockApiKeyButton = document.getElementById('save-stock-api-key-button');
 const stockApiKeyStatus = document.getElementById('stock-api-key-status');
 
+// Gemini API 키 관련 요소들
+const geminiApiKeyInput = document.getElementById('gemini-api-key-input');
+const saveGeminiApiKeyButton = document.getElementById('save-gemini-api-key-button');
+const geminiApiKeyStatus = document.getElementById('gemini-api-key-status');
+
 // UI 업데이트 함수 (소스 경로)
 function updateSourcePathsList(paths) {
     sourcePathsList.innerHTML = '';
@@ -155,6 +160,19 @@ if (saveStockApiKeyButton) {
     });
 }
 
+// Gemini API 키 저장 이벤트 리스너
+if (saveGeminiApiKeyButton) {
+    saveGeminiApiKeyButton.addEventListener('click', () => {
+        const apiKey = geminiApiKeyInput.value.trim();
+        if (apiKey) {
+            vscode.postMessage({ command: 'saveApiKey', apiKey: apiKey });
+            showStatus(geminiApiKeyStatus, 'Gemini API 키 저장 중...', 'info');
+        } else {
+            showStatus(geminiApiKeyStatus, 'API 키를 입력해주세요.', 'error');
+        }
+    });
+}
+
 // 확장으로부터 메시지 수신
 window.addEventListener('message', event => {
     const message = event.data;
@@ -226,6 +244,12 @@ window.addEventListener('message', event => {
                 const status = message.stockApiKey ? '주식 API 키가 설정되어 있습니다.' : '주식 API 키가 설정되지 않았습니다.';
                 showStatus(stockApiKeyStatus, status, message.stockApiKey ? 'success' : 'info');
             }
+            // Gemini API 키 상태 로드
+            if (geminiApiKeyInput && typeof message.geminiApiKey === 'string') {
+                geminiApiKeyInput.value = message.geminiApiKey;
+                const status = message.geminiApiKey ? 'Gemini API 키가 설정되어 있습니다.' : 'Gemini API 키가 설정되지 않았습니다.';
+                showStatus(geminiApiKeyStatus, status, message.geminiApiKey ? 'success' : 'info');
+            }
             break;
         case 'weatherApiKeySaved':
             showStatus(weatherApiKeyStatus, '기상청 API 키가 저장되었습니다.', 'success');
@@ -255,6 +279,13 @@ window.addEventListener('message', event => {
         case 'stockApiKeyError':
             showStatus(stockApiKeyStatus, `주식 API 키 저장 실패: ${message.error}`, 'error');
             break;
+        case 'apiKeySaved':
+            showStatus(geminiApiKeyStatus, 'Gemini API 키가 저장되었습니다.', 'success');
+            geminiApiKeyInput.value = '';
+            break;
+        case 'apiKeySaveError':
+            showStatus(geminiApiKeyStatus, `Gemini API 키 저장 실패: ${message.error}`, 'error');
+            break;
     }
 });
 
@@ -270,4 +301,5 @@ document.addEventListener('DOMContentLoaded', () => {
     showStatus(weatherApiKeyStatus, 'API 키 로드 중...', 'info');
     showStatus(newsApiKeyStatus, 'API 키 로드 중...', 'info');
     showStatus(stockApiKeyStatus, 'API 키 로드 중...', 'info');
+    showStatus(geminiApiKeyStatus, 'API 키 로드 중...', 'info');
 });
