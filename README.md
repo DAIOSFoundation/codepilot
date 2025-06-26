@@ -96,7 +96,7 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 ## Release Notes
 
-### Version 2.4.0 (2025/01/27) - Enhanced AI response structure & UX improvements
+### Version 2.4.0 (2025/06/26) - Enhanced AI response structure & UX improvements
 
 <details>
 <summary>Enhanced AI Response Structure</summary>

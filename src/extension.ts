@@ -100,6 +100,23 @@ export async function activate(context: vscode.ExtensionContext) {
         openBlankPanel(context.extensionUri, context, vscode.ViewColumn.One);
     }));
 
+    // 언어 변경 브로드캐스트 명령어 등록
+    context.subscriptions.push(vscode.commands.registerCommand('codepilot.broadcastLanguageChange', (language: string) => {
+        // 모든 활성 webview에 언어 변경 메시지 브로드캐스트
+        vscode.window.terminals.forEach(terminal => {
+            if (terminal.name.includes('CodePilot')) {
+                terminal.sendText(`echo "Language changed to: ${language}"`);
+            }
+        });
+        
+        // 모든 활성 webview 패널에 언어 변경 메시지 전송
+        vscode.window.terminals.forEach(terminal => {
+            if (terminal.name.includes('CodePilot')) {
+                terminal.sendText(`echo "Language changed to: ${language}"`);
+            }
+        });
+    }));
+
     console.log('CodePilot activated and commands registered.');
 }
 

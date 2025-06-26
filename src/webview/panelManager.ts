@@ -137,6 +137,67 @@ export function openSettingsPanel(
                         notificationService.showErrorMessage(`Error saving stock API key: ${error.message}`);
                     }
                     break;
+                case 'saveLanguage':
+                    try {
+                        const language = data.language;
+                        if (language && typeof language === 'string') {
+                            // 언어 설정을 저장
+                            await configurationService.updateLanguage(language);
+                            panel.webview.postMessage({ command: 'languageSaved', language: language });
+                            notificationService.showInfoMessage(`CodePilot: Language changed to ${language}.`);
+                            
+                            // 모든 활성 webview에 언어 변경 브로드캐스트
+                            vscode.commands.executeCommand('codepilot.broadcastLanguageChange', language);
+                        }
+                    } catch (error: any) {
+                        panel.webview.postMessage({ command: 'languageSaveError', error: error.message });
+                        notificationService.showErrorMessage(`Error saving language: ${error.message}`);
+                    }
+                    break;
+                case 'getLanguage':
+                    try {
+                        const language = await configurationService.getLanguage();
+                        panel.webview.postMessage({ command: 'currentLanguage', language: language });
+                    } catch (error: any) {
+                        // 오류 시 기본값 반환
+                        panel.webview.postMessage({ command: 'currentLanguage', language: 'ko' });
+                    }
+                    break;
+                case 'getLanguageData':
+                    try {
+                        const language = data.language;
+                        if (language && typeof language === 'string') {
+                            // 언어 파일 경로
+                            const languageFilePath = vscode.Uri.joinPath(extensionUri, 'webview', 'locales', `lang_${language}.json`);
+                            
+                            // 파일 읽기
+                            const fileContent = await vscode.workspace.fs.readFile(languageFilePath);
+                            const languageData = JSON.parse(Buffer.from(fileContent).toString('utf8'));
+                            
+                            // 웹뷰에 언어 데이터 전송
+                            panel.webview.postMessage({ 
+                                command: 'languageDataReceived', 
+                                language: language, 
+                                data: languageData 
+                            });
+                        }
+                    } catch (error: any) {
+                        console.error('Error loading language data:', error);
+                        // 오류 시 기본 한국어 데이터 반환
+                        try {
+                            const defaultLanguagePath = vscode.Uri.joinPath(extensionUri, 'webview', 'locales', 'lang_ko.json');
+                            const defaultContent = await vscode.workspace.fs.readFile(defaultLanguagePath);
+                            const defaultData = JSON.parse(Buffer.from(defaultContent).toString('utf8'));
+                            panel.webview.postMessage({ 
+                                command: 'languageDataReceived', 
+                                language: 'ko', 
+                                data: defaultData 
+                            });
+                        } catch (fallbackError) {
+                            console.error('Error loading fallback language data:', fallbackError);
+                        }
+                    }
+                    break;
             }
         }
     );

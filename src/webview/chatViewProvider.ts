@@ -77,6 +77,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         webviewView.webview.postMessage({ command: 'displayUserMessage', text: data.text, imageData: data.imageData });
                     }
                     break;
+                case 'getLanguage':
+                    try {
+                        const language = await this.configurationService.getLanguage();
+                        webviewView.webview.postMessage({ command: 'currentLanguage', language: language });
+                    } catch (error: any) {
+                        // 오류 시 기본값 반환
+                        webviewView.webview.postMessage({ command: 'currentLanguage', language: 'ko' });
+                    }
+                    break;
             }
         });
         webviewView.onDidDispose(() => {

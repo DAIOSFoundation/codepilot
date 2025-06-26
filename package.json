@@ -157,6 +157,13 @@
           "default": "",
           "description": "Alpha Vantage API 키를 설정합니다. 주식 정보 조회에 사용됩니다.",
           "scope": "resource"
+        },
+        "codepilot.language": {
+          "type": "string",
+          "default": "ko",
+          "enum": ["ko", "en", "zh", "es", "de", "fr", "ja"],
+          "description": "CodePilot UI 언어를 설정합니다. 지원 언어: 한국어(ko), 영어(en), 중국어(zh), 스페인어(es), 독일어(de), 프랑스어(fr), 일본어(ja)",
+          "scope": "resource"
         }
       }
     }

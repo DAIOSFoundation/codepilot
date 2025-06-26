@@ -28,6 +28,55 @@ const md = markdownit({
     typographer: true,
 });
 
+// 언어별 텍스트 로딩 및 적용
+const languageSelect = document.getElementById('language-select');
+let currentLanguage = 'ko'; // 기본값
+let languageData = {};
+
+async function loadLanguage(lang) {
+    try {
+        console.log('Requesting language data from extension:', lang);
+        // 확장 프로그램에 언어 데이터 요청
+        vscode.postMessage({ command: 'getLanguageData', language: lang });
+    } catch (e) {
+        console.error('Failed to load language:', lang, e);
+    }
+}
+
+function applyLanguage() {
+    // 타이틀
+    const askTitle = document.getElementById('ask-title');
+    if (askTitle && languageData['askTitle']) askTitle.textContent = languageData['askTitle'];
+    // 언어 라벨
+    const languageLabel = document.getElementById('language-label');
+    if (languageLabel && languageData['languageLabel']) languageLabel.textContent = languageData['languageLabel'];
+    // Send 버튼
+    const sendButton = document.getElementById('send-button');
+    if (sendButton && languageData['sendButton']) sendButton.textContent = languageData['sendButton'];
+    // Clear 버튼
+    const clearButton = document.getElementById('clean-history-button');
+    if (clearButton && languageData['clearButton']) clearButton.textContent = languageData['clearButton'];
+    // Cancel 버튼
+    const cancelButton = document.getElementById('cancel-call-button');
+    if (cancelButton && languageData['cancelButton']) cancelButton.textContent = languageData['cancelButton'];
+    // 입력창 placeholder
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput && languageData['inputPlaceholder']) chatInput.placeholder = languageData['inputPlaceholder'];
+}
+
+if (languageSelect) {
+    languageSelect.addEventListener('change', (e) => {
+        const lang = e.target.value;
+        loadLanguage(lang);
+    });
+}
+
+// 페이지 로드 시 기본 언어 적용
+window.addEventListener('DOMContentLoaded', () => {
+    // VS Code 설정에서 언어를 가져오도록 요청
+    vscode.postMessage({ command: 'getLanguage' });
+});
+
 // 메시지 전송 로직
 if (sendButton && chatInput) {
     sendButton.addEventListener('click', handleSendMessage);
@@ -207,23 +256,6 @@ function updateChatContainerPadding() {
     console.log(`Bottom area height: ${totalBottomHeight}px (input: ${chatInputHeight}px)`);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (chatInput) {
-        autoResizeTextarea();
-    }
-    if (cancelButton) {
-        cancelButton.disabled = true;
-    }
-    if (imagePreviewContainer) {
-        imagePreviewContainer.classList.add('hidden');
-    }
-    
-    // 초기 채팅 컨테이너 패딩 설정
-    setTimeout(() => {
-        updateChatContainerPadding();
-    }, 100); // DOM이 완전히 로드된 후 실행
-});
-
 window.addEventListener('message', event => {
     const message = event.data;
 
@@ -260,6 +292,28 @@ window.addEventListener('message', event => {
 
         case 'openPanel':
             console.log(`Received open panel command from extension: ${message.panel}`);
+            break;
+        case 'languageChanged':
+            console.log(`Language changed to: ${message.language}`);
+            loadLanguage(message.language);
+            break;
+        case 'currentLanguage':
+            if (message.language) {
+                currentLanguage = message.language;
+                if (languageSelect) {
+                    languageSelect.value = currentLanguage;
+                }
+                loadLanguage(currentLanguage);
+            }
+            break;
+        case 'languageDataReceived':
+            if (message.language && message.data) {
+                console.log('Received language data for:', message.language);
+                languageData = message.data;
+                currentLanguage = message.language;
+                sessionStorage.setItem('codepilotLang', message.language);
+                applyLanguage();
+            }
             break;
     }
 });

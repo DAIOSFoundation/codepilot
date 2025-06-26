@@ -91,4 +91,19 @@ export class ConfigurationService {
         const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
         await config.update(this.STOCK_API_KEY, key || '', vscode.ConfigurationTarget.Global);
     }
+
+    /**
+     * 언어 설정을 업데이트합니다.
+     */
+    async updateLanguage(language: string): Promise<void> {
+        await vscode.workspace.getConfiguration(this.CONFIG_SECTION).update('language', language, vscode.ConfigurationTarget.Global);
+    }
+
+    /**
+     * 현재 언어 설정을 가져옵니다.
+     */
+    async getLanguage(): Promise<string> {
+        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        return config.get<string>('language', 'ko');
+    }
 }
