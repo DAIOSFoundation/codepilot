@@ -52,8 +52,6 @@ export function getHtmlContentWithUris(extensionUri: vscode.Uri, htmlFileName: s
         } else if (htmlFileName === 'license') {
             // license.html에 별도 JS 파일이 있다면 여기서 URI 생성
             mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'license.js')).toString(); // license.js가 있다고 가정
-        } else if (htmlFileName === 'blank') {
-            // blank.html에는 JS가 없을 수 있음, 또는 일반적인 스크립트
         }
         htmlContent = htmlContent.replace('{{scriptUri}}', mainScriptUri);
 

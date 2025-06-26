@@ -11,7 +11,7 @@ import { GeminiService } from './ai/geminiService';
 import { ChatViewProvider } from './webview/chatViewProvider';
 import { AskViewProvider } from './webview/askViewProvider'; // 새로 추가된 AskViewProvider 임포트
 import { getCodePilotTerminal } from './terminal/terminalManager';
-import { openSettingsPanel, openLicensePanel, openBlankPanel } from './webview/panelManager';
+import { openSettingsPanel, openLicensePanel } from './webview/panelManager';
 
 // 전역 변수
 let storageService: StorageService;
@@ -55,7 +55,6 @@ export async function activate(context: vscode.ExtensionContext) {
         geminiService,
         (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService, notificationService, storageService, geminiApi),
         (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService),
-        (viewColumn: vscode.ViewColumn) => openBlankPanel(context.extensionUri, context, viewColumn),
         configurationService,
         notificationService
     );
@@ -95,9 +94,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }));
     context.subscriptions.push(vscode.commands.registerCommand('codepilot.openLicensePanel', () => {
         openLicensePanel(context.extensionUri, context, vscode.ViewColumn.One, storageService, geminiApi, notificationService);
-    }));
-    context.subscriptions.push(vscode.commands.registerCommand('codepilot.openCustomizingPanel', () => {
-        openBlankPanel(context.extensionUri, context, vscode.ViewColumn.One);
     }));
 
     // 언어 변경 브로드캐스트 명령어 등록

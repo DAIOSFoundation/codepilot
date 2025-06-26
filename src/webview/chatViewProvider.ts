@@ -14,7 +14,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         private readonly geminiService: GeminiService,
         private readonly openSettingsPanel: (viewColumn: vscode.ViewColumn) => void,
         private readonly openLicensePanel: (viewColumn: vscode.ViewColumn) => void,
-        private readonly openBlankPanel: (viewColumn: vscode.ViewColumn) => void,
         private readonly configurationService: ConfigurationService,
         private readonly notificationService: NotificationService
     ) {}
@@ -57,7 +56,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     }
                     if (data.panel === 'settings') this.openSettingsPanel(panelViewColumn);
                     else if (data.panel === 'license') this.openLicensePanel(panelViewColumn);
-                    else if (data.panel === 'customizing') this.openBlankPanel(panelViewColumn);
                     break;
                 case 'webviewLoaded':
                     console.log('[ChatViewProvider] Chat webview loaded.');

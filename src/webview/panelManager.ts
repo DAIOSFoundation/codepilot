@@ -273,29 +273,3 @@ export function openLicensePanel(
     
     return panel;
 }
-
-/**
- * CodePilot 사용자 정의 (빈) 패널을 엽니다.
- */
-export function openBlankPanel(
-    extensionUri: vscode.Uri,
-    context: vscode.ExtensionContext,
-    viewColumn: vscode.ViewColumn
-) {
-    const panel = createAndSetupWebviewPanel(extensionUri, context, 'customizing', 'CodePilot Customizing', 'blank', viewColumn,
-        (data, panel) => { console.log(`[BlankPanel] Message:`, data); }
-    );
-    
-    // webview를 전역 배열에 등록
-    allWebviews.push(panel.webview);
-    
-    // 패널이 dispose될 때 배열에서 제거
-    panel.onDidDispose(() => {
-        const idx = allWebviews.indexOf(panel.webview);
-        if (idx !== -1) {
-            allWebviews.splice(idx, 1);
-        }
-    }, undefined, context.subscriptions);
-    
-    return panel;
-}

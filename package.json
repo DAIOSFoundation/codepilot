@@ -23,7 +23,6 @@
     "onView:codepilot.askView",
     "onCommand:codepilot.openSettingsPanel",
     "onCommand:codepilot.openLicensePanel",
-    "onCommand:codepilot.openCustomizingPanel",
     "onCommand:codepilot.openChatView",
     "onCommand:codepilot.openAskView"
   ],
@@ -64,10 +63,6 @@
         "title": "License"
       },
       {
-        "command": "codepilot.openCustomizingPanel",
-        "title": "Customizing"
-      },
-      {
         "command": "codepilot.openChatView",
         "title": "Open CodePilot Chat"
       },
@@ -93,14 +88,6 @@
           "order": 2,
           "icon": "$(book)",
           "title": "License"
-        },
-        {
-          "command": "codepilot.openCustomizingPanel",
-          "when": "view == codepilot.chatView",
-          "group": "navigation",
-          "order": 3,
-          "icon": "$(paintbrush)",
-          "title": "Customizing"
         }
       ]
     },
