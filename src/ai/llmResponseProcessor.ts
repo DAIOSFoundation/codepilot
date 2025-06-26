@@ -170,12 +170,10 @@ export class LlmResponseProcessor {
 
         // 작업 요약 추출 및 표시
         const workSummary = this.extractWorkSummary(llmResponse);
-        if (workSummary) {
-            updateSummaryMessages.push(`\n--- AI 작업 요약 ---\n${workSummary}`);
-        }
-
-        // 먼저 AI 응답을 채팅창에 출력
-        let initialWebviewResponse = llmResponse;
+        const workDescription = this.extractWorkDescription(llmResponse);
+        
+        // 먼저 AI 응답을 채팅창에 출력 (작업 요약과 설명 제외)
+        let initialWebviewResponse = this.removeWorkSummaryAndDescription(llmResponse);
         if (contextFiles.length > 0) {
             const fileList = contextFiles.map(f => f.name).join(', ');
             initialWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n${fileList}`;
@@ -294,15 +292,48 @@ export class LlmResponseProcessor {
 
             // 파일 작업 결과를 추가로 채팅창에 표시
             if (updateSummaryMessages.length > 0) {
-                const updateResultMessage = "\n\n--- 파일 업데이트 결과 ---\n" + updateSummaryMessages.join("\n");
+                const updateResultMessage = "\n\n📁 파일 업데이트 결과\n" + updateSummaryMessages.join("\n");
                 webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: updateResultMessage });
+            }
+
+            // 작업 요약과 설명을 마지막에 출력
+            if (workSummary) {
+                const summaryMessage = "\n\n📋 AI 작업 요약\n" + workSummary;
+                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
+            }
+
+            if (workDescription) {
+                const descriptionMessage = "\n\n💡 작업 수행 설명\n" + workDescription;
+                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
             }
         } else if (llmResponse.includes("Copy") && !llmResponse.includes("수정 파일:") && !llmResponse.includes("새 파일:") && !llmResponse.includes("삭제 파일:")) {
             const infoMessage = "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:', '새 파일:', 또는 '삭제 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요.";
             webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: infoMessage });
+            
+            // 파일 작업이 없어도 작업 요약과 설명이 있으면 출력
+            if (workSummary) {
+                const summaryMessage = "\n\n📋 AI 작업 요약\n" + workSummary;
+                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
+            }
+
+            if (workDescription) {
+                const descriptionMessage = "\n\n💡 작업 수행 설명\n" + workDescription;
+                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
+            }
         } else {
             // 파일 작업이 없는 경우 thinking 애니메이션 제거
             webview.postMessage({ command: 'hideLoading' });
+            
+            // 파일 작업이 없어도 작업 요약과 설명이 있으면 출력
+            if (workSummary) {
+                const summaryMessage = "\n\n📋 AI 작업 요약\n" + workSummary;
+                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
+            }
+
+            if (workDescription) {
+                const descriptionMessage = "\n\n💡 작업 수행 설명\n" + workDescription;
+                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
+            }
         }
     }
 
@@ -320,5 +351,28 @@ export class LlmResponseProcessor {
         }
         
         return null;
+    }
+
+    private extractWorkDescription(llmResponse: string): string | null {
+        const workDescriptionRegex = /--- 작업 수행 설명 ---\s*\n([\s\S]*?)(?=\n\n|$)/i;
+        const match = llmResponse.match(workDescriptionRegex);
+        
+        if (match && match[1]) {
+            return match[1].trim();
+        }
+        
+        return null;
+    }
+
+    private removeWorkSummaryAndDescription(llmResponse: string): string {
+        const summaryRegex = /--- 작업 요약 ---\s*\n([\s\S]*?)(?=\n\n|$)/i;
+        const descriptionRegex = /--- 작업 수행 설명 ---\s*\n([\s\S]*?)(?=\n\n|$)/i;
+        
+        let result = llmResponse.replace(summaryRegex, '').replace(descriptionRegex, '');
+        
+        // Remove any remaining empty lines
+        result = result.replace(/\n\n+/g, '\n\n');
+        
+        return result.trim();
     }
 }
