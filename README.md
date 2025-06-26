@@ -185,7 +185,7 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 </details>
 
-### Version 2.3b (2025/6/26) - Real-time information features
+### Version 2.3b (2025/6/15) - Real-time information features
 
 <details>
 <summary>ASK tab real-time information features added</summary>
