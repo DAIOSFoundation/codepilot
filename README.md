@@ -171,7 +171,7 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 </details>
 
-### Version 2.3b (2025/01/27) - Real-time information features
+### Version 2.3b (2025/6/26) - Real-time information features
 
 <details>
 <summary>ASK tab real-time information features added</summary>
@@ -203,7 +203,7 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 </details>
 
-### Version 2.2b (2025/01/27) - API compatibility fixes
+### Version 2.2b (2025/06/10) - API compatibility fixes
 
 <details>
 <summary>AI</summary>
@@ -215,7 +215,7 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 </details>
 
-### Version 2.1b (2025/01/27) - File selection & context
+### Version 2.1b (2025/06/5) - File selection & context
 
 <details>
 <summary>CHAT panel</summary>
