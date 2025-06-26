@@ -190,7 +190,7 @@ Keep in mind that extensions should be self-contained and should not make assump
 
 
 ### For more information
-
+I'm seeking individuals to help me grow this source code. Please contact me at: tony@banya.ai
 
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-%E2%9D%A4%EF%B8%8F-red?style=for-the-badge&logo=github)](https://github.com/sponsors/tonythefreedom)
 

@@ -15,6 +15,9 @@ const imagePreviewContainer = document.getElementById('image-preview-container')
 const imagePreview = document.getElementById('image-preview');
 const removeImageButton = document.getElementById('remove-image-button');
 
+// 채팅 컨테이너 참조 추가
+const chatContainer = document.getElementById('chat-container');
+
 let thinkingBubbleElement = null;
 let selectedImageBase64 = null;
 let selectedImageMimeType = null;
@@ -78,6 +81,11 @@ function handlePaste(event) {
                     imagePreviewContainer.classList.remove('hidden');
                     autoResizeTextarea();
                     chatInput.focus();
+                    
+                    // 이미지 추가 후 패딩 업데이트
+                    setTimeout(() => {
+                        updateChatContainerPadding();
+                    }, 0);
                 };
                 reader.readAsDataURL(file);
                 imageFound = true;
@@ -97,6 +105,11 @@ function removeAttachedImage() {
     imagePreviewContainer.classList.add('hidden');
     autoResizeTextarea();
     chatInput.focus();
+    
+    // 이미지 제거 후 패딩 업데이트
+    setTimeout(() => {
+        updateChatContainerPadding();
+    }, 0);
 }
 
 function handleSendMessage() {
@@ -130,6 +143,31 @@ function autoResizeTextarea() {
     const maxHeight = parseInt(computedStyle.maxHeight, 10);
     const adjustedHeight = Math.max(minHeight, Math.min(chatInput.scrollHeight, maxHeight));
     chatInput.style.height = adjustedHeight + 'px';
+    
+    // 입력창 높이가 변경되면 하단 고정 영역 높이도 재계산
+    updateChatContainerPadding();
+}
+
+// 하단 고정 영역의 높이를 계산하고 채팅 컨테이너의 패딩을 조정하는 함수
+function updateChatContainerPadding() {
+    if (!chatContainer) return;
+    
+    // 하단 고정 영역의 요소들
+    const bottomFixedArea = document.querySelector('.bottom-fixed-area');
+    const chatInputArea = document.getElementById('chat-input-area');
+    
+    if (!bottomFixedArea || !chatInputArea) return;
+    
+    // 입력 영역의 높이
+    const chatInputHeight = chatInputArea.offsetHeight;
+    
+    // 전체 하단 고정 영역 높이 계산 (여유 공간 포함)
+    const totalBottomHeight = chatInputHeight + 20; // 20px 여유 공간
+    
+    // 채팅 컨테이너의 하단 패딩을 동적으로 설정
+    chatContainer.style.paddingBottom = `${totalBottomHeight}px`;
+    
+    console.log(`Bottom area height: ${totalBottomHeight}px (input: ${chatInputHeight}px)`);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -142,6 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (imagePreviewContainer) {
         imagePreviewContainer.classList.add('hidden');
     }
+    
+    // 초기 채팅 컨테이너 패딩 설정
+    setTimeout(() => {
+        updateChatContainerPadding();
+    }, 100); // DOM이 완전히 로드된 후 실행
 });
 
 window.addEventListener('message', event => {

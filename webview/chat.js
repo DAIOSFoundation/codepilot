@@ -23,6 +23,9 @@ const selectedFilesContainer = document.getElementById('selected-files-container
 const clearFilesButton = document.getElementById('clear-files-button');
 const filePickerButton = document.getElementById('file-picker-button');
 
+// 채팅 컨테이너 참조 추가
+const chatContainer = document.getElementById('chat-container');
+
 let thinkingBubbleElement = null;
 let selectedImageBase64 = null; // Base64 인코딩된 이미지 데이터를 저장할 변수
 let selectedImageMimeType = null; // 이미지 MIME 타입 저장
@@ -105,6 +108,11 @@ function handlePaste(event) {
                     imagePreviewContainer.classList.remove('hidden');
                     autoResizeTextarea(); // 썸네일 추가 후 입력창 높이 재조정
                     chatInput.focus();
+                    
+                    // 이미지 추가 후 패딩 업데이트
+                    setTimeout(() => {
+                        updateChatContainerPadding();
+                    }, 0);
                 };
                 reader.readAsDataURL(file);
                 imageFound = true;
@@ -124,6 +132,11 @@ function removeAttachedImage() {
     imagePreviewContainer.classList.add('hidden');
     autoResizeTextarea(); // 썸네일 제거 후 입력창 높이 재조정
     chatInput.focus();
+    
+    // 이미지 제거 후 패딩 업데이트
+    setTimeout(() => {
+        updateChatContainerPadding();
+    }, 0);
 }
 
 function handleSendMessage() {
@@ -157,6 +170,37 @@ function autoResizeTextarea() {
     const maxHeight = parseInt(computedStyle.maxHeight, 10);
     const adjustedHeight = Math.max(minHeight, Math.min(chatInput.scrollHeight, maxHeight));
     chatInput.style.height = adjustedHeight + 'px';
+    
+    // 입력창 높이가 변경되면 하단 고정 영역 높이도 재계산
+    updateChatContainerPadding();
+}
+
+// 하단 고정 영역의 높이를 계산하고 채팅 컨테이너의 패딩을 조정하는 함수
+function updateChatContainerPadding() {
+    if (!chatContainer) return;
+    
+    // 하단 고정 영역의 요소들
+    const bottomFixedArea = document.querySelector('.bottom-fixed-area');
+    const fileSelectionArea = document.getElementById('file-selection-area');
+    const chatInputArea = document.getElementById('chat-input-area');
+    
+    if (!bottomFixedArea || !chatInputArea) return;
+    
+    // 파일 선택 영역의 높이 (숨겨져 있으면 0)
+    const fileSelectionHeight = fileSelectionArea && !fileSelectionArea.classList.contains('hidden') 
+        ? fileSelectionArea.offsetHeight 
+        : 0;
+    
+    // 입력 영역의 높이
+    const chatInputHeight = chatInputArea.offsetHeight;
+    
+    // 전체 하단 고정 영역 높이 계산 (여유 공간 포함)
+    const totalBottomHeight = fileSelectionHeight + chatInputHeight + 20; // 20px 여유 공간
+    
+    // 채팅 컨테이너의 하단 패딩을 동적으로 설정
+    chatContainer.style.paddingBottom = `${totalBottomHeight}px`;
+    
+    console.log(`Bottom area height: ${totalBottomHeight}px (file: ${fileSelectionHeight}px, input: ${chatInputHeight}px)`);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -171,6 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (imagePreviewContainer) {
         imagePreviewContainer.classList.add('hidden');
     }
+    
+    // 초기 채팅 컨테이너 패딩 설정
+    setTimeout(() => {
+        updateChatContainerPadding();
+    }, 100); // DOM이 완전히 로드된 후 실행
 });
 
 window.addEventListener('message', event => {
@@ -496,28 +545,32 @@ function updateFileSelectionDisplay() {
         if (divider) {
             divider.classList.add('hidden');
         }
-        return;
-    }
+    } else {
+        fileSelectionArea.classList.remove('hidden');
+        if (divider) {
+            divider.classList.remove('hidden');
+        }
 
-    fileSelectionArea.classList.remove('hidden');
-    if (divider) {
-        divider.classList.remove('hidden');
-    }
+        selectedFiles.forEach(file => {
+            const fileTag = document.createElement('div');
+            fileTag.classList.add('selected-file-tag');
+            fileTag.innerHTML = `
+                <span class="file-name" title="${file.path}">${file.name}</span>
+                <button class="remove-file" data-path="${file.path}" title="Remove file">×</button>
+            `;
 
-    selectedFiles.forEach(file => {
-        const fileTag = document.createElement('div');
-        fileTag.classList.add('selected-file-tag');
-        fileTag.innerHTML = `
-            <span class="file-name" title="${file.path}">${file.name}</span>
-            <button class="remove-file" data-path="${file.path}" title="Remove file">×</button>
-        `;
+            // 개별 파일 제거 버튼 이벤트
+            const removeButton = fileTag.querySelector('.remove-file');
+            removeButton.addEventListener('click', () => {
+                removeSelectedFile(file.path);
+            });
 
-        // 개별 파일 제거 버튼 이벤트
-        const removeButton = fileTag.querySelector('.remove-file');
-        removeButton.addEventListener('click', () => {
-            removeSelectedFile(file.path);
+            selectedFilesContainer.appendChild(fileTag);
         });
-
-        selectedFilesContainer.appendChild(fileTag);
-    });
+    }
+    
+    // 파일 선택 영역이 변경되면 채팅 컨테이너 패딩 업데이트
+    setTimeout(() => {
+        updateChatContainerPadding();
+    }, 0); // DOM 업데이트 후 실행
 }
