@@ -90,293 +90,220 @@ VSCode base code assistant plugin with LLM and LM support.
 - node v21.7.1
 - npm install
 
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
 ## Known Issues
 
 Calling out known issues can help limit users opening duplicate issues against your extension.
 
 ## Release Notes
 
-<style>
-.version-toggle {
-    cursor: pointer;
-    user-select: none;
-    padding: 10px 15px;
-    background-color: var(--vscode-sideBar-background);
-    border: 1px solid var(--vscode-panel-border);
-    border-radius: 5px;
-    margin-bottom: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: background-color 0.2s ease;
-}
+### Version 2.4.0 (2025/01/27) - Enhanced AI response structure & UX improvements
 
-.version-toggle:hover {
-    background-color: var(--vscode-list-hoverBackground);
-}
+<details>
+<summary>Enhanced AI Response Structure</summary>
 
-.version-toggle::after {
-    content: '▼';
-    font-size: 12px;
-    transition: transform 0.2s ease;
-}
+- Improved system prompts for better code generation and file operations
+- Structured response format with clear file operation directives
+- Mandatory work summary and detailed operation descriptions
+- Enhanced error handling and user feedback
 
-.version-toggle.collapsed::after {
-    transform: rotate(-90deg);
-}
+</details>
 
-.version-content {
-    max-height: 2000px;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-    padding: 0 15px;
-    margin-bottom: 15px;
-    border-left: 2px solid var(--vscode-panel-border);
-}
+<details>
+<summary>Improved User Experience</summary>
 
-.version-content.collapsed {
-    max-height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    margin-bottom: 0;
-}
+- Fixed chat interface scrolling issues for immediate response visibility
+- Optimized message display order: AI response → file operations → work summary → operation description
+- Added emoji indicators for better visual organization:
+  - 📁 File update results
+  - 📋 AI work summary  
+  - 💡 Work execution description
+- Enhanced thinking animation with proper timing and visibility
 
-.version-title {
-    font-weight: bold;
-    color: var(--vscode-textLink-foreground);
-    margin: 0;
-}
+</details>
 
-.version-date {
-    font-size: 0.9em;
-    color: var(--vscode-descriptionForeground);
-    margin: 0;
-}
-</style>
+<details>
+<summary>Code Generation Enhancements</summary>
 
-<script>
-function toggleVersion(element) {
-    const content = element.nextElementSibling;
-    const isCollapsed = content.classList.contains('collapsed');
-    
-    if (isCollapsed) {
-        content.classList.remove('collapsed');
-        element.classList.remove('collapsed');
-    } else {
-        content.classList.add('collapsed');
-        element.classList.add('collapsed');
-    }
-}
+- Mandatory file operation directives: "수정 파일:", "새 파일:", "삭제 파일:"
+- Complete file content output instead of partial changes
+- Automatic work summary generation for all operations
+- Detailed operation explanations for better understanding
 
-// 페이지 로드 시 모든 버전을 접힌 상태로 시작
-document.addEventListener('DOMContentLoaded', function() {
-    const versionToggles = document.querySelectorAll('.version-toggle');
-    versionToggles.forEach(toggle => {
-        toggle.classList.add('collapsed');
-        const content = toggle.nextElementSibling;
-        content.classList.add('collapsed');
-    });
-});
-</script>
+</details>
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">1.0.0</div>
-        <div class="version-date">Initial release</div>
-    </div>
-</div>
-<div class="version-content">
-    Initial release of CodePilot
-</div>
+<details>
+<summary>File Operation Improvements</summary>
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">1.1.0</div>
-        <div class="version-date">Enhanced LLM support</div>
-    </div>
-</div>
-<div class="version-content">
-    - Added support for custom LLM models
-    - Improved code generation accuracy
-    - Enhanced natural language processing
-</div>
+- Sequential processing: thinking animation removal → file operations → result display
+- Enhanced file operation feedback with success/error indicators
+- Better error handling for file creation, modification, and deletion
+- Improved diff viewing for code modifications
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">1.2.0</div>
-        <div class="version-date">Project scope features</div>
-    </div>
-</div>
-<div class="version-content">
-    - Added project scope code watching
-    - Implemented auto debug functionality
-    - Fixed various UI issues
-</div>
+</details>
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">1.3.0</div>
-        <div class="version-date">Enhanced chat interface</div>
-    </div>
-</div>
-<div class="version-content">
-    - Enhanced chat interface with better code block display
-    - Added file operation tracking
-    - Improved error handling
-</div>
+<details>
+<summary>API Key Management</summary>
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">1.4.0</div>
-        <div class="version-date">Image support & file picker</div>
-    </div>
-</div>
-<div class="version-content">
-    - Added image support for code analysis
-    - Implemented file picker functionality
-    - Enhanced context management
-</div>
+- Moved Gemini API key configuration from License to Settings menu
+- Centralized API key management in Settings panel
+- Enhanced security with VS Code SecretStorage
+- Improved API key validation and error handling
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">2.0.0</div>
-        <div class="version-date">Complete UI redesign</div>
-    </div>
-</div>
-<div class="version-content">
-    - Complete UI redesign with modern interface
-    - Added dedicated view container with CODE and ASK tabs
-    - Implemented persistent file selection feature
-    - Enhanced code block display with copy functionality
-    - Added real-time information features
-</div>
+</details>
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">2.1b</div>
-        <div class="version-date">2025/01/27 - File selection & context</div>
-    </div>
-</div>
-<div class="version-content">
-    - CHAT panel
-      - File selection feature with @ button in CODE tab
-      - Selected files are displayed as context tags with white borders
-      - Selected files remain persistent across messages for continuous context
-      - Horizontal divider line between file selection area and input area
-      - Vertical center alignment for selected file tags
-      - File picker starts at configured project root path
-      - Multiple file selection support
-    - AI
-      - Selected files from @ button are included as additional context to LLM
-      - File context works in both CODE and ASK tabs
-      - Enhanced context processing for better file operation tracking
-</div>
+<details>
+<summary>Real-time Information Enhancements</summary>
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">2.2b</div>
-        <div class="version-date">2025/01/27 - API compatibility fixes</div>
-    </div>
-</div>
-<div class="version-content">
-    - AI
-      - Fixed Gemini API error related to unsupported webSearch tools
-      - Temporarily removed web search functionality due to API compatibility issues
-      - ASK tab now works without web search grounding
-      - Improved error handling for API calls
-</div>
+- Enhanced weather information with 7-day forecasts
+- Improved news search with topic-specific queries
+- Better stock information display with change indicators
+- Natural language processing for information queries
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">2.3b</div>
-        <div class="version-date">2025/01/27 - Real-time information features</div>
-    </div>
-</div>
-<div class="version-content">
-    - ASK tab real-time information features added
-      - Weather information lookup (Korean Meteorological Administration API integration)
-      - News information lookup (NewsAPI integration)
-      - Stock information lookup (Alpha Vantage API integration)
-      - Natural language queries for real-time information
-    - Settings
-      - External API key configuration options added (weather, news, stock)
-      - API keys are securely managed in VS Code settings
-      - New API key management section in settings page
-      - Individual save buttons for each API key type
-      - Real-time status display for API key configuration
-    - Usage
-      - "Seoul weather" → Current weather information for Seoul
-      - "News" → Latest news headlines
-      - "Stock" → Major stock information (AAPL, GOOGL, MSFT, TSLA, AMZN)
-</div>
+</details>
 
-<div class="version-toggle" onclick="toggleVersion(this)">
-    <div>
-        <div class="version-title">2.4.0</div>
-        <div class="version-date">2025/01/27 - Enhanced AI response structure & UX improvements</div>
-    </div>
-</div>
-<div class="version-content">
-    - **Enhanced AI Response Structure**
-      - Improved system prompts for better code generation and file operations
-      - Structured response format with clear file operation directives
-      - Mandatory work summary and detailed operation descriptions
-      - Enhanced error handling and user feedback
+<details>
+<summary>Technical Improvements</summary>
 
-    - **Improved User Experience**
-      - Fixed chat interface scrolling issues for immediate response visibility
-      - Optimized message display order: AI response → file operations → work summary → operation description
-      - Added emoji indicators for better visual organization:
-        - 📁 File update results
-        - 📋 AI work summary  
-        - 💡 Work execution description
-      - Enhanced thinking animation with proper timing and visibility
+- Fixed webview message handling and display issues
+- Enhanced code block rendering with proper syntax highlighting
+- Improved context management for better AI responses
+- Better error recovery and user notification system
 
-    - **Code Generation Enhancements**
-      - Mandatory file operation directives: "수정 파일:", "새 파일:", "삭제 파일:"
-      - Complete file content output instead of partial changes
-      - Automatic work summary generation for all operations
-      - Detailed operation explanations for better understanding
+</details>
 
-    - **File Operation Improvements**
-      - Sequential processing: thinking animation removal → file operations → result display
-      - Enhanced file operation feedback with success/error indicators
-      - Better error handling for file creation, modification, and deletion
-      - Improved diff viewing for code modifications
+### Version 2.3b (2025/01/27) - Real-time information features
 
-    - **API Key Management**
-      - Moved Gemini API key configuration from License to Settings menu
-      - Centralized API key management in Settings panel
-      - Enhanced security with VS Code SecretStorage
-      - Improved API key validation and error handling
+<details>
+<summary>ASK tab real-time information features added</summary>
 
-    - **Real-time Information Enhancements**
-      - Enhanced weather information with 7-day forecasts
-      - Improved news search with topic-specific queries
-      - Better stock information display with change indicators
-      - Natural language processing for information queries
+- Weather information lookup (Korean Meteorological Administration API integration)
+- News information lookup (NewsAPI integration)
+- Stock information lookup (Alpha Vantage API integration)
+- Natural language queries for real-time information
 
-    - **Technical Improvements**
-      - Fixed webview message handling and display issues
-      - Enhanced code block rendering with proper syntax highlighting
-      - Improved context management for better AI responses
-      - Better error recovery and user notification system
-</div>
+</details>
 
-## Following extension guidelines
+<details>
+<summary>Settings</summary>
 
-Keep in mind that extensions should be self-contained and should not make assumptions about the system. Extensions should also be data efficient, so any large datasets should be ignored by the extension.
+- External API key configuration options added (weather, news, stock)
+- API keys are securely managed in VS Code settings
+- New API key management section in settings page
+- Individual save buttons for each API key type
+- Real-time status display for API key configuration
+
+</details>
+
+<details>
+<summary>Usage</summary>
+
+- "Seoul weather" → Current weather information for Seoul
+- "News" → Latest news headlines
+- "Stock" → Major stock information (AAPL, GOOGL, MSFT, TSLA, AMZN)
+
+</details>
+
+### Version 2.2b (2025/01/27) - API compatibility fixes
+
+<details>
+<summary>AI</summary>
+
+- Fixed Gemini API error related to unsupported webSearch tools
+- Temporarily removed web search functionality due to API compatibility issues
+- ASK tab now works without web search grounding
+- Improved error handling for API calls
+
+</details>
+
+### Version 2.1b (2025/01/27) - File selection & context
+
+<details>
+<summary>CHAT panel</summary>
+
+- File selection feature with @ button in CODE tab
+- Selected files are displayed as context tags with white borders
+- Selected files remain persistent across messages for continuous context
+- Horizontal divider line between file selection area and input area
+- Vertical center alignment for selected file tags
+- File picker starts at configured project root path
+- Multiple file selection support
+
+</details>
+
+<details>
+<summary>AI</summary>
+
+- Selected files from @ button are included as additional context to LLM
+- File context works in both CODE and ASK tabs
+- Enhanced context processing for better file operation tracking
+
+</details>
+
+### Version 2.0.0 - Complete UI redesign
+
+<details>
+<summary>Major Changes</summary>
+
+- Complete UI redesign with modern interface
+- Added dedicated view container with CODE and ASK tabs
+- Implemented persistent file selection feature
+- Enhanced code block display with copy functionality
+- Added real-time information features
+
+</details>
+
+### Version 1.4.0 - Image support & file picker
+
+<details>
+<summary>Features</summary>
+
+- Added image support for code analysis
+- Implemented file picker functionality
+- Enhanced context management
+
+</details>
+
+### Version 1.3.0 - Enhanced chat interface
+
+<details>
+<summary>Improvements</summary>
+
+- Enhanced chat interface with better code block display
+- Added file operation tracking
+- Improved error handling
+
+</details>
+
+### Version 1.2.0 - Project scope features
+
+<details>
+<summary>Features</summary>
+
+- Added project scope code watching
+- Implemented auto debug functionality
+- Fixed various UI issues
+
+</details>
+
+### Version 1.1.0 - Enhanced LLM support
+
+<details>
+<summary>Enhancements</summary>
+
+- Added support for custom LLM models
+- Improved code generation accuracy
+- Enhanced natural language processing
+
+</details>
+
+### Version 1.0.0 - Initial release
+
+<details>
+<summary>Initial Features</summary>
+
+Initial release of CodePilot
+
+</details>
 
 
 ### For more information
