@@ -93,5 +93,14 @@
   "settingChangeInProgress": "正在更改设置...",
   "settingChangeEnabled": "（已启用）",
   "settingChangeDisabled": "（已禁用）",
-  "current": "当前："
+  "current": "当前：",
+  "licensePageTitle": "许可证和版权",
+  "licenseSectionTitle": "许可证",
+  "licenseSectionDescription": "本项目根据 Apache License 2.0 进行分发。",
+  "licenseText": "Copyright [2025] [tony@banya.ai]\n\n根据 Apache 许可证 2.0 版（'许可证'）获得许可；\n除非遵守许可证，否则您不得使用此文件。\n您可以在以下网址获得许可证副本：\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\n除非适用法律要求或书面同意，否则根据许可证分发的软件是按'原样'分发的，\n不附带任何明示或暗示的担保或条件。\n有关许可证下的权限和限制的具体语言，请参见许可证。",
+  "githubSectionTitle": "GitHub 仓库",
+  "githubSectionDescription": "查看 CodePilot 的源代码和最新信息。",
+  "githubViewLink": "🌐 在 GitHub 上查看",
+  "githubIssuesLink": "🐛 问题与反馈",
+  "githubStarLink": "⭐ 点赞与支持"
 } 

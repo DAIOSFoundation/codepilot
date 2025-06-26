@@ -93,5 +93,14 @@
   "settingChangeInProgress": "Changing settings...",
   "settingChangeEnabled": "(enabled)",
   "settingChangeDisabled": "(disabled)",
-  "current": "Current:"
+  "current": "Current:",
+  "licensePageTitle": "License & Copyright",
+  "licenseSectionTitle": "License",
+  "licenseSectionDescription": "This project is distributed under the Apache License 2.0.",
+  "licenseText": "Copyright [2025] [tony@banya.ai]\n\nLicensed under the Apache License, Version 2.0 (the 'License');\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an 'AS IS' BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.",
+  "githubSectionTitle": "GitHub Repository",
+  "githubSectionDescription": "Check out CodePilot's source code and latest information.",
+  "githubViewLink": "🌐 View on GitHub",
+  "githubIssuesLink": "🐛 Issues & Feedback",
+  "githubStarLink": "⭐ Star & Support"
 } 

@@ -93,5 +93,14 @@
   "settingChangeInProgress": "설정 변경 중...",
   "settingChangeEnabled": "(활성화)",
   "settingChangeDisabled": "(비활성화)",
-  "current": "현재:"
+  "current": "현재:",
+  "licensePageTitle": "라이선스 & 저작권",
+  "licenseSectionTitle": "라이선스",
+  "licenseSectionDescription": "이 프로젝트는 Apache License 2.0 하에 배포됩니다.",
+  "licenseText": "Copyright [2025] [tony@banya.ai]\n\nApache 라이선스, 버전 2.0(이하 '라이선스')에 따라 라이선스가 부여됩니다.\n라이선스에 따라 달리 명시되지 않는 한, 이 파일을 사용할 수 없습니다.\n라이선스 사본은 다음에서 확인할 수 있습니다.\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\n적용 법률에 따라 요구되거나 서면으로 동의하지 않는 한,\n라이선스는 '있는 그대로' 제공되며, 명시적이든 묵시적이든 어떠한 보증도 제공하지 않습니다.\n라이선스에 따른 권한 및 제한 사항에 대한 자세한 내용은 라이선스를 참조하십시오.",
+  "githubSectionTitle": "GitHub 저장소",
+  "githubSectionDescription": "CodePilot의 소스 코드와 최신 정보를 확인하세요.",
+  "githubViewLink": "🌐 GitHub에서 보기",
+  "githubIssuesLink": "🐛 Issues & Feedback",
+  "githubStarLink": "⭐ Star & Support"
 } 

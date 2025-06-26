@@ -54,7 +54,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         geminiService,
         (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService, notificationService, storageService, geminiApi),
-        (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService),
+        (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService, configurationService),
         configurationService,
         notificationService
     );
@@ -93,7 +93,7 @@ export async function activate(context: vscode.ExtensionContext) {
         openSettingsPanel(context.extensionUri, context, vscode.ViewColumn.One, configurationService, notificationService, storageService, geminiApi);
     }));
     context.subscriptions.push(vscode.commands.registerCommand('codepilot.openLicensePanel', () => {
-        openLicensePanel(context.extensionUri, context, vscode.ViewColumn.One, storageService, geminiApi, notificationService);
+        openLicensePanel(context.extensionUri, context, vscode.ViewColumn.One, storageService, geminiApi, notificationService, configurationService);
     }));
 
     // 언어 변경 브로드캐스트 명령어 등록

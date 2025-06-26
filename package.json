@@ -86,7 +86,7 @@
           "when": "view == codepilot.chatView",
           "group": "navigation",
           "order": 2,
-          "icon": "$(book)",
+          "icon": "$(law)",
           "title": "License"
         }
       ]
