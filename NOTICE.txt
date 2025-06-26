@@ -16,10 +16,6 @@ limitations under the License.
 Additional Information and Trademarks:
 
 This software project is copyrighted by tony@banya.ai.
-
-Any names, logos, or other brand elements, including those found in the 'logo' directory (e.g., /Users/daib-01/VS_Code/codepilot/logo/), are proprietary trademarks or service marks of tony@banya.ai or its affiliates.
-
-The Apache License 2.0 grants no rights to use these trade names, trademarks, service marks, or product names of the Licensor, except as required for reasonable and customary use in describing the origin of the Work and reproducing the content of the NOTICE file. Any other use requires explicit written permission from tony@banya.ai.
-Copy
-
-
+Any names, logos, or other brand elements, including those found in the ‘logo’ directory (e.g., /Users/daib-01/VS_Code/codepilot/logo/), are proprietary trademarks or service marks of tony@banya.ai or its affiliates.
+The Apache License 2.0 grants no rights to use these trade names, trademarks, service marks, or product names of the Licensor, except as required for reasonable and customary use in describing the origin of the Work and reproducing the content of the NOTICE file. 
+Any other use, including the inclusion of your own name in the source code or the addition of any logos, requires explicit written permission from tony@banya.ai.
