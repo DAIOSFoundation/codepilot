@@ -45,7 +45,8 @@ export async function activate(context: vscode.ExtensionContext) {
         codebaseContextService,
         llmResponseProcessor,
         notificationService,
-        configurationService
+        configurationService,
+        context // extension context 전달
     );
 
     // ChatViewProvider 인스턴스 생성 및 등록 (CODE 탭)

@@ -29,7 +29,8 @@ export class GeminiService {
         codebaseContextService: CodebaseContextService,
         llmResponseProcessor: LlmResponseProcessor,
         notificationService: NotificationService,
-        configurationService: ConfigurationService
+        configurationService: ConfigurationService,
+        private readonly extensionContext?: vscode.ExtensionContext // 추가: extension context 주입
     ) {
         this.storageService = storageService;
         this.geminiApi = geminiApi;
@@ -70,6 +71,20 @@ export class GeminiService {
         abortSignal.onabort = () => {
             console.log('[CodePilot] Banya API call was aborted by user.');
         };
+
+        // --- 히스토리 관리용 키 ---
+        const historyKey = promptType === PromptType.CODE_GENERATION ? 'codeTabHistory' : 'askTabHistory';
+        let history: { text: string, timestamp: number }[] = [];
+        if (this.extensionContext) {
+            history = this.extensionContext.globalState.get(historyKey, []);
+        }
+
+        // --- 질문 저장 (최대 5개) ---
+        if (userQuery && this.extensionContext) {
+            history.push({ text: userQuery, timestamp: Date.now() });
+            if (history.length > 5) history = history.slice(-5);
+            await this.extensionContext.globalState.update(historyKey, history);
+        }
 
         try {
             let fileContentsContext = "";
@@ -125,8 +140,10 @@ export class GeminiService {
 
 10. **모든 코드 출력이 끝난 후, 반드시 다음 섹션을 추가로 출력해야 합니다:**
     --- 작업 수행 설명 ---
-    [사용자의 요청사항에 대한 상세한 설명과 수행한 작업의 이유, 변경 사항의 목적, 개선 효과 등을 자세히 설명]
-
+    - 전체 코드의 동작 원리와 주요 흐름
+    - 핵심 함수/클래스/컴포넌트의 역할과 내부 로직
+    - 이전 코드와의 차이점, 개선된 부분
+    - 테스트/확인 방법이나, 사용 시 주의사항
 11. **사용자의 요청에 대한 설명이나 해석을 먼저 제공하지 마세요. 바로 파일 작업을 수행하세요.**
 
 **응답 형식 예시:**
@@ -146,7 +163,11 @@ export class GeminiService {
 삭제된 파일: 없음
 
 --- 작업 수행 설명 ---
-사용자가 요청한 버튼 컴포넌트 개선 작업을 수행했습니다. 기존 Button.tsx 파일에 접근성 속성과 호버 효과를 추가하여 사용자 경험을 향상시켰습니다. 또한 공통으로 사용할 수 있는 유틸리티 함수들을 helper.ts 파일로 분리하여 코드 재사용성을 높였습니다. 이러한 변경으로 웹 접근성 표준을 준수하면서도 시각적으로 더 매력적인 버튼을 제공할 수 있게 되었습니다.
+1. ...
+2. ...
+3. ...
+4. ...
+5. ...
 
 --- 프로젝트 정보 ---
 ${projectRootInfo}
@@ -166,6 +187,16 @@ ${projectRootInfo}
 `;
             } else {
                 systemPrompt = `당신은 유용한 AI 어시스턴트입니다. 사용자의 요청에 대해 답변해주세요.`;
+            }
+
+            // --- 최근 5개 질문 context 생성 ---
+            let historyContext = '';
+            if (history.length > 1) { // 현재 질문 제외, 이전 질문만
+                const prevQuestions = history.slice(0, -1).slice(-5); // 마지막(현재) 제외, 최대 5개
+                if (prevQuestions.length > 0) {
+                    historyContext = '--- 최근 사용자 질문 내역 ---\n' +
+                        prevQuestions.map((h, i) => `${i+1}. ${h.text}`).join('\n') + '\n';
+                }
             }
 
             // 선택된 파일들의 내용을 읽어서 컨텍스트에 추가
@@ -198,6 +229,9 @@ ${projectRootInfo}
 
             // 사용자 쿼리와 이미지 데이터를 포함하는 Parts 배열 생성
             const userParts: Part[] = [];
+            if (historyContext) {
+                userParts.push({ text: historyContext });
+            }
             if (userQuery) {
                 userParts.push({ text: `사용자 요청: ${userQuery}\n\n위의 시스템 지시사항을 반드시 따라주세요. 파일 작업이 필요한 경우 반드시 '수정 파일:', '새 파일:', '삭제 파일:' 형식을 사용하고, 응답 마지막에 작업 요약을 포함해야 합니다.` });
             }
