@@ -1,3 +1,7 @@
+<p align="right">
+  🇰🇷 <a href="README.ko.md">한국어로 보기</a>
+</p>
+
 # codepilot README
 
 VSCode base code assistant plugin with LLM and LM support.
@@ -95,6 +99,20 @@ VSCode base code assistant plugin with LLM and LM support.
 Calling out known issues can help limit users opening duplicate issues against your extension.
 
 ## Release Notes
+
+### Version 2.4.1 (2024/07/10) - Improved LLM Prompt Structure & Code Generation/Modification Requests
+
+<details>
+<summary>LLM Prompt and Code Generation/Modification Request Enhancements</summary>
+
+- Enhanced system prompt for LLM (Large Language Model) to strictly specify output format and rules for code generation, modification, and deletion requests
+- Reinforced prompt structure to require full file code, per-file directives (Modified File/New File/Deleted File), work summary, and detailed explanation in every response
+- Actual code context, user request, and project structure information are now always included, improving AI reliability and automation
+- Work summary (created/modified/deleted files) and work description (logic, key functions/classes, improvements, test instructions, etc.) are now mandatory in responses
+- Example and rules for prompt are clearly included in the system prompt to ensure consistent response format
+- Directly improved and customized the prompt generation logic in geminiService.ts (user customization applied)
+
+</details>
 
 ### Version 2.4.0 (2025/06/26) - Enhanced AI response structure & UX improvements
 
