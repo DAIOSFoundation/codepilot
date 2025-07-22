@@ -3,7 +3,7 @@ const vscode = acquireVsCodeApi();
 
 // DOM 요소 참조
 const sourcePathsList = document.getElementById('source-paths-list');
-const addDirectoryButton = document.getElementById('add-directory-button');
+const addSourcePathButton = document.getElementById('add-source-path-button');
 const sourcePathStatus = document.getElementById('source-path-status');
 
 const autoUpdateToggle = document.getElementById('auto-update-toggle');
@@ -548,8 +548,8 @@ function showStatus(element, message, type = 'info', duration = 3000) {
 }
 
 // 이벤트 리스너: 경로 추가 버튼
-if (addDirectoryButton) {
-    addDirectoryButton.addEventListener('click', () => {
+if (addSourcePathButton) {
+    addSourcePathButton.addEventListener('click', () => {
         const pathSelectionText = languageData['pathSelectionDialog'] || '경로 선택 창 열림...';
         showStatus(sourcePathStatus, pathSelectionText, 'info');
         vscode.postMessage({ command: 'addDirectory' });
