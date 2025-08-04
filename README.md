@@ -94,6 +94,157 @@ VSCode base code assistant plugin with LLM and LM support.
 - node v21.7.1
 - npm install
 
+## Installation & Setup
+
+### Prerequisites
+1. **Node.js Environment**
+   ```bash
+   # Install nvm (Node Version Manager)
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+   
+   # Install Node.js v21.7.1
+   nvm install 21.7.1
+   nvm use 21.7.1
+   ```
+
+2. **VS Code Extension Development Tools**
+   ```bash
+   # Install VS Code Extension Generator
+   npm install -g yo generator-code
+   ```
+
+### Development Setup
+1. **Clone and Install Dependencies**
+   ```bash
+   git clone https://github.com/DAIOSFoundation/codepilot.git
+   cd codepilot
+   npm install
+   ```
+
+2. **Build the Extension**
+   ```bash
+   # Development build with watch mode
+   npm run watch
+   
+   # Production build
+   npm run package
+   ```
+
+3. **Run in Development Mode**
+   ```bash
+   # Press F5 in VS Code to launch extension host
+   # Or use the command palette: "Developer: Reload Window"
+   ```
+
+### Configuration
+1. **API Key Setup**
+   - Open VS Code Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+   - Run "CodePilot: Open Settings Panel"
+   - Enter your Gemini API key (get from [Google AI Studio](https://aistudio.google.com/app/apikey))
+
+2. **Optional External APIs**
+   - **Weather API**: Get API key from [KMA API Hub](https://apihub.kma.go.kr/)
+   - **News API**: Get Client ID & Secret from [Naver Developers](https://developers.naver.com/)
+   - **Stock API**: Get API key from [Alpha Vantage](https://www.alphavantage.co/)
+
+## Testing
+
+### Unit Tests
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run watch-tests
+
+# Run linting
+npm run lint
+```
+
+### Manual Testing
+1. **Extension Activation**
+   - Open VS Code
+   - Navigate to Extensions view (`Ctrl+Shift+X`)
+   - Find "CodePilot" in the activity bar
+   - Verify both CODE and ASK tabs are visible
+
+2. **CODE Tab Testing**
+   ```bash
+   # Test code generation
+   - Open CODE tab
+   - Type: "Create a simple React component"
+   - Verify AI response with code blocks
+   
+   # Test file operations
+   - Use @ button to select files
+   - Request file modifications
+   - Verify file creation/modification
+   ```
+
+3. **ASK Tab Testing**
+   ```bash
+   # Test general Q&A
+   - Open ASK tab
+   - Ask: "What is TypeScript?"
+   - Verify informative response
+   
+   # Test real-time information
+   - Ask: "What's the weather in Seoul?"
+   - Ask: "Show me latest tech news"
+   - Ask: "What are current stock prices?"
+   ```
+
+4. **Settings Testing**
+   ```bash
+   # Test API key management
+   - Open Settings panel
+   - Add/update API keys
+   - Verify secure storage
+   
+   # Test language switching
+   - Change language setting
+   - Verify UI updates immediately
+   ```
+
+### Integration Testing
+1. **File Context Testing**
+   - Create a test project with multiple files
+   - Use @ button to select specific files
+   - Verify context is included in AI responses
+
+2. **Image Analysis Testing**
+   - Upload code screenshots or diagrams
+   - Request code analysis
+   - Verify AI understands visual content
+
+3. **Multi-language Testing**
+   - Test all supported languages
+   - Verify proper localization
+   - Test language persistence
+
+### Performance Testing
+1. **Large Codebase Testing**
+   - Test with projects containing 100+ files
+   - Monitor memory usage
+   - Verify response times
+
+2. **API Rate Limiting**
+   - Test multiple rapid requests
+   - Verify proper error handling
+   - Check abort functionality
+
+### Debugging
+```bash
+# Enable debug logging
+# Add to VS Code settings.json:
+{
+  "codepilot.debug": true
+}
+
+# View extension logs
+# In VS Code: Help > Toggle Developer Tools > Console
+```
+
 ## Known Issues
 
 Calling out known issues can help limit users opening duplicate issues against your extension.

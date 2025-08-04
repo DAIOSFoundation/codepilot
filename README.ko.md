@@ -94,6 +94,157 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
 - node v21.7.1
 - npm install
 
+## 설치 및 설정
+
+### 사전 요구사항
+1. **Node.js 환경 설정**
+   ```bash
+   # nvm (Node Version Manager) 설치
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+   
+   # Node.js v21.7.1 설치
+   nvm install 21.7.1
+   nvm use 21.7.1
+   ```
+
+2. **VS Code 확장 개발 도구**
+   ```bash
+   # VS Code 확장 생성기 설치
+   npm install -g yo generator-code
+   ```
+
+### 개발 환경 설정
+1. **저장소 클론 및 의존성 설치**
+   ```bash
+   git clone https://github.com/DAIOSFoundation/codepilot.git
+   cd codepilot
+   npm install
+   ```
+
+2. **확장 빌드**
+   ```bash
+   # 개발 빌드 (감시 모드)
+   npm run watch
+   
+   # 프로덕션 빌드
+   npm run package
+   ```
+
+3. **개발 모드에서 실행**
+   ```bash
+   # VS Code에서 F5를 눌러 확장 호스트 실행
+   # 또는 명령 팔레트: "Developer: Reload Window"
+   ```
+
+### 설정
+1. **API 키 설정**
+   - VS Code 명령 팔레트 열기 (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+   - "CodePilot: Open Settings Panel" 실행
+   - Gemini API 키 입력 ([Google AI Studio](https://aistudio.google.com/app/apikey)에서 획득)
+
+2. **선택적 외부 API**
+   - **날씨 API**: [기상청 API Hub](https://apihub.kma.go.kr/)에서 API 키 획득
+   - **뉴스 API**: [네이버 개발자센터](https://developers.naver.com/)에서 Client ID & Secret 획득
+   - **주식 API**: [Alpha Vantage](https://www.alphavantage.co/)에서 API 키 획득
+
+## 테스트
+
+### 단위 테스트
+```bash
+# 모든 테스트 실행
+npm test
+
+# 감시 모드에서 테스트 실행
+npm run watch-tests
+
+# 린팅 실행
+npm run lint
+```
+
+### 수동 테스트
+1. **확장 활성화**
+   - VS Code 열기
+   - 확장 뷰로 이동 (`Ctrl+Shift+X`)
+   - 활동 표시줄에서 "CodePilot" 찾기
+   - CODE와 ASK 탭이 모두 보이는지 확인
+
+2. **CODE 탭 테스트**
+   ```bash
+   # 코드 생성 테스트
+   - CODE 탭 열기
+   - 입력: "간단한 React 컴포넌트 생성해줘"
+   - 코드 블록이 포함된 AI 응답 확인
+   
+   # 파일 작업 테스트
+   - @ 버튼으로 파일 선택
+   - 파일 수정 요청
+   - 파일 생성/수정 확인
+   ```
+
+3. **ASK 탭 테스트**
+   ```bash
+   # 일반 Q&A 테스트
+   - ASK 탭 열기
+   - 질문: "TypeScript란 무엇인가요?"
+   - 유익한 응답 확인
+   
+   # 실시간 정보 테스트
+   - 질문: "서울 날씨 알려줘"
+   - 질문: "최신 IT 뉴스 보여줘"
+   - 질문: "현재 주식 시세 알려줘"
+   ```
+
+4. **설정 테스트**
+   ```bash
+   # API 키 관리 테스트
+   - 설정 패널 열기
+   - API 키 추가/업데이트
+   - 안전한 저장 확인
+   
+   # 언어 전환 테스트
+   - 언어 설정 변경
+   - UI 즉시 업데이트 확인
+   ```
+
+### 통합 테스트
+1. **파일 컨텍스트 테스트**
+   - 여러 파일이 있는 테스트 프로젝트 생성
+   - @ 버튼으로 특정 파일 선택
+   - AI 응답에 컨텍스트가 포함되는지 확인
+
+2. **이미지 분석 테스트**
+   - 코드 스크린샷이나 다이어그램 업로드
+   - 코드 분석 요청
+   - AI가 시각적 내용을 이해하는지 확인
+
+3. **다국어 테스트**
+   - 지원되는 모든 언어 테스트
+   - 적절한 현지화 확인
+   - 언어 설정 지속성 테스트
+
+### 성능 테스트
+1. **대용량 코드베이스 테스트**
+   - 100개 이상 파일이 있는 프로젝트로 테스트
+   - 메모리 사용량 모니터링
+   - 응답 시간 확인
+
+2. **API 속도 제한 테스트**
+   - 여러 빠른 요청 테스트
+   - 적절한 에러 처리 확인
+   - 중단 기능 확인
+
+### 디버깅
+```bash
+# 디버그 로깅 활성화
+# VS Code settings.json에 추가:
+{
+  "codepilot.debug": true
+}
+
+# 확장 로그 보기
+# VS Code: 도움말 > 개발자 도구 토글 > 콘솔
+```
+
 ## 알려진 이슈
 
 알려진 이슈를 명시하면 중복 이슈 등록을 줄일 수 있습니다.
