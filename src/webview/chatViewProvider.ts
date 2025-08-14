@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { getHtmlContentWithUris } from './panelUtils';
-import { GeminiService, PromptType } from '../ai/geminiService'; // GeminiService 및 PromptType 임포트
+import { LlmService, PromptType } from '../ai/llmService'; // LlmService 및 PromptType 임포트
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
 
@@ -11,7 +11,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     constructor(
         private readonly extensionUri: vscode.Uri,
         private readonly context: vscode.ExtensionContext,
-        private readonly geminiService: GeminiService,
+        private readonly llmService: LlmService,
         private readonly openSettingsPanel: (viewColumn: vscode.ViewColumn) => void,
         private readonly openLicensePanel: (viewColumn: vscode.ViewColumn) => void,
         private readonly configurationService: ConfigurationService,
@@ -40,7 +40,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
             switch (data.command) {
                 case 'sendMessage':
                     // 이미지 데이터와 MIME 타입도 함께 전달
-                    await this.geminiService.handleUserMessageAndRespond(
+                    await this.llmService.handleUserMessageAndRespond(
                         data.text, 
                         webviewView.webview, 
                         PromptType.CODE_GENERATION, 
@@ -62,7 +62,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'cancelGeminiCall':
                     console.log('[Extension Host] Received cancelGeminiCall command.');
-                    this.geminiService.cancelCurrentCall();
+                    this.llmService.cancelCurrentCall();
                     webviewView.webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: 'AI 호출이 취소되었습니다.' });
                     break;
                 case 'openFilePicker':

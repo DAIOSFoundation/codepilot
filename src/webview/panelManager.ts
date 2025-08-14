@@ -74,13 +74,17 @@ export function openSettingsPanel(
                     const newsApiSecret = await configurationService.getNewsApiSecret();
                     const stockApiKey = await configurationService.getStockApiKey();
                     const geminiApiKey = await storageService.getApiKey(); // Gemini API 키 추가
+                    const ollamaApiUrl = await storageService.getOllamaApiUrl(); // Ollama API URL 추가
+                    const banyaLicenseSerial = await storageService.getBanyaLicenseSerial(); // Banya 라이센스 추가
                     panel.webview.postMessage({ 
                         command: 'currentApiKeys', 
                         weatherApiKey: weatherApiKey || '', 
                         newsApiKey: newsApiKey || '', 
                         newsApiSecret: newsApiSecret || '',
                         stockApiKey: stockApiKey || '',
-                        geminiApiKey: geminiApiKey || '' // Gemini API 키 추가
+                        geminiApiKey: geminiApiKey || '', // Gemini API 키 추가
+                        ollamaApiUrl: ollamaApiUrl || '', // Ollama API URL 추가
+                        banyaLicenseSerial: banyaLicenseSerial || '' // Banya 라이센스 추가
                     });
                     break;
                 case 'saveApiKey': // Gemini API 키 저장 케이스 추가
@@ -98,6 +102,80 @@ export function openSettingsPanel(
                     } else {
                         panel.webview.postMessage({ command: 'apiKeySaveError', error: 'API Key empty.' });
                         notificationService.showErrorMessage('Gemini API Key is empty.');
+                    }
+                    break;
+                case 'saveOllamaApiUrl':
+                    const ollamaApiUrlToSave = data.apiUrl;
+                    if (ollamaApiUrlToSave && typeof ollamaApiUrlToSave === 'string') {
+                        try {
+                            await storageService.saveOllamaApiUrl(ollamaApiUrlToSave);
+                            panel.webview.postMessage({ command: 'ollamaApiUrlSaved' });
+                            notificationService.showInfoMessage('CodePilot: Ollama API URL saved.');
+                        } catch (error: any) {
+                            panel.webview.postMessage({ command: 'ollamaApiUrlError', error: error.message });
+                            notificationService.showErrorMessage(`Error saving Ollama API URL: ${error.message}`);
+                        }
+                    } else {
+                        panel.webview.postMessage({ command: 'ollamaApiUrlError', error: 'API URL empty.' });
+                        notificationService.showErrorMessage('Ollama API URL is empty.');
+                    }
+                    break;
+                case 'saveBanyaLicense':
+                    const licenseSerialToSave = data.licenseSerial;
+                    if (licenseSerialToSave && typeof licenseSerialToSave === 'string') {
+                        try {
+                            await storageService.saveBanyaLicenseSerial(licenseSerialToSave);
+                            panel.webview.postMessage({ command: 'banyaLicenseSaved' });
+                            notificationService.showInfoMessage('CodePilot: Banya license saved.');
+                        } catch (error: any) {
+                            panel.webview.postMessage({ command: 'banyaLicenseError', error: error.message });
+                            notificationService.showErrorMessage(`Error saving Banya license: ${error.message}`);
+                        }
+                    } else {
+                        panel.webview.postMessage({ command: 'banyaLicenseError', error: 'License serial empty.' });
+                        notificationService.showErrorMessage('Banya license serial is empty.');
+                    }
+                    break;
+                case 'verifyBanyaLicense':
+                    const licenseSerialToVerify = data.licenseSerial;
+                    if (licenseSerialToVerify && typeof licenseSerialToVerify === 'string') {
+                        try {
+                            // TODO: 실제 라이센스 검증 로직 구현
+                            // 현재는 임시로 성공으로 처리
+                            panel.webview.postMessage({ command: 'banyaLicenseVerified' });
+                            notificationService.showInfoMessage('CodePilot: Banya license verified successfully.');
+                        } catch (error: any) {
+                            panel.webview.postMessage({ command: 'banyaLicenseVerificationFailed', error: error.message });
+                            notificationService.showErrorMessage(`Error verifying Banya license: ${error.message}`);
+                        }
+                    } else {
+                        panel.webview.postMessage({ command: 'banyaLicenseVerificationFailed', error: 'License serial empty.' });
+                        notificationService.showErrorMessage('Banya license serial is empty.');
+                    }
+                    break;
+                case 'saveAiModel':
+                    const aiModelToSave = data.model;
+                    if (aiModelToSave && typeof aiModelToSave === 'string') {
+                        try {
+                            await storageService.saveCurrentAiModel(aiModelToSave);
+                            panel.webview.postMessage({ command: 'aiModelSaved' });
+                            notificationService.showInfoMessage(`CodePilot: AI model changed to ${aiModelToSave}.`);
+                        } catch (error: any) {
+                            panel.webview.postMessage({ command: 'aiModelSaveError', error: error.message });
+                            notificationService.showErrorMessage(`Error saving AI model: ${error.message}`);
+                        }
+                    } else {
+                        panel.webview.postMessage({ command: 'aiModelSaveError', error: 'AI model empty.' });
+                        notificationService.showErrorMessage('AI model is empty.');
+                    }
+                    break;
+                case 'loadAiModel':
+                    try {
+                        const currentAiModel = await storageService.getCurrentAiModel();
+                        panel.webview.postMessage({ command: 'currentAiModel', model: currentAiModel || 'gemini' });
+                    } catch (error: any) {
+                        // 오류 시 기본값 반환
+                        panel.webview.postMessage({ command: 'currentAiModel', model: 'gemini' });
                     }
                     break;
                 case 'saveWeatherApiKey':

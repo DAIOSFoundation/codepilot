@@ -7,7 +7,8 @@ import { ConfigurationService } from './services/configurationService';
 import { NotificationService } from './services/notificationService';
 import { CodebaseContextService } from './ai/codebaseContextService';
 import { LlmResponseProcessor } from './ai/llmResponseProcessor';
-import { GeminiService } from './ai/geminiService';
+import { LlmService, AiModelType } from './ai/llmService';
+import { OllamaApi } from './ai/ollamaService';
 import { ChatViewProvider } from './webview/chatViewProvider';
 import { AskViewProvider } from './webview/askViewProvider'; // 새로 추가된 AskViewProvider 임포트
 import { getCodePilotTerminal } from './terminal/terminalManager';
@@ -16,11 +17,12 @@ import { openSettingsPanel, openLicensePanel } from './webview/panelManager';
 // 전역 변수
 let storageService: StorageService;
 let geminiApi: GeminiApi;
+let ollamaApi: OllamaApi;
 let configurationService: ConfigurationService;
 let notificationService: NotificationService;
 let codebaseContextService: CodebaseContextService;
 let llmResponseProcessor: LlmResponseProcessor;
-let geminiService: GeminiService;
+let llmService: LlmService;
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, CodePilot is now active!');
@@ -36,12 +38,17 @@ export async function activate(context: vscode.ExtensionContext) {
     }
     geminiApi = new GeminiApi(initialApiKey || '');
 
+    // Ollama API 초기화
+    const initialOllamaUrl = await storageService.getOllamaApiUrl();
+    ollamaApi = new OllamaApi(initialOllamaUrl || 'http://localhost:11434');
+
     // AI 관련 서비스 초기화
     codebaseContextService = new CodebaseContextService(configurationService, notificationService);
     llmResponseProcessor = new LlmResponseProcessor(context, configurationService, notificationService);
-    geminiService = new GeminiService(
+    llmService = new LlmService(
         storageService,
         geminiApi,
+        ollamaApi,
         codebaseContextService,
         llmResponseProcessor,
         notificationService,
@@ -49,11 +56,17 @@ export async function activate(context: vscode.ExtensionContext) {
         context // extension context 전달
     );
 
+    // 현재 AI 모델 설정 로드
+    const currentAiModel = await storageService.getCurrentAiModel();
+    if (currentAiModel) {
+        llmService.setCurrentModel(currentAiModel as AiModelType);
+    }
+
     // ChatViewProvider 인스턴스 생성 및 등록 (CODE 탭)
     const chatViewProvider = new ChatViewProvider(
         context.extensionUri,
         context,
-        geminiService,
+        llmService,
         (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService, notificationService, storageService, geminiApi),
         (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService, configurationService),
         configurationService,
@@ -70,7 +83,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const askViewProvider = new AskViewProvider(
         context.extensionUri,
         context,
-        geminiService,
+        llmService,
         configurationService,
         notificationService
     );

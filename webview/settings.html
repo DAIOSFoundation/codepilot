@@ -264,6 +264,108 @@
             text-decoration: underline;
         }
 
+        /* 라이센스 입력 그룹 스타일 */
+        .license-input-group {
+            margin-top: 10px;
+        }
+
+        .license-input-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            outline: none;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            border-radius: 3px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .license-input-group textarea:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .license-button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .license-button-group button {
+            padding: 8px 15px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+        }
+
+        .license-button-group button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        /* Ollama API URL 입력 스타일 */
+        #ollama-api-url-input {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+        }
+
+        /* AI 모델 선택 컨테이너 스타일 */
+        .model-selection-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 5px;
+            background-color: var(--vscode-input-background);
+        }
+
+        .model-selection-container label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--vscode-foreground);
+            font-weight: bold;
+        }
+
+        .model-selection-container select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            outline: none;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            border-radius: 3px;
+        }
+
+        .model-selection-container select:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+
+        /* 비활성화된 설정 섹션 스타일 */
+        .api-key-section.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .api-key-section.disabled input,
+        .api-key-section.disabled button {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .api-key-section.disabled h3 {
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .api-key-section.disabled .info-message {
+            color: var(--vscode-descriptionForeground);
+        }
+
     </style>
 </head>
 <body>
@@ -327,18 +429,58 @@
     </div>
 
     <div class="section-container">
-        <h2 id="api-key-section-title">🤖 Gemini API 키 설정</h2>
-        <p class="info-message">CodePilot의 AI 기능을 사용하기 위한 Gemini API 키를 설정합니다.</p>
-        <p class="info-message"><strong>등록 방법:</strong> <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio API 키 페이지</a>에서 새 API 키를 생성하세요.</p>
+        <h2 id="api-key-section-title">🤖 AI 모델 설정</h2>
+        <p class="info-message">CodePilot의 AI 기능을 사용하기 위한 모델 설정입니다. 사용할 AI 모델을 선택하고 해당 설정을 구성하세요.</p>
         
-        <div class="api-key-section">
-            <h3 id="gemini-api-key-label">Gemini API 키</h3>
-            <p class="info-message">AI 코드 생성 및 분석 기능을 활성화합니다.</p>
+        <!-- AI 모델 선택 드롭다운 -->
+        <div class="model-selection-container">
+            <label id="ai-model-select-label" for="ai-model-select"><b>AI 모델 선택</b></label>
+            <select id="ai-model-select">
+                <option value="gemini" selected>Gemini 2.5 Pro Flash</option>
+                <option value="ollama">Gemma3:27b (Ollama)</option>
+            </select>
+        </div>
+        
+        <!-- Gemini API 키 설정 -->
+        <div class="api-key-section" id="gemini-settings-section">
+            <h3 id="gemini-api-key-label">🌐 Gemini 2.5 Pro Flash</h3>
+            <p class="info-message">Google의 Gemini 2.5 Pro Flash API를 사용하여 AI 코드 생성 및 분석 기능을 활성화합니다.</p>
+            <p class="info-message"><strong>등록 방법:</strong> <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio API 키 페이지</a>에서 새 API 키를 생성하세요.</p>
             <div class="api-key-input-group">
                 <input type="password" id="gemini-api-key-input" placeholder="Gemini API 키를 입력하세요...">
                 <button id="save-gemini-api-key-button">저장</button>
             </div>
             <p id="gemini-api-key-status" class="info-message"></p>
+        </div>
+
+        <!-- Ollama Gemma3:27b 설정 -->
+        <div class="api-key-section" id="ollama-settings-section">
+            <h3 id="ollama-api-label">🏠 Gemma3:27b (Ollama)</h3>
+            <p class="info-message">로컬 네트워크에 설치된 Ollama의 Gemma3:27b 모델을 사용하여 AI 코드 생성 및 분석 기능을 활성화합니다.</p>
+            <p class="info-message"><strong>설정 방법:</strong> 로컬 네트워크에서 실행 중인 Ollama 서버의 HTTP API 주소를 입력하세요. (예: http://192.168.1.100:11434)</p>
+            <div class="api-key-input-group">
+                <input type="text" id="ollama-api-url-input" placeholder="http://localhost:11434">
+                <button id="save-ollama-api-url-button">저장</button>
+            </div>
+            <p id="ollama-api-url-status" class="info-message"></p>
+        </div>
+    </div>
+
+    <div class="section-container">
+        <h2 id="banya-license-title">🔑 Banya 라이센스 설정</h2>
+        <p class="info-message">CodePilot의 고급 기능을 사용하기 위한 Banya 라이센스 시리얼을 입력하고 검증합니다.</p>
+        
+        <div class="api-key-section">
+            <h3 id="banya-license-label">라이센스 시리얼</h3>
+            <p class="info-message">Banya 라이센스 시리얼을 입력하여 제품을 활성화하세요.</p>
+            <div class="license-input-group">
+                <textarea id="banya-license-serial-input" placeholder="라이센스 시리얼을 입력하세요..." rows="4"></textarea>
+                <div class="license-button-group">
+                    <button id="save-banya-license-button">라이센스 저장</button>
+                    <button id="verify-banya-license-button">라이센스 검증</button>
+                </div>
+            </div>
+            <p id="banya-license-status" class="info-message"></p>
         </div>
     </div>
 

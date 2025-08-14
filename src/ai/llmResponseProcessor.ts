@@ -3,6 +3,7 @@ import * as path from 'path';
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
 import { PromptType } from './geminiService'; // Import PromptType
+import { safePostMessage } from '../webview/panelUtils';
 
 // Define a type for file operations
 interface FileOperation {
@@ -78,7 +79,7 @@ export class LlmResponseProcessor {
         // 새 파일 생성을 위한 프로젝트 루트가 없으면 경고
         if (!projectRoot && llmResponse.includes("새 파일:")) {
             this.notificationService.showErrorMessage("새 파일 생성을 위해 프로젝트 루트 경로를 찾을 수 없습니다. CodePilot 설정에서 'Project Root'를 설정하거나, 워크스페이스를 여십시오.");
-            webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: "오류: 새 파일 생성을 위한 프로젝트 루트 경로를 찾을 수 없습니다." });
+            safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: "오류: 새 파일 생성을 위한 프로젝트 루트 경로를 찾을 수 없습니다." });
             // 여기서 return하지 않고, 아래 루프에서 새 파일 생성을 건너뛰도록 처리
         }
 
@@ -105,7 +106,7 @@ export class LlmResponseProcessor {
                 } else {
                     const warnMsg = `경고: AI가 수정을 제안한 파일 '${llmSpecifiedPath}'을(를) 컨텍스트 목록에서 찾을 수 없습니다. 해당 파일은 업데이트되지 않았습니다.`;
                     // console.warn(`[LLM Response Processor] WARN: '수정 파일' specified as "${llmSpecifiedPath}" but not found in context. Context files:`, contextFiles.map((f: { name: string, fullPath: string }) => f.name));
-                    webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
+                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
                     updateSummaryMessages.push(`⚠️ ${warnMsg}`);
                     continue; // Skip this operation
                 }
@@ -118,7 +119,7 @@ export class LlmResponseProcessor {
                     const warnMsg = `경고: '새 파일' 지시어 '${llmSpecifiedPath}'가 감지되었으나, 프로젝트 루트 경로를 찾을 수 없어 파일 생성을 건너뜀.`;
                     // console.warn(`[LLM Response Processor] WARN: ${warnMsg}`);
                     this.notificationService.showWarningMessage(`CodePilot: ${warnMsg}`);
-                    webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
+                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
                     updateSummaryMessages.push(`⚠️ ${warnMsg}`);
                     continue; // Skip this operation
                 }
@@ -152,7 +153,7 @@ export class LlmResponseProcessor {
                 const warnMsg = `경고: '삭제 파일' 지시어 '${llmSpecifiedPath}'가 감지되었으나, 프로젝트 루트 경로를 찾을 수 없어 파일 삭제를 건너뜀.`;
                 // console.warn(`[LLM Response Processor] WARN: ${warnMsg}`);
                 this.notificationService.showWarningMessage(`CodePilot: ${warnMsg}`);
-                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
                 updateSummaryMessages.push(`⚠️ ${warnMsg}`);
                 continue; // Skip this operation
             }
@@ -188,12 +189,12 @@ export class LlmResponseProcessor {
             textPreview: initialWebviewResponse.substring(0, 200) + '...'
         });
         
-        webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: initialWebviewResponse });
+        safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: initialWebviewResponse });
 
         // 파일 작업이 있는 경우에만 추가 처리
         if (fileOperations.length > 0) {
             // thinking 애니메이션을 먼저 제거
-            webview.postMessage({ command: 'hideLoading' });
+            safePostMessage(webview, { command: 'hideLoading' });
             
             const autoUpdateEnabled = await this.configurationService.isAutoUpdateEnabled();
 
@@ -293,46 +294,46 @@ export class LlmResponseProcessor {
             // 파일 작업 결과를 추가로 채팅창에 표시
             if (updateSummaryMessages.length > 0) {
                 const updateResultMessage = "\n\n📁 파일 업데이트 결과\n" + updateSummaryMessages.join("\n");
-                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: updateResultMessage });
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: updateResultMessage });
             }
 
             // 작업 요약과 설명을 마지막에 출력
             if (workSummary) {
                 const summaryMessage = "\n\n📋 AI 작업 요약\n" + workSummary;
-                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
             }
 
             if (workDescription) {
                 const descriptionMessage = "\n\n💡 작업 수행 설명\n" + workDescription;
-                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
             }
         } else if (llmResponse.includes("Copy") && !llmResponse.includes("수정 파일:") && !llmResponse.includes("새 파일:") && !llmResponse.includes("삭제 파일:")) {
             const infoMessage = "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:', '새 파일:', 또는 '삭제 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요.";
-            webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: infoMessage });
+            safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: infoMessage });
             
             // 파일 작업이 없어도 작업 요약과 설명이 있으면 출력
             if (workSummary) {
                 const summaryMessage = "\n\n📋 AI 작업 요약\n" + workSummary;
-                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
             }
 
             if (workDescription) {
                 const descriptionMessage = "\n\n💡 작업 수행 설명\n" + workDescription;
-                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
             }
         } else {
             // 파일 작업이 없는 경우 thinking 애니메이션 제거
-            webview.postMessage({ command: 'hideLoading' });
+            safePostMessage(webview, { command: 'hideLoading' });
             
             // 파일 작업이 없어도 작업 요약과 설명이 있으면 출력
             if (workSummary) {
                 const summaryMessage = "\n\n📋 AI 작업 요약\n" + workSummary;
-                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
             }
 
             if (workDescription) {
                 const descriptionMessage = "\n\n💡 작업 수행 설명\n" + workDescription;
-                webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
             }
         }
     }

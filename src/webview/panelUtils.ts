@@ -3,6 +3,22 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
+ * webview가 유효한지 확인하고 안전하게 메시지를 보내는 함수
+ */
+export function safePostMessage(webview: vscode.Webview, message: any): boolean {
+    try {
+        if (webview) {
+            webview.postMessage(message);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.warn('Failed to post message to webview:', error);
+        return false;
+    }
+}
+
+/**
  * 범용 논스(nonce) 값을 생성합니다.
  */
 export function getNonce(): string {

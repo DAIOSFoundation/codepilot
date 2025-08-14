@@ -36,6 +36,22 @@ const geminiApiKeyInput = document.getElementById('gemini-api-key-input');
 const saveGeminiApiKeyButton = document.getElementById('save-gemini-api-key-button');
 const geminiApiKeyStatus = document.getElementById('gemini-api-key-status');
 
+// Ollama API URL 관련 요소들
+const ollamaApiUrlInput = document.getElementById('ollama-api-url-input');
+const saveOllamaApiUrlButton = document.getElementById('save-ollama-api-url-button');
+const ollamaApiUrlStatus = document.getElementById('ollama-api-url-status');
+
+// Banya 라이센스 관련 요소들
+const banyaLicenseSerialInput = document.getElementById('banya-license-serial-input');
+const saveBanyaLicenseButton = document.getElementById('save-banya-license-button');
+const verifyBanyaLicenseButton = document.getElementById('verify-banya-license-button');
+const banyaLicenseStatus = document.getElementById('banya-license-status');
+
+// AI 모델 선택 관련 요소들
+const aiModelSelect = document.getElementById('ai-model-select');
+const geminiSettingsSection = document.getElementById('gemini-settings-section');
+const ollamaSettingsSection = document.getElementById('ollama-settings-section');
+
 // 언어별 텍스트 로딩 및 적용
 const languageSelect = document.getElementById('language-select');
 const saveLanguageButton = document.getElementById('save-language-button');
@@ -455,6 +471,105 @@ function applyLanguage() {
         }
         console.log('Updated Gemini API registration method:', languageData['geminiApiRegistrationMethod']);
     }
+
+    // AI 모델 설정 제목
+    const aiModelSettingsTitle = document.getElementById('api-key-section-title');
+    if (aiModelSettingsTitle && languageData['aiModelSettingsTitle']) {
+        aiModelSettingsTitle.textContent = languageData['aiModelSettingsTitle'];
+        console.log('Updated AI model settings title:', languageData['aiModelSettingsTitle']);
+    }
+
+    // Ollama API 라벨
+    const ollamaApiLabel = document.getElementById('ollama-api-label');
+    if (ollamaApiLabel && languageData['ollamaApiLabel']) {
+        ollamaApiLabel.textContent = languageData['ollamaApiLabel'];
+        console.log('Updated Ollama API label:', languageData['ollamaApiLabel']);
+    }
+
+    // Ollama API 설명
+    const ollamaApiDescription = document.querySelector('#ollama-api-label + p');
+    if (ollamaApiDescription && languageData['ollamaApiDescription']) {
+        ollamaApiDescription.textContent = languageData['ollamaApiDescription'];
+        console.log('Updated Ollama API description:', languageData['ollamaApiDescription']);
+    }
+
+    // Ollama API 설정 방법
+    const ollamaApiSetupMethod = document.querySelector('#ollama-api-label + p + p');
+    if (ollamaApiSetupMethod && languageData['ollamaApiSetupMethod']) {
+        ollamaApiSetupMethod.textContent = languageData['ollamaApiSetupMethod'];
+        console.log('Updated Ollama API setup method:', languageData['ollamaApiSetupMethod']);
+    }
+
+    // Ollama 저장 버튼
+    const saveOllamaApiUrlButton = document.getElementById('save-ollama-api-url-button');
+    if (saveOllamaApiUrlButton && languageData['saveOllamaApiUrlButton']) {
+        saveOllamaApiUrlButton.textContent = languageData['saveOllamaApiUrlButton'];
+        console.log('Updated Ollama save button:', languageData['saveOllamaApiUrlButton']);
+    }
+
+    // Banya 라이센스 제목
+    const banyaLicenseTitle = document.getElementById('banya-license-title');
+    if (banyaLicenseTitle && languageData['banyaLicenseTitle']) {
+        banyaLicenseTitle.textContent = languageData['banyaLicenseTitle'];
+        console.log('Updated Banya license title:', languageData['banyaLicenseTitle']);
+    }
+
+    // Banya 라이센스 설명
+    const banyaLicenseDescription = document.querySelector('#banya-license-title + p');
+    if (banyaLicenseDescription && languageData['banyaLicenseDescription']) {
+        banyaLicenseDescription.textContent = languageData['banyaLicenseDescription'];
+        console.log('Updated Banya license description:', languageData['banyaLicenseDescription']);
+    }
+
+    // Banya 라이센스 라벨
+    const banyaLicenseLabel = document.getElementById('banya-license-label');
+    if (banyaLicenseLabel && languageData['banyaLicenseLabel']) {
+        banyaLicenseLabel.textContent = languageData['banyaLicenseLabel'];
+        console.log('Updated Banya license label:', languageData['banyaLicenseLabel']);
+    }
+
+    // Banya 라이센스 설명 (섹션 내)
+    const banyaLicenseSectionDescription = document.querySelector('#banya-license-label + p');
+    if (banyaLicenseSectionDescription && languageData['banyaLicenseSectionDescription']) {
+        banyaLicenseSectionDescription.textContent = languageData['banyaLicenseSectionDescription'];
+        console.log('Updated Banya license section description:', languageData['banyaLicenseSectionDescription']);
+    }
+
+    // Banya 라이센스 저장 버튼
+    const saveBanyaLicenseButton = document.getElementById('save-banya-license-button');
+    if (saveBanyaLicenseButton && languageData['saveBanyaLicenseButton']) {
+        saveBanyaLicenseButton.textContent = languageData['saveBanyaLicenseButton'];
+        console.log('Updated Banya license save button:', languageData['saveBanyaLicenseButton']);
+    }
+
+    // Banya 라이센스 검증 버튼
+    const verifyBanyaLicenseButton = document.getElementById('verify-banya-licenseButton');
+    if (verifyBanyaLicenseButton && languageData['verifyBanyaLicenseButton']) {
+        verifyBanyaLicenseButton.textContent = languageData['verifyBanyaLicenseButton'];
+        console.log('Updated Banya license verify button:', languageData['verifyBanyaLicenseButton']);
+    }
+
+    // AI 모델 선택 라벨
+    const aiModelSelectLabel = document.getElementById('ai-model-select-label');
+    if (aiModelSelectLabel && languageData['aiModelSelectLabel']) {
+        aiModelSelectLabel.innerHTML = `<b>${languageData['aiModelSelectLabel']}</b>`;
+        console.log('Updated AI model select label:', languageData['aiModelSelectLabel']);
+    }
+
+    // AI 모델 선택 옵션들
+    const aiModelSelect = document.getElementById('ai-model-select');
+    if (aiModelSelect && languageData['geminiOption']) {
+        const geminiOption = aiModelSelect.querySelector('option[value="gemini"]');
+        if (geminiOption) {
+            geminiOption.textContent = languageData['geminiOption'];
+        }
+    }
+    if (aiModelSelect && languageData['ollamaOption']) {
+        const ollamaOption = aiModelSelect.querySelector('option[value="ollama"]');
+        if (ollamaOption) {
+            ollamaOption.textContent = languageData['ollamaOption'];
+        }
+    }
 }
 
 if (languageSelect) {
@@ -653,6 +768,83 @@ if (saveGeminiApiKeyButton) {
     });
 }
 
+// Ollama API URL 저장 이벤트 리스너
+if (saveOllamaApiUrlButton) {
+    saveOllamaApiUrlButton.addEventListener('click', () => {
+        const apiUrl = ollamaApiUrlInput.value.trim();
+        if (apiUrl) {
+            // URL 유효성 검사
+            try {
+                new URL(apiUrl);
+                vscode.postMessage({ command: 'saveOllamaApiUrl', apiUrl: apiUrl });
+                const savingText = languageData['ollamaApiUrlSaving'] || 'Ollama API URL 저장 중...';
+                showStatus(ollamaApiUrlStatus, savingText, 'info');
+            } catch (error) {
+                const invalidUrlText = languageData['invalidUrlFormat'] || '올바른 URL 형식을 입력해주세요. (예: http://localhost:11434)';
+                showStatus(ollamaApiUrlStatus, invalidUrlText, 'error');
+            }
+        } else {
+            const pleaseEnterText = languageData['pleaseEnterOllamaApiUrl'] || 'Ollama API URL을 입력해주세요.';
+            showStatus(ollamaApiUrlStatus, pleaseEnterText, 'error');
+        }
+    });
+}
+
+// Banya 라이센스 저장 이벤트 리스너
+if (saveBanyaLicenseButton) {
+    saveBanyaLicenseButton.addEventListener('click', () => {
+        const licenseSerial = banyaLicenseSerialInput.value.trim();
+        if (licenseSerial) {
+            vscode.postMessage({ command: 'saveBanyaLicense', licenseSerial: licenseSerial });
+            const savingText = languageData['banyaLicenseSaving'] || 'Banya 라이센스 저장 중...';
+            showStatus(banyaLicenseStatus, savingText, 'info');
+        } else {
+            const pleaseEnterText = languageData['pleaseEnterBanyaLicense'] || '라이센스 시리얼을 입력해주세요.';
+            showStatus(banyaLicenseStatus, pleaseEnterText, 'error');
+        }
+    });
+}
+
+// Banya 라이센스 검증 이벤트 리스너
+if (verifyBanyaLicenseButton) {
+    verifyBanyaLicenseButton.addEventListener('click', () => {
+        const licenseSerial = banyaLicenseSerialInput.value.trim();
+        if (licenseSerial) {
+            vscode.postMessage({ command: 'verifyBanyaLicense', licenseSerial: licenseSerial });
+            const verifyingText = languageData['banyaLicenseVerifying'] || 'Banya 라이센스 검증 중...';
+            showStatus(banyaLicenseStatus, verifyingText, 'info');
+        } else {
+            const pleaseEnterText = languageData['pleaseEnterBanyaLicense'] || '라이센스 시리얼을 입력해주세요.';
+            showStatus(banyaLicenseStatus, pleaseEnterText, 'error');
+        }
+    });
+}
+
+// AI 모델 선택 이벤트 리스너
+if (aiModelSelect) {
+    aiModelSelect.addEventListener('change', () => {
+        const selectedModel = aiModelSelect.value;
+        console.log('AI model selected:', selectedModel);
+        
+        // 선택된 모델에 따라 설정 섹션 활성화/비활성화
+        if (selectedModel === 'gemini') {
+            geminiSettingsSection.classList.remove('disabled');
+            ollamaSettingsSection.classList.add('disabled');
+        } else if (selectedModel === 'ollama') {
+            geminiSettingsSection.classList.add('disabled');
+            ollamaSettingsSection.classList.remove('disabled');
+        } else {
+            // 모델이 선택되지 않은 경우 기본값(Gemini)으로 설정
+            aiModelSelect.value = 'gemini';
+            geminiSettingsSection.classList.remove('disabled');
+            ollamaSettingsSection.classList.add('disabled');
+        }
+        
+        // 확장 프로그램에 선택된 모델 저장 요청
+        vscode.postMessage({ command: 'saveAiModel', model: selectedModel });
+    });
+}
+
 // 확장으로부터 메시지 수신
 window.addEventListener('message', event => {
     const message = event.data;
@@ -761,6 +953,22 @@ window.addEventListener('message', event => {
                     (languageData['geminiApiKeyNotSet'] || 'Gemini API 키가 설정되지 않았습니다.');
                 showStatus(geminiApiKeyStatus, geminiApiKeySetText, message.geminiApiKey ? 'success' : 'info');
             }
+            // Ollama API URL 상태 로드
+            if (ollamaApiUrlInput && typeof message.ollamaApiUrl === 'string') {
+                ollamaApiUrlInput.value = message.ollamaApiUrl;
+                const ollamaApiUrlSetText = message.ollamaApiUrl ? 
+                    (languageData['ollamaApiUrlSet'] || 'Ollama API URL이 설정되어 있습니다.') :
+                    (languageData['ollamaApiUrlNotSet'] || 'Ollama API URL이 설정되지 않았습니다.');
+                showStatus(ollamaApiUrlStatus, ollamaApiUrlSetText, message.ollamaApiUrl ? 'success' : 'info');
+            }
+            // Banya 라이센스 상태 로드
+            if (banyaLicenseSerialInput && typeof message.banyaLicenseSerial === 'string') {
+                banyaLicenseSerialInput.value = message.banyaLicenseSerial;
+                const banyaLicenseSetText = message.banyaLicenseSerial ? 
+                    (languageData['banyaLicenseSet'] || 'Banya 라이센스가 설정되어 있습니다.') :
+                    (languageData['banyaLicenseNotSet'] || 'Banya 라이센스가 설정되지 않았습니다.');
+                showStatus(banyaLicenseStatus, banyaLicenseSetText, message.banyaLicenseSerial ? 'success' : 'info');
+            }
             break;
         case 'weatherApiKeySaved':
             const weatherApiKeySavedText = languageData['weatherApiKeySaved'] || '기상청 API 키가 저장되었습니다.';
@@ -806,6 +1014,56 @@ window.addEventListener('message', event => {
         case 'apiKeySaveError':
             const geminiApiKeyErrorText = languageData['geminiApiKeyError'] || 'Gemini API 키 저장 실패:';
             showStatus(geminiApiKeyStatus, `${geminiApiKeyErrorText} ${message.error}`, 'error');
+            break;
+        case 'ollamaApiUrlSaved':
+            const ollamaApiUrlSavedText = languageData['ollamaApiUrlSaved'] || 'Ollama API URL이 저장되었습니다.';
+            showStatus(ollamaApiUrlStatus, ollamaApiUrlSavedText, 'success');
+            ollamaApiUrlInput.value = '';
+            break;
+        case 'ollamaApiUrlError':
+            const ollamaApiUrlErrorText = languageData['ollamaApiUrlError'] || 'Ollama API URL 저장 실패:';
+            showStatus(ollamaApiUrlStatus, `${ollamaApiUrlErrorText} ${message.error}`, 'error');
+            break;
+        case 'banyaLicenseSaved':
+            const banyaLicenseSavedText = languageData['banyaLicenseSaved'] || 'Banya 라이센스가 저장되었습니다.';
+            showStatus(banyaLicenseStatus, banyaLicenseSavedText, 'success');
+            banyaLicenseSerialInput.value = '';
+            break;
+        case 'banyaLicenseError':
+            const banyaLicenseErrorText = languageData['banyaLicenseError'] || 'Banya 라이센스 저장 실패:';
+            showStatus(banyaLicenseStatus, `${banyaLicenseErrorText} ${message.error}`, 'error');
+            break;
+        case 'banyaLicenseVerified':
+            const banyaLicenseVerifiedText = languageData['banyaLicenseVerified'] || 'Banya 라이센스가 유효합니다.';
+            showStatus(banyaLicenseStatus, banyaLicenseVerifiedText, 'success');
+            break;
+        case 'banyaLicenseVerificationFailed':
+            const banyaLicenseVerificationFailedText = languageData['banyaLicenseVerificationFailed'] || 'Banya 라이센스 검증 실패:';
+            showStatus(banyaLicenseStatus, `${banyaLicenseVerificationFailedText} ${message.error}`, 'error');
+            break;
+        case 'aiModelSaved':
+            const aiModelSavedText = languageData['aiModelSaved'] || 'AI 모델이 저장되었습니다.';
+            showStatus(sourcePathStatus, aiModelSavedText, 'success');
+            break;
+        case 'aiModelSaveError':
+            const aiModelSaveErrorText = languageData['aiModelSaveError'] || 'AI 모델 저장 실패:';
+            showStatus(sourcePathStatus, `${aiModelSaveErrorText} ${message.error}`, 'error');
+            break;
+        case 'currentAiModel':
+            if (message.model && aiModelSelect) {
+                aiModelSelect.value = message.model;
+                // 모델 선택에 따른 UI 업데이트
+                if (message.model === 'gemini') {
+                    geminiSettingsSection.classList.remove('disabled');
+                    ollamaSettingsSection.classList.add('disabled');
+                } else if (message.model === 'ollama') {
+                    geminiSettingsSection.classList.add('disabled');
+                    ollamaSettingsSection.classList.remove('disabled');
+                } else {
+                    geminiSettingsSection.classList.add('disabled');
+                    ollamaSettingsSection.classList.add('disabled');
+                }
+            }
             break;
         case 'languageSaved':
             const languageChangedText = languageData['languageChanged'] || '언어가';
@@ -899,4 +1157,13 @@ document.addEventListener('DOMContentLoaded', () => {
     showStatus(newsApiKeyStatus, apiKeysLoadingText, 'info');
     showStatus(stockApiKeyStatus, apiKeysLoadingText, 'info');
     showStatus(geminiApiKeyStatus, apiKeysLoadingText, 'info');
+    showStatus(ollamaApiUrlStatus, apiKeysLoadingText, 'info');
+    showStatus(banyaLicenseStatus, apiKeysLoadingText, 'info');
+    
+    // AI 모델 설정 요청
+    vscode.postMessage({ command: 'loadAiModel' });
+    
+    // 초기 상태: Gemini가 기본값이므로 Gemini 설정 섹션 활성화, Ollama 설정 섹션 비활성화
+    if (geminiSettingsSection) geminiSettingsSection.classList.remove('disabled');
+    if (ollamaSettingsSection) ollamaSettingsSection.classList.add('disabled');
 });

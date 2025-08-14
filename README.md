@@ -14,12 +14,16 @@ VSCode base code assistant plugin with LLM and LM support.
 <img src="https://drive.google.com/uc?export=view&id=1sADJQZCmOatGiHyeop1pa0dipg_Zs5SP" width="700" height="500"/><br>
 
 ### 🤖 AI-Powered Code Assistance
-- **Gemini AI Integration**: Powered by Google's Gemini LLM for intelligent code generation and analysis. Lowest cost for maximum performance.
+- **Multi-Model AI Support**: 
+  - **Gemini 2.5 Pro Flash**: Google's advanced LLM for intelligent code generation and analysis
+  - **Ollama Gemma3:27b**: Local Ollama server integration for offline AI processing
+  - **Dynamic Model Selection**: Switch between cloud and local AI models in settings
 - **Dual-Mode Interface**: 
   - **CODE Tab**: Specialized for code generation, modification, and project-specific tasks
   - **ASK Tab**: General Q&A and real-time information queries
 - **Context-Aware Responses**: Analyzes your project structure and existing code for relevant suggestions
 - **Natural Language Processing**: Understands complex requests in plain English
+- **Local AI Processing**: Full offline capability with Ollama integration
 
 ### 📁 Advanced File Management
 - **Smart File Selection**: Use the @ button to select specific files for context inclusion
@@ -48,10 +52,16 @@ VSCode base code assistant plugin with LLM and LM support.
   - Percentage change calculations
 
 ### ⚙️ Comprehensive Configuration
+- **Multi-Model AI Configuration**:
+  - **AI Model Selection**: Choose between Gemini 2.5 Pro Flash and Ollama Gemma3:27b
+  - **Ollama Server Setup**: Configure local Ollama API URL (default: http://localhost:11434)
+  - **Dynamic Settings**: Enable/disable model-specific settings based on selection
 - **API Key Management**: Secure storage for multiple external API keys
+  - Gemini API key configuration
   - Weather API key configuration
   - News API credentials (Client ID & Secret)
   - Stock API key management
+  - Banya License serial management
 - **Source Path Configuration**: Customizable paths for code context inclusion
 - **Auto-Update Settings**: Toggle automatic file operations on/off
 - **Project Root Settings**: Flexible project directory configuration
@@ -80,6 +90,8 @@ VSCode base code assistant plugin with LLM and LM support.
 - **Context Optimization**: Smart context length management for optimal performance
 - **File Type Filtering**: Automatic exclusion of binary and non-code files
 - **Memory Management**: Efficient handling of large codebases
+- **Network Resilience**: Node.js HTTP module for reliable local network connections
+- **Webview Safety**: Protected message handling to prevent disposed webview errors
 
 ### 📋 Usage Examples
 - **Code Generation**: "Create a React component for user authentication"
@@ -137,12 +149,25 @@ VSCode base code assistant plugin with LLM and LM support.
    ```
 
 ### Configuration
-1. **API Key Setup**
+1. **AI Model Setup**
    - Open VS Code Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
    - Run "CodePilot: Open Settings Panel"
-   - Enter your Gemini API key (get from [Google AI Studio](https://aistudio.google.com/app/apikey))
+   - **For Gemini**: Enter your Gemini API key (get from [Google AI Studio](https://aistudio.google.com/app/apikey))
+   - **For Ollama**: Install Ollama and set API URL (default: http://localhost:11434)
 
-2. **Optional External APIs**
+2. **Ollama Setup (Optional)**
+   ```bash
+   # Install Ollama
+   curl -fsSL https://ollama.ai/install.sh | sh
+   
+   # Start Ollama server
+   ollama serve
+   
+   # Pull Gemma3:27b model
+   ollama pull gemma3:27b
+   ```
+
+3. **Optional External APIs**
    - **Weather API**: Get API key from [KMA API Hub](https://apihub.kma.go.kr/)
    - **News API**: Get Client ID & Secret from [Naver Developers](https://developers.naver.com/)
    - **Stock API**: Get API key from [Alpha Vantage](https://www.alphavantage.co/)
@@ -250,6 +275,52 @@ npm run lint
 Calling out known issues can help limit users opening duplicate issues against your extension.
 
 ## Release Notes
+
+### Version 2.4.2 (2025/01/29) - Multi-Model AI Support & Ollama Integration
+
+<details>
+<summary>Multi-Model AI Support</summary>
+
+- **Ollama Integration**: Added support for local Ollama Gemma3:27b model
+- **Dynamic Model Selection**: AI model dropdown in settings to choose between Gemini and Ollama
+- **Model-Specific Settings**: Automatic enabling/disabling of relevant settings based on selected model
+- **Unified LLM Service**: Centralized service to handle both Gemini and Ollama API calls
+- **Offline Capability**: Full offline AI processing with local Ollama server
+
+</details>
+
+<details>
+<summary>Enhanced Settings Interface</summary>
+
+- **AI Model Configuration**: New dropdown for selecting AI model (Gemini 2.5 Pro Flash / Gemma3:27b)
+- **Ollama API URL Setup**: Input field for configuring local Ollama server address
+- **Banya License Management**: License serial input and verification system
+- **Dynamic UI**: Settings sections automatically enable/disable based on model selection
+- **Default Configuration**: Gemini 2.5 Pro Flash set as default model
+
+</details>
+
+<details>
+<summary>Technical Improvements</summary>
+
+- **Network Resilience**: Replaced fetch with Node.js HTTP module for reliable local connections
+- **Webview Safety**: Added safePostMessage function to prevent disposed webview errors
+- **Error Handling**: Enhanced error handling for network connectivity issues
+- **Type Safety**: Improved TypeScript type definitions and error checking
+- **Performance**: Optimized message handling and webview communication
+
+</details>
+
+<details>
+<summary>Ollama Setup Instructions</summary>
+
+- **Server Installation**: curl -fsSL https://ollama.ai/install.sh | sh
+- **Model Download**: ollama pull gemma3:27b
+- **Server Start**: ollama serve
+- **API URL**: Default http://localhost:11434
+- **Network Configuration**: Support for local network addresses
+
+</details>
 
 ### Version 2.4.1 (2024/07/10) - Improved LLM Prompt Structure & Code Generation/Modification Requests
 

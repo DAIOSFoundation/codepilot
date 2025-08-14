@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { getHtmlContentWithUris } from './panelUtils';
-import { GeminiService, PromptType } from '../ai/geminiService'; // GeminiService 및 PromptType 임포트
+import { LlmService, PromptType } from '../ai/llmService'; // LlmService 및 PromptType 임포트
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
 
@@ -11,7 +11,7 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
     constructor(
         private readonly extensionUri: vscode.Uri,
         private readonly context: vscode.ExtensionContext,
-        private readonly geminiService: GeminiService, // GeminiService 인스턴스 주입
+        private readonly llmService: LlmService, // LlmService 인스턴스 주입
         private readonly configurationService: ConfigurationService,
         private readonly notificationService: NotificationService
     ) {}
@@ -39,7 +39,7 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
             switch (data.command) {
                 case 'sendMessage':
                     // ASK 탭에서는 GENERAL_ASK 프롬프트 타입을 사용
-                    await this.geminiService.handleUserMessageAndRespond(
+                    await this.llmService.handleUserMessageAndRespond(
                         data.text, 
                         webviewView.webview, 
                         PromptType.GENERAL_ASK, 
@@ -53,7 +53,7 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'cancelGeminiCall':
                     console.log('[Extension Host] Received cancelGeminiCall command from Ask tab.');
-                    this.geminiService.cancelCurrentCall();
+                    this.llmService.cancelCurrentCall();
                     webviewView.webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: 'AI 호출이 취소되었습니다.' });
                     break;
             }
