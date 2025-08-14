@@ -14,12 +14,16 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
 <img src="https://drive.google.com/uc?export=view&id=1sADJQZCmOatGiHyeop1pa0dipg_Zs5SP" width="700" height="500"/><br>
 
 ### 🤖 AI 기반 코드 어시스턴스
-- **Gemini AI 통합**: Google의 Gemini LLM 기반의 지능형 코드 생성 및 분석. 저비용으로 최고의 성능 제공
+- **멀티모델 AI 지원**:
+  - **Gemini 2.5 Pro Flash**: Google의 고급 LLM으로 지능형 코드 생성 및 분석
+  - **Ollama Gemma3:27b**: 오프라인 AI 처리를 위한 로컬 Ollama 서버 통합
+  - **동적 모델 선택**: 설정에서 클라우드와 로컬 AI 모델 간 전환 가능
 - **듀얼 모드 인터페이스**:
   - **CODE 탭**: 코드 생성, 수정, 프로젝트 작업에 특화
   - **ASK 탭**: 일반 Q&A 및 실시간 정보 질의
 - **맥락 인식 응답**: 프로젝트 구조와 기존 코드를 분석하여 관련성 높은 제안 제공
 - **자연어 처리**: 복잡한 요청도 자연어로 이해
+- **로컬 AI 처리**: Ollama 통합으로 완전한 오프라인 기능 제공
 
 ### 📁 고급 파일 관리
 - **스마트 파일 선택**: @ 버튼으로 특정 파일을 선택해 맥락에 포함
@@ -48,10 +52,16 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
   - 변동률 계산
 
 ### ⚙️ 포괄적 설정
+- **멀티모델 AI 설정**:
+  - **AI 모델 선택**: Gemini 2.5 Pro Flash와 Ollama Gemma3:27b 중 선택
+  - **Ollama 서버 설정**: 로컬 Ollama API URL 설정 (기본값: http://localhost:11434)
+  - **동적 설정**: 선택된 모델에 따라 관련 설정 자동 활성화/비활성화
 - **API 키 관리**: 여러 외부 API 키를 안전하게 저장
+  - Gemini API 키 설정
   - 날씨 API 키 설정
   - 뉴스 API 자격증명(Client ID & Secret)
   - 주식 API 키 관리
+  - Banya 라이센스 시리얼 관리
 - **소스 경로 설정**: 코드 맥락 포함을 위한 경로 지정 가능
 - **자동 업데이트 설정**: 자동 파일 작업 on/off 토글
 - **프로젝트 루트 설정**: 유연한 프로젝트 디렉토리 지정
@@ -80,6 +90,8 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
 - **맥락 최적화**: 최적의 성능을 위한 스마트 맥락 길이 관리
 - **파일 타입 필터링**: 바이너리/비코드 파일 자동 제외
 - **메모리 관리**: 대용량 코드베이스 효율적 처리
+- **네트워크 안정성**: 로컬 네트워크 연결을 위한 Node.js HTTP 모듈 사용
+- **웹뷰 안전성**: disposed 웹뷰 에러 방지를 위한 보호된 메시지 처리
 
 ### 📋 사용 예시
 - **코드 생성**: "React 사용자 인증 컴포넌트 생성해줘"
@@ -137,12 +149,25 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
    ```
 
 ### 설정
-1. **API 키 설정**
+1. **AI 모델 설정**
    - VS Code 명령 팔레트 열기 (`Ctrl+Shift+P` / `Cmd+Shift+P`)
    - "CodePilot: Open Settings Panel" 실행
-   - Gemini API 키 입력 ([Google AI Studio](https://aistudio.google.com/app/apikey)에서 획득)
+   - **Gemini 사용 시**: Gemini API 키 입력 ([Google AI Studio](https://aistudio.google.com/app/apikey)에서 획득)
+   - **Ollama 사용 시**: Ollama 설치 후 API URL 설정 (기본값: http://localhost:11434)
 
-2. **선택적 외부 API**
+2. **Ollama 설정 (선택사항)**
+   ```bash
+   # Ollama 설치
+   curl -fsSL https://ollama.ai/install.sh | sh
+   
+   # Ollama 서버 시작
+   ollama serve
+   
+   # Gemma3:27b 모델 다운로드
+   ollama pull gemma3:27b
+   ```
+
+3. **선택적 외부 API**
    - **날씨 API**: [기상청 API Hub](https://apihub.kma.go.kr/)에서 API 키 획득
    - **뉴스 API**: [네이버 개발자센터](https://developers.naver.com/)에서 Client ID & Secret 획득
    - **주식 API**: [Alpha Vantage](https://www.alphavantage.co/)에서 API 키 획득
@@ -250,6 +275,52 @@ npm run lint
 알려진 이슈를 명시하면 중복 이슈 등록을 줄일 수 있습니다.
 
 ## 릴리즈 노트
+
+### Version 2.4.2 (2025/01/29) - 멀티모델 AI 지원 및 Ollama 통합
+
+<details>
+<summary>멀티모델 AI 지원</summary>
+
+- **Ollama 통합**: 로컬 Ollama Gemma3:27b 모델 지원 추가
+- **동적 모델 선택**: 설정에서 Gemini와 Ollama 중 선택 가능한 AI 모델 드롭다운
+- **모델별 설정**: 선택된 모델에 따라 관련 설정 자동 활성화/비활성화
+- **통합 LLM 서비스**: Gemini와 Ollama API 호출을 처리하는 중앙화된 서비스
+- **오프라인 기능**: 로컬 Ollama 서버로 완전한 오프라인 AI 처리
+
+</details>
+
+<details>
+<summary>향상된 설정 인터페이스</summary>
+
+- **AI 모델 설정**: AI 모델 선택 드롭다운 (Gemini 2.5 Pro Flash / Gemma3:27b)
+- **Ollama API URL 설정**: 로컬 Ollama 서버 주소 설정 입력 필드
+- **Banya 라이센스 관리**: 라이센스 시리얼 입력 및 검증 시스템
+- **동적 UI**: 모델 선택에 따라 설정 섹션 자동 활성화/비활성화
+- **기본 설정**: Gemini 2.5 Pro Flash를 기본 모델로 설정
+
+</details>
+
+<details>
+<summary>기술적 개선</summary>
+
+- **네트워크 안정성**: 로컬 연결을 위해 fetch를 Node.js HTTP 모듈로 교체
+- **웹뷰 안전성**: disposed 웹뷰 에러 방지를 위한 safePostMessage 함수 추가
+- **에러 처리**: 네트워크 연결 문제에 대한 향상된 에러 처리
+- **타입 안전성**: TypeScript 타입 정의 및 에러 검사 개선
+- **성능**: 메시지 처리 및 웹뷰 통신 최적화
+
+</details>
+
+<details>
+<summary>Ollama 설정 가이드</summary>
+
+- **서버 설치**: curl -fsSL https://ollama.ai/install.sh | sh
+- **모델 다운로드**: ollama pull gemma3:27b
+- **서버 시작**: ollama serve
+- **API URL**: 기본값 http://localhost:11434
+- **네트워크 설정**: 로컬 네트워크 주소 지원
+
+</details>
 
 ### Version 2.4.1 (2024/07/10) - LLM 프롬프트 구조 개선 및 코드 생성/수정 요청 방식 고도화
 
