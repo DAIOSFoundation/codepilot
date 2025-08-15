@@ -3,6 +3,7 @@ import { getHtmlContentWithUris } from './panelUtils';
 import { LlmService, PromptType } from '../ai/llmService'; // LlmService 및 PromptType 임포트
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
+import { StorageService } from '../services/storage';
 
 export class ChatViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'codepilot.chatView';
@@ -15,7 +16,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         private readonly openSettingsPanel: (viewColumn: vscode.ViewColumn) => void,
         private readonly openLicensePanel: (viewColumn: vscode.ViewColumn) => void,
         private readonly configurationService: ConfigurationService,
-        private readonly notificationService: NotificationService
+        private readonly notificationService: NotificationService,
+        private readonly storageService: StorageService
     ) {}
 
     public resolveWebviewView(
@@ -39,6 +41,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async (data: any) => {
             switch (data.command) {
                 case 'sendMessage':
+                    // 라이센스 확인
+                    const licenseSerial = await this.storageService.getBanyaLicenseSerial();
+                    if (!licenseSerial || licenseSerial.trim() === '') {
+                        webviewView.webview.postMessage({ 
+                            command: 'receiveMessage', 
+                            sender: 'CodePilot', 
+                            text: '라이센스가 설정되지 않았습니다. 설정에서 Banya 라이센스를 입력하고 검증해주세요.' 
+                        });
+                        return;
+                    }
+                    
                     // 이미지 데이터와 MIME 타입도 함께 전달
                     await this.llmService.handleUserMessageAndRespond(
                         data.text, 

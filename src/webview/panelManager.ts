@@ -3,6 +3,7 @@ import { StorageService } from '../services/storage';
 import { GeminiApi } from '../ai/gemini';
 import { ConfigurationService } from '../services/configurationService'; // 새로 추가
 import { NotificationService } from '../services/notificationService'; // 새로 추가
+import { LicenseService } from '../services/licenseService'; // 라이센스 서비스 추가
 import { createAndSetupWebviewPanel } from './panelUtils';
 
 // 전역 webview 배열 - 모든 활성 webview를 추적
@@ -18,7 +19,8 @@ export function openSettingsPanel(
     configurationService: ConfigurationService,
     notificationService: NotificationService,
     storageService: StorageService, // StorageService 추가
-    geminiApi: GeminiApi // GeminiApi 추가
+    geminiApi: GeminiApi, // GeminiApi 추가
+    licenseService: LicenseService // LicenseService 추가
 ) {
     const panel = createAndSetupWebviewPanel(extensionUri, context, 'settings', 'CodePilot Settings', 'settings', viewColumn,
         async (data, panel) => {
@@ -76,6 +78,20 @@ export function openSettingsPanel(
                     const geminiApiKey = await storageService.getApiKey(); // Gemini API 키 추가
                     const ollamaApiUrl = await storageService.getOllamaApiUrl(); // Ollama API URL 추가
                     const banyaLicenseSerial = await storageService.getBanyaLicenseSerial(); // Banya 라이센스 추가
+                    
+                    // Banya 라이센스 시리얼 검증 - 잘못된 데이터 필터링
+                    let validBanyaLicenseSerial = '';
+                    if (banyaLicenseSerial && 
+                        typeof banyaLicenseSerial === 'string' && 
+                        banyaLicenseSerial.trim() !== '' &&
+                        !banyaLicenseSerial.includes('/') && 
+                        !banyaLicenseSerial.includes('\\') &&
+                        !banyaLicenseSerial.includes('프로젝트') &&
+                        !banyaLicenseSerial.includes('Project') &&
+                        banyaLicenseSerial.length > 5) {
+                        validBanyaLicenseSerial = banyaLicenseSerial.trim();
+                    }
+                    
                     panel.webview.postMessage({ 
                         command: 'currentApiKeys', 
                         weatherApiKey: weatherApiKey || '', 
@@ -84,7 +100,7 @@ export function openSettingsPanel(
                         stockApiKey: stockApiKey || '',
                         geminiApiKey: geminiApiKey || '', // Gemini API 키 추가
                         ollamaApiUrl: ollamaApiUrl || '', // Ollama API URL 추가
-                        banyaLicenseSerial: banyaLicenseSerial || '' // Banya 라이센스 추가
+                        banyaLicenseSerial: validBanyaLicenseSerial // 검증된 Banya 라이센스만 전송
                     });
                     break;
                 case 'saveApiKey': // Gemini API 키 저장 케이스 추가
@@ -140,10 +156,16 @@ export function openSettingsPanel(
                     const licenseSerialToVerify = data.licenseSerial;
                     if (licenseSerialToVerify && typeof licenseSerialToVerify === 'string') {
                         try {
-                            // TODO: 실제 라이센스 검증 로직 구현
-                            // 현재는 임시로 성공으로 처리
-                            panel.webview.postMessage({ command: 'banyaLicenseVerified' });
-                            notificationService.showInfoMessage('CodePilot: Banya license verified successfully.');
+                            // 실제 라이센스 검증 로직 구현
+                            const verificationResult = await licenseService.verifyLicense(licenseSerialToVerify);
+                            
+                            if (verificationResult.success) {
+                                panel.webview.postMessage({ command: 'banyaLicenseVerified' });
+                                notificationService.showInfoMessage(`CodePilot: ${verificationResult.message}`);
+                            } else {
+                                panel.webview.postMessage({ command: 'banyaLicenseVerificationFailed', error: verificationResult.message });
+                                notificationService.showErrorMessage(`CodePilot: ${verificationResult.message}`);
+                            }
                         } catch (error: any) {
                             panel.webview.postMessage({ command: 'banyaLicenseVerificationFailed', error: error.message });
                             notificationService.showErrorMessage(`Error verifying Banya license: ${error.message}`);
@@ -151,6 +173,16 @@ export function openSettingsPanel(
                     } else {
                         panel.webview.postMessage({ command: 'banyaLicenseVerificationFailed', error: 'License serial empty.' });
                         notificationService.showErrorMessage('Banya license serial is empty.');
+                    }
+                    break;
+                case 'deleteBanyaLicense':
+                    try {
+                        await storageService.deleteBanyaLicenseSerial();
+                        panel.webview.postMessage({ command: 'banyaLicenseDeleted' });
+                        notificationService.showInfoMessage('CodePilot: Banya license deleted successfully.');
+                    } catch (error: any) {
+                        panel.webview.postMessage({ command: 'banyaLicenseDeleteError', error: error.message });
+                        notificationService.showErrorMessage(`Error deleting Banya license: ${error.message}`);
                     }
                     break;
                 case 'saveAiModel':

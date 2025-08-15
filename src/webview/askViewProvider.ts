@@ -3,6 +3,7 @@ import { getHtmlContentWithUris } from './panelUtils';
 import { LlmService, PromptType } from '../ai/llmService'; // LlmService 및 PromptType 임포트
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
+import { StorageService } from '../services/storage';
 
 export class AskViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'codepilot.askView'; // 새로운 뷰 타입
@@ -13,7 +14,8 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
         private readonly context: vscode.ExtensionContext,
         private readonly llmService: LlmService, // LlmService 인스턴스 주입
         private readonly configurationService: ConfigurationService,
-        private readonly notificationService: NotificationService
+        private readonly notificationService: NotificationService,
+        private readonly storageService: StorageService
     ) {}
 
     public resolveWebviewView(
@@ -38,6 +40,17 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async (data: any) => {
             switch (data.command) {
                 case 'sendMessage':
+                    // 라이센스 확인
+                    const licenseSerial = await this.storageService.getBanyaLicenseSerial();
+                    if (!licenseSerial || licenseSerial.trim() === '') {
+                        webviewView.webview.postMessage({ 
+                            command: 'receiveMessage', 
+                            sender: 'CodePilot', 
+                            text: '라이센스가 설정되지 않았습니다. 설정에서 Banya 라이센스를 입력하고 검증해주세요.' 
+                        });
+                        return;
+                    }
+                    
                     // ASK 탭에서는 GENERAL_ASK 프롬프트 타입을 사용
                     await this.llmService.handleUserMessageAndRespond(
                         data.text, 

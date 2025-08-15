@@ -45,12 +45,85 @@ const ollamaApiUrlStatus = document.getElementById('ollama-api-url-status');
 const banyaLicenseSerialInput = document.getElementById('banya-license-serial-input');
 const saveBanyaLicenseButton = document.getElementById('save-banya-license-button');
 const verifyBanyaLicenseButton = document.getElementById('verify-banya-license-button');
+const deleteBanyaLicenseButton = document.getElementById('delete-banya-license-button');
 const banyaLicenseStatus = document.getElementById('banya-license-status');
 
 // AI 모델 선택 관련 요소들
 const aiModelSelect = document.getElementById('ai-model-select');
 const geminiSettingsSection = document.getElementById('gemini-settings-section');
 const ollamaSettingsSection = document.getElementById('ollama-settings-section');
+
+// 라이센스 검증 상태 추적
+let isLicenseVerified = false;
+
+// 저장 버튼들의 활성화/비활성화를 제어하는 함수
+function updateSaveButtonsState() {
+    const saveButtons = [
+        saveGeminiApiKeyButton,
+        saveOllamaApiUrlButton,
+        saveWeatherApiKeyButton,
+        saveNewsApiKeyButton,
+        saveNewsApiSecretButton,
+        saveStockApiKeyButton
+    ];
+    
+    console.log('Updating save buttons state. License verified:', isLicenseVerified);
+    
+    saveButtons.forEach(button => {
+        if (button) {
+            if (isLicenseVerified) {
+                button.disabled = false;
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+                console.log('Button enabled:', button.id);
+            } else {
+                button.disabled = true;
+                button.style.opacity = '0.5';
+                button.style.cursor = 'not-allowed';
+                console.log('Button disabled:', button.id);
+            }
+        }
+    });
+}
+
+// 라이센스 버튼들의 활성화/비활성화를 제어하는 함수
+function updateLicenseButtonsState() {
+    const hasStoredLicense = banyaLicenseSerialInput && banyaLicenseSerialInput.value.trim() !== '';
+    
+    // 라이센스 저장 버튼: 검증이 완료되어야 활성화
+    if (saveBanyaLicenseButton) {
+        if (isLicenseVerified) {
+            saveBanyaLicenseButton.disabled = false;
+            saveBanyaLicenseButton.style.opacity = '1';
+            saveBanyaLicenseButton.style.cursor = 'pointer';
+        } else {
+            saveBanyaLicenseButton.disabled = true;
+            saveBanyaLicenseButton.style.opacity = '0.5';
+            saveBanyaLicenseButton.style.cursor = 'not-allowed';
+        }
+    }
+    
+    // 라이센스 삭제 버튼: 저장된 라이센스가 있어야 활성화
+    if (deleteBanyaLicenseButton) {
+        if (hasStoredLicense) {
+            deleteBanyaLicenseButton.disabled = false;
+            deleteBanyaLicenseButton.style.opacity = '1';
+            deleteBanyaLicenseButton.style.cursor = 'pointer';
+        } else {
+            deleteBanyaLicenseButton.disabled = true;
+            deleteBanyaLicenseButton.style.opacity = '0.5';
+            deleteBanyaLicenseButton.style.cursor = 'not-allowed';
+        }
+    }
+    
+    // 라이센스 검증 버튼: 항상 활성화 (입력값이 있을 때만)
+    if (verifyBanyaLicenseButton) {
+        const hasInputValue = banyaLicenseSerialInput && banyaLicenseSerialInput.value.trim() !== '';
+        verifyBanyaLicenseButton.disabled = !hasInputValue;
+        verifyBanyaLicenseButton.style.opacity = hasInputValue ? '1' : '0.5';
+        verifyBanyaLicenseButton.style.cursor = hasInputValue ? 'pointer' : 'not-allowed';
+    }
+}
 
 // 언어별 텍스트 로딩 및 적용
 const languageSelect = document.getElementById('language-select');
@@ -104,6 +177,28 @@ function applyLanguage() {
     if (geminiApiKeyLabel && languageData['geminiApiKeyLabel']) {
         geminiApiKeyLabel.textContent = languageData['geminiApiKeyLabel'];
         console.log('Updated Gemini API key label:', languageData['geminiApiKeyLabel']);
+    }
+
+    // Gemini API 설명 (기존 변수 사용)
+    const geminiApiDescriptionForLabel = document.querySelector('#gemini-api-key-label + p');
+    if (geminiApiDescriptionForLabel && languageData['geminiApiDescription']) {
+        geminiApiDescriptionForLabel.textContent = languageData['geminiApiDescription'];
+        console.log('Updated Gemini API description:', languageData['geminiApiDescription']);
+    }
+
+    // Gemini API 등록 방법 (기존 변수 사용)
+    const geminiApiRegistrationMethodForLabel = document.querySelector('#gemini-api-key-label + p + p');
+    if (geminiApiRegistrationMethodForLabel && languageData['geminiApiRegistrationMethod']) {
+        // 링크는 유지하면서 텍스트만 업데이트
+        const linkMatch = geminiApiRegistrationMethodForLabel.innerHTML.match(/<a[^>]*>([^<]*)<\/a>/);
+        if (linkMatch) {
+            const linkText = linkMatch[1];
+            const newText = languageData['geminiApiRegistrationMethod'].replace('Google AI Studio API 키 페이지', `<a href="https://aistudio.google.com/app/apikey" target="_blank">${linkText}</a>`);
+            geminiApiRegistrationMethodForLabel.innerHTML = newText;
+        } else {
+            geminiApiRegistrationMethodForLabel.textContent = languageData['geminiApiRegistrationMethod'];
+        }
+        console.log('Updated Gemini API registration method:', languageData['geminiApiRegistrationMethod']);
     }
 
     // Gemini 저장 버튼
@@ -543,10 +638,41 @@ function applyLanguage() {
     }
 
     // Banya 라이센스 검증 버튼
-    const verifyBanyaLicenseButton = document.getElementById('verify-banya-licenseButton');
-    if (verifyBanyaLicenseButton && languageData['verifyBanyaLicenseButton']) {
-        verifyBanyaLicenseButton.textContent = languageData['verifyBanyaLicenseButton'];
-        console.log('Updated Banya license verify button:', languageData['verifyBanyaLicenseButton']);
+    const verifyBanyaLicenseButton = document.getElementById('verify-banya-license-button');
+    if (verifyBanyaLicenseButton && languageData['verifyButton']) {
+        verifyBanyaLicenseButton.textContent = languageData['verifyButton'];
+        console.log('Updated Banya license verify button:', languageData['verifyButton']);
+    }
+
+    // Banya 라이센스 삭제 버튼
+    const deleteBanyaLicenseButton = document.getElementById('delete-banya-license-button');
+    if (deleteBanyaLicenseButton && languageData['deleteBanyaLicenseButton']) {
+        deleteBanyaLicenseButton.textContent = languageData['deleteBanyaLicenseButton'];
+        console.log('Updated Banya license delete button:', languageData['deleteBanyaLicenseButton']);
+    }
+
+    // Banya 라이센스 입력 필드 placeholder
+    const banyaLicenseSerialInput = document.getElementById('banya-license-serial-input');
+    if (banyaLicenseSerialInput && languageData['pleaseEnterBanyaLicense']) {
+        banyaLicenseSerialInput.placeholder = languageData['pleaseEnterBanyaLicense'];
+        console.log('Updated Banya license input placeholder:', languageData['pleaseEnterBanyaLicense']);
+    }
+
+    // Banya 라이센스 상태 메시지 업데이트
+    const banyaLicenseStatus = document.getElementById('banya-license-status');
+    if (banyaLicenseStatus && banyaLicenseStatus.textContent) {
+        const currentText = banyaLicenseStatus.textContent;
+        if (currentText.includes('설정되지 않았습니다') || currentText.includes('not set') || 
+            currentText.includes('nicht festgelegt') || currentText.includes('no está configurada') ||
+            currentText.includes('n\'est pas définie') || currentText.includes('設定されていません') ||
+            currentText.includes('未设置')) {
+            banyaLicenseStatus.textContent = languageData['banyaLicenseNotSet'] || 'Banya 라이센스가 설정되지 않았습니다.';
+        } else if (currentText.includes('설정되어 있습니다') || currentText.includes('is set') || 
+                   currentText.includes('ist festgelegt') || currentText.includes('está configurada') ||
+                   currentText.includes('est définie') || currentText.includes('設定されています') ||
+                   currentText.includes('已设置')) {
+            banyaLicenseStatus.textContent = languageData['banyaLicenseSet'] || 'Banya 라이센스가 설정되어 있습니다.';
+        }
     }
 
     // AI 모델 선택 라벨
@@ -570,17 +696,179 @@ function applyLanguage() {
             ollamaOption.textContent = languageData['ollamaOption'];
         }
     }
+
+    // Ollama API URL 라벨 (기존 변수 사용)
+    if (ollamaApiLabel && languageData['ollamaApiLabel']) {
+        ollamaApiLabel.textContent = languageData['ollamaApiLabel'];
+        console.log('Updated Ollama API label:', languageData['ollamaApiLabel']);
+    }
+
+    // Ollama API 설명 (기존 변수 사용)
+    if (ollamaApiDescription && languageData['ollamaApiDescription']) {
+        ollamaApiDescription.textContent = languageData['ollamaApiDescription'];
+        console.log('Updated Ollama API description:', languageData['ollamaApiDescription']);
+    }
+
+    // Ollama API 설정 방법 (기존 변수 사용)
+    if (ollamaApiSetupMethod && languageData['ollamaApiSetupMethod']) {
+        ollamaApiSetupMethod.textContent = languageData['ollamaApiSetupMethod'];
+        console.log('Updated Ollama API setup method:', languageData['ollamaApiSetupMethod']);
+    }
+
+    // Ollama API URL 저장 버튼 (기존 변수 사용)
+    if (saveOllamaApiUrlButton && languageData['saveOllamaApiUrlButton']) {
+        saveOllamaApiUrlButton.textContent = languageData['saveOllamaApiUrlButton'];
+        console.log('Updated Ollama API URL save button:', languageData['saveOllamaApiUrlButton']);
+    }
+
+    // 모든 placeholder 업데이트
+    // Gemini API 키 입력 필드
+    if (geminiApiKeyInput && languageData['pleaseEnterApiKey']) {
+        geminiApiKeyInput.placeholder = languageData['pleaseEnterApiKey'];
+    }
+
+    // Ollama API URL 입력 필드
+    if (ollamaApiUrlInput && languageData['pleaseEnterOllamaApiUrl']) {
+        ollamaApiUrlInput.placeholder = languageData['pleaseEnterOllamaApiUrl'];
+    }
+
+    // Weather API 키 입력 필드
+    if (weatherApiKeyInput && languageData['pleaseEnterApiKey']) {
+        weatherApiKeyInput.placeholder = languageData['pleaseEnterApiKey'];
+    }
+
+    // News API 키 입력 필드
+    if (newsApiKeyInput && languageData['pleaseEnterApiKey']) {
+        newsApiKeyInput.placeholder = languageData['pleaseEnterApiKey'];
+    }
+
+    // News API Secret 입력 필드
+    if (newsApiSecretInput && languageData['pleaseEnterApiKey']) {
+        newsApiSecretInput.placeholder = languageData['pleaseEnterApiKey'];
+    }
+
+    // Stock API 키 입력 필드
+    if (stockApiKeyInput && languageData['pleaseEnterApiKey']) {
+        stockApiKeyInput.placeholder = languageData['pleaseEnterApiKey'];
+    }
+
+    // 모든 상태 메시지 업데이트
+    // Gemini API 키 상태
+    if (geminiApiKeyStatus && geminiApiKeyStatus.textContent) {
+        const currentText = geminiApiKeyStatus.textContent;
+        if (currentText.includes('설정되어 있습니다') || currentText.includes('is set') || 
+            currentText.includes('ist festgelegt') || currentText.includes('está configurada') ||
+            currentText.includes('est définie') || currentText.includes('設定されています') ||
+            currentText.includes('已设置')) {
+            geminiApiKeyStatus.textContent = languageData['geminiApiKeySet'] || 'Gemini API 키가 설정되어 있습니다.';
+        } else if (currentText.includes('설정되지 않았습니다') || currentText.includes('not set') || 
+                   currentText.includes('nicht festgelegt') || currentText.includes('no está configurada') ||
+                   currentText.includes('n\'est pas définie') || currentText.includes('設定されていません') ||
+                   currentText.includes('未设置')) {
+            geminiApiKeyStatus.textContent = languageData['geminiApiKeyNotSet'] || 'Gemini API 키가 설정되지 않았습니다.';
+        }
+    }
+
+    // Ollama API URL 상태
+    if (ollamaApiUrlStatus && ollamaApiUrlStatus.textContent) {
+        const currentText = ollamaApiUrlStatus.textContent;
+        if (currentText.includes('설정되어 있습니다') || currentText.includes('is set') || 
+            currentText.includes('ist festgelegt') || currentText.includes('está configurada') ||
+            currentText.includes('est définie') || currentText.includes('設定されています') ||
+            currentText.includes('已设置')) {
+            ollamaApiUrlStatus.textContent = languageData['ollamaApiUrlSet'] || 'Ollama API URL이 설정되어 있습니다.';
+        } else if (currentText.includes('설정되지 않았습니다') || currentText.includes('not set') || 
+                   currentText.includes('nicht festgelegt') || currentText.includes('no está configurada') ||
+                   currentText.includes('n\'est pas définie') || currentText.includes('設定されていません') ||
+                   currentText.includes('未设置')) {
+            ollamaApiUrlStatus.textContent = languageData['ollamaApiUrlNotSet'] || 'Ollama API URL이 설정되지 않았습니다.';
+        }
+    }
+
+    // Weather API 키 상태
+    if (weatherApiKeyStatus && weatherApiKeyStatus.textContent) {
+        const currentText = weatherApiKeyStatus.textContent;
+        if (currentText.includes('설정되어 있습니다') || currentText.includes('is set') || 
+            currentText.includes('ist festgelegt') || currentText.includes('está configurada') ||
+            currentText.includes('est définie') || currentText.includes('設定されています') ||
+            currentText.includes('已设置')) {
+            weatherApiKeyStatus.textContent = languageData['weatherApiKeySet'] || '기상청 API 키가 설정되어 있습니다.';
+        } else if (currentText.includes('설정되지 않았습니다') || currentText.includes('not set') || 
+                   currentText.includes('nicht festgelegt') || currentText.includes('no está configurada') ||
+                   currentText.includes('n\'est pas définie') || currentText.includes('設定されていません') ||
+                   currentText.includes('未设置')) {
+            weatherApiKeyStatus.textContent = languageData['weatherApiKeyNotSet'] || '기상청 API 키가 설정되지 않았습니다.';
+        }
+    }
+
+    // News API 키 상태
+    if (newsApiKeyStatus && newsApiKeyStatus.textContent) {
+        const currentText = newsApiKeyStatus.textContent;
+        if (currentText.includes('설정되어 있습니다') || currentText.includes('is set') || 
+            currentText.includes('ist festgelegt') || currentText.includes('está configurada') ||
+            currentText.includes('est définie') || currentText.includes('設定されています') ||
+            currentText.includes('已设置')) {
+            newsApiKeyStatus.textContent = languageData['newsApiKeySet'] || '네이버 API Client ID가 설정되어 있습니다.';
+        } else if (currentText.includes('설정되지 않았습니다') || currentText.includes('not set') || 
+                   currentText.includes('nicht festgelegt') || currentText.includes('no está configurada') ||
+                   currentText.includes('n\'est pas définie') || currentText.includes('設定されていません') ||
+                   currentText.includes('未设置')) {
+            newsApiKeyStatus.textContent = languageData['newsApiKeyNotSet'] || '네이버 API Client ID가 설정되지 않았습니다.';
+        }
+    }
+
+    // News API Secret 상태
+    if (newsApiSecretStatus && newsApiSecretStatus.textContent) {
+        const currentText = newsApiSecretStatus.textContent;
+        if (currentText.includes('설정되어 있습니다') || currentText.includes('is set') || 
+            currentText.includes('ist festgelegt') || currentText.includes('está configurada') ||
+            currentText.includes('est définie') || currentText.includes('設定されています') ||
+            currentText.includes('已设置')) {
+            newsApiSecretStatus.textContent = languageData['newsApiSecretSet'] || '네이버 API Client Secret이 설정되어 있습니다.';
+        } else if (currentText.includes('설정되지 않았습니다') || currentText.includes('not set') || 
+                   currentText.includes('nicht festgelegt') || currentText.includes('no está configurada') ||
+                   currentText.includes('n\'est pas définie') || currentText.includes('設定されていません') ||
+                   currentText.includes('未设置')) {
+            newsApiSecretStatus.textContent = languageData['newsApiSecretNotSet'] || '네이버 API Client Secret이 설정되지 않았습니다.';
+        }
+    }
+
+    // Stock API 키 상태
+    if (stockApiKeyStatus && stockApiKeyStatus.textContent) {
+        const currentText = stockApiKeyStatus.textContent;
+        if (currentText.includes('설정되어 있습니다') || currentText.includes('is set') || 
+            currentText.includes('ist festgelegt') || currentText.includes('está configurada') ||
+            currentText.includes('est définie') || currentText.includes('設定されています') ||
+            currentText.includes('已设置')) {
+            stockApiKeyStatus.textContent = languageData['stockApiKeySet'] || '주식 API 키가 설정되어 있습니다.';
+        } else if (currentText.includes('설정되지 않았습니다') || currentText.includes('not set') || 
+                   currentText.includes('nicht festgelegt') || currentText.includes('no está configurada') ||
+                   currentText.includes('n\'est pas définie') || currentText.includes('設定されていません') ||
+                   currentText.includes('未设置')) {
+            stockApiKeyStatus.textContent = languageData['stockApiKeyNotSet'] || '주식 API 키가 설정되지 않았습니다.';
+        }
+    }
 }
 
 if (languageSelect) {
     languageSelect.addEventListener('change', (e) => {
         const lang = e.target.value;
         console.log('Language changed to:', lang);
-        currentLanguage = lang;
-        loadLanguage(lang);
         
         // 언어 변경 시 즉시 저장 요청
         vscode.postMessage({ command: 'saveLanguage', language: lang });
+        
+        // 언어 데이터 로드 요청
+        loadLanguage(lang);
+        
+        // 임시로 현재 언어 업데이트 (UI 반응성 향상)
+        currentLanguage = lang;
+        
+        // 즉시 UI 업데이트 시도 (기존 언어 데이터로)
+        if (Object.keys(languageData).length > 0) {
+            console.log('Immediate UI update with existing language data');
+            applyLanguage();
+        }
     });
 }
 
@@ -609,6 +897,9 @@ if (saveLanguageButton) {
 window.addEventListener('DOMContentLoaded', () => {
     // VS Code 설정에서 언어를 가져오도록 요청
     vscode.postMessage({ command: 'getLanguage' });
+    
+    // 기본 언어 데이터 로드 (한국어)
+    loadLanguage('ko');
 });
 
 // UI 업데이트 함수 (소스 경로)
@@ -820,6 +1111,22 @@ if (verifyBanyaLicenseButton) {
     });
 }
 
+// Banya 라이센스 삭제 이벤트 리스너
+if (deleteBanyaLicenseButton) {
+    deleteBanyaLicenseButton.addEventListener('click', () => {
+        vscode.postMessage({ command: 'deleteBanyaLicense' });
+        const deletingText = languageData['banyaLicenseDeleting'] || 'Banya 라이센스 삭제 중...';
+        showStatus(banyaLicenseStatus, deletingText, 'info');
+    });
+}
+
+// 라이센스 입력 필드 변경 이벤트 리스너
+if (banyaLicenseSerialInput) {
+    banyaLicenseSerialInput.addEventListener('input', () => {
+        updateLicenseButtonsState();
+    });
+}
+
 // AI 모델 선택 이벤트 리스너
 if (aiModelSelect) {
     aiModelSelect.addEventListener('change', () => {
@@ -963,12 +1270,35 @@ window.addEventListener('message', event => {
             }
             // Banya 라이센스 상태 로드
             if (banyaLicenseSerialInput && typeof message.banyaLicenseSerial === 'string') {
-                banyaLicenseSerialInput.value = message.banyaLicenseSerial;
-                const banyaLicenseSetText = message.banyaLicenseSerial ? 
-                    (languageData['banyaLicenseSet'] || 'Banya 라이센스가 설정되어 있습니다.') :
-                    (languageData['banyaLicenseNotSet'] || 'Banya 라이센스가 설정되지 않았습니다.');
-                showStatus(banyaLicenseStatus, banyaLicenseSetText, message.banyaLicenseSerial ? 'success' : 'info');
+                // 추가 검증 - 잘못된 데이터 필터링
+                const isValidLicense = message.banyaLicenseSerial && 
+                    message.banyaLicenseSerial.trim() !== '' &&
+                    !message.banyaLicenseSerial.includes('/') && 
+                    !message.banyaLicenseSerial.includes('\\') &&
+                    !message.banyaLicenseSerial.includes('프로젝트') &&
+                    !message.banyaLicenseSerial.includes('Project') &&
+                    !message.banyaLicenseSerial.includes('설정') &&
+                    !message.banyaLicenseSerial.includes('Setting') &&
+                    message.banyaLicenseSerial.length > 5;
+                
+                if (isValidLicense) {
+                    banyaLicenseSerialInput.value = message.banyaLicenseSerial.trim();
+                    const banyaLicenseSetText = languageData['banyaLicenseSet'] || 'Banya 라이센스가 설정되어 있습니다.';
+                    showStatus(banyaLicenseStatus, banyaLicenseSetText, 'success');
+                } else {
+                    banyaLicenseSerialInput.value = '';
+                    const banyaLicenseNotSetText = languageData['banyaLicenseNotSet'] || 'Banya 라이센스가 설정되지 않았습니다.';
+                    showStatus(banyaLicenseStatus, banyaLicenseNotSetText, 'info');
+                }
             }
+            
+            // API 키 로드 완료 후 저장 버튼 상태 재확인
+            setTimeout(() => {
+                if (!isLicenseVerified) {
+                    updateSaveButtonsState();
+                }
+                updateLicenseButtonsState();
+            }, 50);
             break;
         case 'weatherApiKeySaved':
             const weatherApiKeySavedText = languageData['weatherApiKeySaved'] || '기상청 API 키가 저장되었습니다.';
@@ -1036,10 +1366,32 @@ window.addEventListener('message', event => {
         case 'banyaLicenseVerified':
             const banyaLicenseVerifiedText = languageData['banyaLicenseVerified'] || 'Banya 라이센스가 유효합니다.';
             showStatus(banyaLicenseStatus, banyaLicenseVerifiedText, 'success');
+            isLicenseVerified = true;
+            console.log('License verification successful, enabling save buttons');
+            updateSaveButtonsState();
+            updateLicenseButtonsState();
             break;
         case 'banyaLicenseVerificationFailed':
             const banyaLicenseVerificationFailedText = languageData['banyaLicenseVerificationFailed'] || 'Banya 라이센스 검증 실패:';
             showStatus(banyaLicenseStatus, `${banyaLicenseVerificationFailedText} ${message.error}`, 'error');
+            isLicenseVerified = false;
+            console.log('License verification failed, disabling save buttons');
+            updateSaveButtonsState();
+            updateLicenseButtonsState();
+            break;
+        case 'banyaLicenseDeleted':
+            const banyaLicenseDeletedText = languageData['banyaLicenseDeleted'] || 'Banya 라이센스가 삭제되었습니다.';
+            showStatus(banyaLicenseStatus, banyaLicenseDeletedText, 'success');
+            if (banyaLicenseSerialInput) {
+                banyaLicenseSerialInput.value = '';
+            }
+            isLicenseVerified = false;
+            updateSaveButtonsState();
+            updateLicenseButtonsState();
+            break;
+        case 'banyaLicenseDeleteError':
+            const banyaLicenseDeleteErrorText = languageData['banyaLicenseDeleteError'] || 'Banya 라이센스 삭제 실패:';
+            showStatus(banyaLicenseStatus, `${banyaLicenseDeleteErrorText} ${message.error}`, 'error');
             break;
         case 'aiModelSaved':
             const aiModelSavedText = languageData['aiModelSaved'] || 'AI 모델이 저장되었습니다.';
@@ -1079,8 +1431,23 @@ window.addEventListener('message', event => {
                 currentLanguage = message.language;
                 if (languageSelect) {
                     languageSelect.value = currentLanguage;
+                    console.log('Set language select value to:', currentLanguage);
                 }
                 loadLanguage(currentLanguage);
+            }
+            break;
+        case 'languageSaved':
+            console.log('Language saved successfully:', message.language);
+            currentLanguage = message.language;
+            if (languageSelect) {
+                languageSelect.value = currentLanguage;
+            }
+            break;
+        case 'languageSaveError':
+            console.error('Language save error:', message.error);
+            // 오류 발생 시 이전 언어로 되돌리기
+            if (languageSelect) {
+                languageSelect.value = currentLanguage;
             }
             break;
         case 'languageDataReceived':
@@ -1090,7 +1457,38 @@ window.addEventListener('message', event => {
                 languageData = message.data;
                 currentLanguage = message.language;
                 sessionStorage.setItem('codepilotLang', message.language);
+                
+                // 언어 선택 드롭다운 값 업데이트
+                if (languageSelect) {
+                    languageSelect.value = currentLanguage;
+                    console.log('Updated language select value to:', currentLanguage);
+                }
+                
+                // 즉시 언어 적용
+                console.log('Applying language immediately');
                 applyLanguage();
+                
+                // 강제로 모든 UI 요소 업데이트 (여러 번 실행)
+                setTimeout(() => {
+                    console.log('Forcing UI refresh after language change (1st)');
+                    applyLanguage();
+                }, 50);
+                
+                setTimeout(() => {
+                    console.log('Forcing UI refresh after language change (2nd)');
+                    applyLanguage();
+                }, 200);
+                
+                setTimeout(() => {
+                    console.log('Forcing UI refresh after language change (3rd)');
+                    applyLanguage();
+                }, 500);
+                
+                // 추가 강제 업데이트
+                setTimeout(() => {
+                    console.log('Final UI refresh after language change');
+                    applyLanguage();
+                }, 1000);
                 
                 // 디버깅: 프로젝트 Root 표시 업데이트 확인
                 if (projectRootPathDisplay) {
@@ -1160,10 +1558,22 @@ document.addEventListener('DOMContentLoaded', () => {
     showStatus(ollamaApiUrlStatus, apiKeysLoadingText, 'info');
     showStatus(banyaLicenseStatus, apiKeysLoadingText, 'info');
     
+    // API 키 로드 후에도 저장 버튼들 비활성화 상태 유지
+    setTimeout(() => {
+        isLicenseVerified = false;
+        updateSaveButtonsState();
+        updateLicenseButtonsState();
+    }, 100);
+    
     // AI 모델 설정 요청
     vscode.postMessage({ command: 'loadAiModel' });
     
     // 초기 상태: Gemini가 기본값이므로 Gemini 설정 섹션 활성화, Ollama 설정 섹션 비활성화
     if (geminiSettingsSection) geminiSettingsSection.classList.remove('disabled');
     if (ollamaSettingsSection) ollamaSettingsSection.classList.add('disabled');
+    
+    // 초기 상태: 라이센스가 검증되지 않았으므로 저장 버튼들 비활성화
+    isLicenseVerified = false;
+    updateSaveButtonsState();
+    updateLicenseButtonsState();
 });

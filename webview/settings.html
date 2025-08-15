@@ -269,8 +269,14 @@
             margin-top: 10px;
         }
 
-        .license-input-group textarea {
-            width: 100%;
+        .license-input-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .license-input-group input[type="text"] {
+            flex-grow: 1;
             padding: 8px;
             border: 1px solid var(--vscode-input-border);
             background-color: var(--vscode-input-background);
@@ -279,12 +285,39 @@
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
             border-radius: 3px;
-            resize: vertical;
-            min-height: 80px;
+            margin-right: 10px;
         }
 
-        .license-input-group textarea:focus {
+        .license-input-group input[type="text"]:focus {
             border-color: var(--vscode-focusBorder);
+        }
+
+        /* 라이센스 검증 버튼 스타일 */
+        #verify-banya-license-button {
+            padding: 8px 15px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            white-space: nowrap;
+            min-width: 60px;
+        }
+
+        #verify-banya-license-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        #verify-banya-license-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: var(--vscode-disabledForeground);
+        }
+
+        #verify-banya-license-button:disabled:hover {
+            background-color: var(--vscode-disabledForeground);
         }
 
         .license-button-group {
@@ -366,6 +399,17 @@
             color: var(--vscode-descriptionForeground);
         }
 
+        /* 비활성화된 저장 버튼 스타일 */
+        .api-key-input-group button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: var(--vscode-disabledForeground);
+        }
+
+        .api-key-input-group button:disabled:hover {
+            background-color: var(--vscode-disabledForeground);
+        }
+
     </style>
 </head>
 <body>
@@ -385,6 +429,27 @@
                 <option value="ja">日本語</option>
             </select>
             <button id="save-language-button" class="save-button">언어 저장</button>
+        </div>
+    </div>
+
+    <div class="section-container">
+        <h2 id="banya-license-title">🔑 Banya 라이센스 설정</h2>
+        <p class="info-message">CodePilot의 고급 기능을 사용하기 위한 Banya 라이센스 시리얼을 입력하고 검증합니다.</p>
+        
+        <div class="api-key-section">
+            <h3 id="banya-license-label">라이센스 시리얼</h3>
+            <p class="info-message">Banya 라이센스 시리얼을 입력하여 제품을 활성화하세요.</p>
+            <div class="license-input-group">
+                <div class="license-input-row">
+                    <input type="text" id="banya-license-serial-input" placeholder="하이픈을 포함한 16자리의 시리얼 번호를 입력하세요">
+                    <button id="verify-banya-license-button">검증</button>
+                </div>
+                <div class="license-button-group">
+                    <button id="save-banya-license-button">라이센스 저장</button>
+                    <button id="delete-banya-license-button">라이센스 삭제</button>
+                </div>
+            </div>
+            <p id="banya-license-status" class="info-message"></p>
         </div>
     </div>
 
@@ -463,24 +528,6 @@
                 <button id="save-ollama-api-url-button">저장</button>
             </div>
             <p id="ollama-api-url-status" class="info-message"></p>
-        </div>
-    </div>
-
-    <div class="section-container">
-        <h2 id="banya-license-title">🔑 Banya 라이센스 설정</h2>
-        <p class="info-message">CodePilot의 고급 기능을 사용하기 위한 Banya 라이센스 시리얼을 입력하고 검증합니다.</p>
-        
-        <div class="api-key-section">
-            <h3 id="banya-license-label">라이센스 시리얼</h3>
-            <p class="info-message">Banya 라이센스 시리얼을 입력하여 제품을 활성화하세요.</p>
-            <div class="license-input-group">
-                <textarea id="banya-license-serial-input" placeholder="라이센스 시리얼을 입력하세요..." rows="4"></textarea>
-                <div class="license-button-group">
-                    <button id="save-banya-license-button">라이센스 저장</button>
-                    <button id="verify-banya-license-button">라이센스 검증</button>
-                </div>
-            </div>
-            <p id="banya-license-status" class="info-message"></p>
         </div>
     </div>
 

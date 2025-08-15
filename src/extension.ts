@@ -13,6 +13,7 @@ import { ChatViewProvider } from './webview/chatViewProvider';
 import { AskViewProvider } from './webview/askViewProvider'; // 새로 추가된 AskViewProvider 임포트
 import { getCodePilotTerminal } from './terminal/terminalManager';
 import { openSettingsPanel, openLicensePanel } from './webview/panelManager';
+import { LicenseService } from './services/licenseService';
 
 // 전역 변수
 let storageService: StorageService;
@@ -23,6 +24,7 @@ let notificationService: NotificationService;
 let codebaseContextService: CodebaseContextService;
 let llmResponseProcessor: LlmResponseProcessor;
 let llmService: LlmService;
+let licenseService: LicenseService;
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, CodePilot is now active!');
@@ -31,6 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
     storageService = new StorageService(context.secrets);
     notificationService = new NotificationService();
     configurationService = new ConfigurationService();
+    licenseService = new LicenseService();
 
     const initialApiKey = await storageService.getApiKey();
     if (!initialApiKey) {
@@ -67,10 +70,11 @@ export async function activate(context: vscode.ExtensionContext) {
         context.extensionUri,
         context,
         llmService,
-        (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService, notificationService, storageService, geminiApi),
+        (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService, notificationService, storageService, geminiApi, licenseService),
         (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService, configurationService),
         configurationService,
-        notificationService
+        notificationService,
+        storageService
     );
 
     context.subscriptions.push(
@@ -85,7 +89,8 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         llmService,
         configurationService,
-        notificationService
+        notificationService,
+        storageService
     );
 
     context.subscriptions.push(
@@ -104,7 +109,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand(`${AskViewProvider.viewType}.focus`); // ASK 탭으로 포커스
     }));
     context.subscriptions.push(vscode.commands.registerCommand('codepilot.openSettingsPanel', () => {
-        openSettingsPanel(context.extensionUri, context, vscode.ViewColumn.One, configurationService, notificationService, storageService, geminiApi);
+        openSettingsPanel(context.extensionUri, context, vscode.ViewColumn.One, configurationService, notificationService, storageService, geminiApi, licenseService);
     }));
     context.subscriptions.push(vscode.commands.registerCommand('codepilot.openLicensePanel', () => {
         openLicensePanel(context.extensionUri, context, vscode.ViewColumn.One, storageService, geminiApi, notificationService, configurationService);
