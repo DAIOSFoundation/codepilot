@@ -900,6 +900,11 @@ window.addEventListener('DOMContentLoaded', () => {
     
     // 기본 언어 데이터 로드 (한국어)
     loadLanguage('ko');
+    
+    // 라이센스 입력 필드 초기 상태 설정
+    if (banyaLicenseSerialInput) {
+        banyaLicenseSerialInput.readOnly = false; // 초기에는 편집 가능
+    }
 });
 
 // UI 업데이트 함수 (소스 경로)
@@ -1283,10 +1288,12 @@ window.addEventListener('message', event => {
                 
                 if (isValidLicense) {
                     banyaLicenseSerialInput.value = message.banyaLicenseSerial.trim();
+                    banyaLicenseSerialInput.readOnly = true; // 저장된 라이센스는 읽기 전용으로 설정
                     const banyaLicenseSetText = languageData['banyaLicenseSet'] || 'Banya 라이센스가 설정되어 있습니다.';
                     showStatus(banyaLicenseStatus, banyaLicenseSetText, 'success');
                 } else {
                     banyaLicenseSerialInput.value = '';
+                    banyaLicenseSerialInput.readOnly = false; // 라이센스가 없으면 편집 가능
                     const banyaLicenseNotSetText = languageData['banyaLicenseNotSet'] || 'Banya 라이센스가 설정되지 않았습니다.';
                     showStatus(banyaLicenseStatus, banyaLicenseNotSetText, 'info');
                 }
@@ -1384,6 +1391,7 @@ window.addEventListener('message', event => {
             showStatus(banyaLicenseStatus, banyaLicenseDeletedText, 'success');
             if (banyaLicenseSerialInput) {
                 banyaLicenseSerialInput.value = '';
+                banyaLicenseSerialInput.readOnly = false; // 라이센스 삭제 시 편집 가능하게 설정
             }
             isLicenseVerified = false;
             updateSaveButtonsState();

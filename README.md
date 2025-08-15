@@ -61,7 +61,11 @@ VSCode base code assistant plugin with LLM and LM support.
   - Weather API key configuration
   - News API credentials (Client ID & Secret)
   - Stock API key management
-  - Banya License serial management
+  - **Banya License Management**: 
+    - Encrypted license serial storage with AES-256-CBC
+    - Firebase Firestore verification system
+    - Read-only display of stored licenses
+    - License deletion and re-verification capabilities
 - **Source Path Configuration**: Customizable paths for code context inclusion
 - **Auto-Update Settings**: Toggle automatic file operations on/off
 - **Project Root Settings**: Flexible project directory configuration
@@ -75,6 +79,8 @@ VSCode base code assistant plugin with LLM and LM support.
 
 ### 🔒 Security & Privacy
 - **Secure API Storage**: VS Code SecretStorage for sensitive API keys
+- **Encrypted License Storage**: AES-256-CBC encryption for Banya license serial numbers
+- **License Protection**: CODE and ASK tabs require valid Banya license for activation
 - **Local Processing**: No internet required for core functionality
 - **Privacy-First**: Local code analysis without external data transmission
 
@@ -84,6 +90,8 @@ VSCode base code assistant plugin with LLM and LM support.
 - **Intuitive Navigation**: Easy switching between CODE and ASK modes
 - **Loading Indicators**: Visual feedback during AI processing
 - **Message History**: Persistent chat history with clear conversation flow
+- **Multi-Language Support**: Complete internationalization for 7 languages (Korean, English, Japanese, German, Spanish, French, Chinese)
+- **License Status Display**: Visual indicators for license verification status and read-only license fields
 
 ### 🚀 Performance Features
 - **Abort Controller**: Ability to cancel ongoing AI requests
@@ -92,6 +100,24 @@ VSCode base code assistant plugin with LLM and LM support.
 - **Memory Management**: Efficient handling of large codebases
 - **Network Resilience**: Node.js HTTP module for reliable local network connections
 - **Webview Safety**: Protected message handling to prevent disposed webview errors
+
+### 🔐 License Protection System
+- **Banya License Verification**: 
+  - Firebase Firestore-based license validation
+  - 16-digit serial number format with hyphens
+  - Real-time license verification against cloud database
+- **Encrypted Storage**: 
+  - AES-256-CBC encryption for license serial numbers
+  - Secure storage in VS Code SecretStorage
+  - Automatic encryption/decryption with SHA-256 key hashing
+- **Access Control**: 
+  - CODE and ASK tabs require valid license for activation
+  - Graceful error handling with multi-language support
+  - License status indicators and read-only display
+- **License Management**: 
+  - License serial input with validation
+  - License deletion and re-verification
+  - Visual feedback for license operations
 
 ### 📋 Usage Examples
 - **Code Generation**: "Create a React component for user authentication"

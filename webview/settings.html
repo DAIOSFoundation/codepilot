@@ -292,6 +292,19 @@
             border-color: var(--vscode-focusBorder);
         }
 
+        /* 읽기 전용 입력 필드 스타일 */
+        .license-input-group input[type="text"][readonly] {
+            background-color: var(--vscode-disabledForeground);
+            color: var(--vscode-disabledForeground);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .license-input-group input[type="text"][readonly]:focus {
+            border-color: var(--vscode-input-border);
+            outline: none;
+        }
+
         /* 라이센스 검증 버튼 스타일 */
         #verify-banya-license-button {
             padding: 8px 15px;

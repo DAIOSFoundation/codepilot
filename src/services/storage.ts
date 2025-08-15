@@ -1,6 +1,7 @@
 // --- START OF FILE src/storage/storage.ts ---
 
 import * as vscode from 'vscode';
+import { CryptoUtils } from '../utils/cryptoUtils';
 
 const API_KEY_SECRET_KEY = 'codepilot.geminiApiKey';
 const OLLAMA_API_URL_SECRET_KEY = 'codepilot.ollamaApiUrl';
@@ -108,26 +109,41 @@ export class StorageService {
     }
 
     /**
-     * Banya 라이센스 시리얼을 VS Code SecretStorage에 안전하게 저장합니다.
+     * Banya 라이센스 시리얼을 암호화하여 VS Code SecretStorage에 안전하게 저장합니다.
      * @param licenseSerial 저장할 라이센스 시리얼
      */
     async saveBanyaLicenseSerial(licenseSerial: string): Promise<void> {
-        await this.secretStorage.store(BANYA_LICENSE_SERIAL_SECRET_KEY, licenseSerial);
-        console.log('Banya license serial saved to SecretStorage.');
+        const encryptedSerial = CryptoUtils.encrypt(licenseSerial);
+        await this.secretStorage.store(BANYA_LICENSE_SERIAL_SECRET_KEY, encryptedSerial);
+        console.log('Banya license serial encrypted and saved to SecretStorage.');
     }
 
     /**
-     * SecretStorage에서 저장된 Banya 라이센스 시리얼을 불러옵니다.
+     * SecretStorage에서 저장된 Banya 라이센스 시리얼을 복호화하여 불러옵니다.
      * @returns 저장된 라이센스 시리얼 또는 없을 경우 undefined
      */
     async getBanyaLicenseSerial(): Promise<string | undefined> {
-        const licenseSerial = await this.secretStorage.get(BANYA_LICENSE_SERIAL_SECRET_KEY);
-        if (licenseSerial) {
-            console.log('Banya license serial loaded from SecretStorage.');
+        const encryptedSerial = await this.secretStorage.get(BANYA_LICENSE_SERIAL_SECRET_KEY);
+        if (encryptedSerial) {
+            try {
+                // 암호화된 형식인지 확인
+                if (CryptoUtils.isEncrypted(encryptedSerial)) {
+                    const decryptedSerial = CryptoUtils.decrypt(encryptedSerial);
+                    console.log('Banya license serial decrypted and loaded from SecretStorage.');
+                    return decryptedSerial;
+                } else {
+                    // 기존 암호화되지 않은 형식인 경우 그대로 반환 (하위 호환성)
+                    console.log('Banya license serial loaded from SecretStorage (legacy format).');
+                    return encryptedSerial;
+                }
+            } catch (error) {
+                console.error('라이센스 시리얼 복호화 중 오류 발생:', error);
+                return undefined;
+            }
         } else {
             console.log('No Banya license serial found in SecretStorage.');
+            return undefined;
         }
-        return licenseSerial;
     }
 
     /**
