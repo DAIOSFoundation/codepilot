@@ -139,3 +139,4 @@ src/.DS_Store
 # License generator files
 generate_licenses.js
 README_license_generator.md
+clear_license.js
