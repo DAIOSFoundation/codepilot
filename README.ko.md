@@ -302,7 +302,7 @@ npm run lint
 
 ## 릴리즈 노트
 
-### Version 2.4.2 (2025/01/29) - 멀티모델 AI 지원 및 Ollama 통합
+### Version 2.4.2 (2025/07/29) - 멀티모델 AI 지원 및 Ollama 통합
 
 <details>
 <summary>멀티모델 AI 지원</summary>
