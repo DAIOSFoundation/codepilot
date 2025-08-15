@@ -107,6 +107,7 @@
   "banyaLicenseSet": "Banya-Lizenz ist festgelegt.",
   "banyaLicenseNotSet": "Banya-Lizenz ist nicht festgelegt.",
   "pleaseEnterBanyaLicense": "Geben Sie 16-stellige Seriennummer mit Bindestrichen ein",
+  "licenseNotSetMessage": "Lizenz ist nicht festgelegt. Bitte geben Sie die Banya-Lizenz in den Einstellungen ein und verifizieren Sie sie.",
   "deleteBanyaLicenseButton": "Lizenz löschen",
   "banyaLicenseDeleting": "Banya-Lizenz wird gelöscht...",
   "banyaLicenseDeleted": "Banya-Lizenz wurde gelöscht.",

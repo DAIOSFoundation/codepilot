@@ -111,6 +111,7 @@
   "banyaLicenseSet": "Banya 许可证已设置。",
   "banyaLicenseNotSet": "Banya 许可证未设置。",
   "pleaseEnterBanyaLicense": "请输入包含连字符的16位序列号",
+  "licenseNotSetMessage": "许可证未设置。请在设置中输入并验证Banya许可证。",
   "deleteBanyaLicenseButton": "删除许可证",
   "banyaLicenseDeleting": "正在删除 Banya 许可证...",
   "banyaLicenseDeleted": "Banya 许可证已删除。",

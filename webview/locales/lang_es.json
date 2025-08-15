@@ -107,6 +107,7 @@
   "banyaLicenseSet": "Licencia Banya está configurada.",
   "banyaLicenseNotSet": "Licencia Banya no está configurada.",
   "pleaseEnterBanyaLicense": "Ingresa número de serie de 16 dígitos con guiones",
+  "licenseNotSetMessage": "La licencia no está configurada. Por favor, ingrese y verifique la licencia Banya en la configuración.",
   "deleteBanyaLicenseButton": "Eliminar Licencia",
   "banyaLicenseDeleting": "Eliminando licencia Banya...",
   "banyaLicenseDeleted": "Licencia Banya ha sido eliminada.",

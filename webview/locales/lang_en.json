@@ -111,6 +111,7 @@
   "banyaLicenseSet": "Banya license is set.",
   "banyaLicenseNotSet": "Banya license is not set.",
   "pleaseEnterBanyaLicense": "Enter 16-digit serial number with hyphens",
+  "licenseNotSetMessage": "License is not set. Please enter and verify the Banya license in settings.",
   "deleteBanyaLicenseButton": "Delete License",
   "banyaLicenseDeleting": "Deleting Banya license...",
   "banyaLicenseDeleted": "Banya license has been deleted.",

@@ -43,10 +43,23 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                     // 라이센스 확인
                     const licenseSerial = await this.storageService.getBanyaLicenseSerial();
                     if (!licenseSerial || licenseSerial.trim() === '') {
+                        // 다국어 메시지 가져오기
+                        const currentLanguage = await this.configurationService.getLanguage();
+                        const languageFilePath = vscode.Uri.joinPath(this.extensionUri, 'webview', 'locales', `lang_${currentLanguage}.json`);
+                        let licenseNotSetMessage = '라이센스가 설정되지 않았습니다. 설정에서 Banya 라이센스를 입력하고 검증해주세요.';
+                        
+                        try {
+                            const fileContent = await vscode.workspace.fs.readFile(languageFilePath);
+                            const languageData = JSON.parse(Buffer.from(fileContent).toString('utf8'));
+                            licenseNotSetMessage = languageData.licenseNotSetMessage || licenseNotSetMessage;
+                        } catch (error) {
+                            console.error('Error loading language data for license message:', error);
+                        }
+                        
                         webviewView.webview.postMessage({ 
                             command: 'receiveMessage', 
                             sender: 'CodePilot', 
-                            text: '라이센스가 설정되지 않았습니다. 설정에서 Banya 라이센스를 입력하고 검증해주세요.' 
+                            text: licenseNotSetMessage
                         });
                         return;
                     }

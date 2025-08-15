@@ -107,6 +107,7 @@
   "banyaLicenseSet": "Banyaライセンスが設定されています。",
   "banyaLicenseNotSet": "Banyaライセンスが設定されていません。",
   "pleaseEnterBanyaLicense": "ハイフンを含む16桁のシリアル番号を入力してください",
+  "licenseNotSetMessage": "ライセンスが設定されていません。設定でBanyaライセンスを入力して検証してください。",
   "deleteBanyaLicenseButton": "ライセンス削除",
   "banyaLicenseDeleting": "Banyaライセンスを削除中...",
   "banyaLicenseDeleted": "Banyaライセンスが削除されました。",

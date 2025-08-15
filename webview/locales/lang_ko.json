@@ -111,7 +111,7 @@
   "banyaLicenseSet": "Banya 라이센스가 설정되어 있습니다.",
   "banyaLicenseNotSet": "Banya 라이센스가 설정되지 않았습니다.",
   "pleaseEnterBanyaLicense": "하이픈을 포함한 16자리의 시리얼 번호를 입력하세요",
-  "licenseNotSetMessage": "라이센스가 설정되지 않았습니다. 설정에서 Banya 라이센스를 입력하고 검증해주세요."
+  "licenseNotSetMessage": "라이센스가 설정되지 않았습니다. 설정에서 Banya 라이센스를 입력하고 검증해주세요.",
   "deleteBanyaLicenseButton": "라이센스 삭제",
   "banyaLicenseDeleting": "Banya 라이센스 삭제 중...",
   "banyaLicenseDeleted": "Banya 라이센스가 삭제되었습니다.",

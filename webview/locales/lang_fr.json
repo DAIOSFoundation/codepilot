@@ -107,6 +107,7 @@
   "banyaLicenseSet": "La licence Banya est définie.",
   "banyaLicenseNotSet": "La licence Banya n'est pas définie.",
   "pleaseEnterBanyaLicense": "Veuillez saisir le numéro de série de licence.",
+  "licenseNotSetMessage": "La licence n'est pas définie. Veuillez saisir et vérifier la licence Banya dans les paramètres.",
   "deleteBanyaLicenseButton": "Supprimer la licence",
   "banyaLicenseDeleting": "Suppression de la licence Banya...",
   "banyaLicenseDeleted": "La licence Banya a été supprimée.",
