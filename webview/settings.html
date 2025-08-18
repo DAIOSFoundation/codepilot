@@ -536,11 +536,24 @@
             <h3 id="ollama-api-label">🏠 Gemma3:27b (Ollama)</h3>
             <p class="info-message">로컬 네트워크에 설치된 Ollama의 Gemma3:27b 모델을 사용하여 AI 코드 생성 및 분석 기능을 활성화합니다.</p>
             <p class="info-message"><strong>설정 방법:</strong> 로컬 네트워크에서 실행 중인 Ollama 서버의 HTTP API 주소를 입력하세요. (예: http://192.168.1.100:11434)</p>
+            
+            <!-- Ollama API URL 설정 -->
             <div class="api-key-input-group">
                 <input type="text" id="ollama-api-url-input" placeholder="http://localhost:11434">
                 <button id="save-ollama-api-url-button">저장</button>
             </div>
             <p id="ollama-api-url-status" class="info-message"></p>
+            
+            <!-- Ollama 엔드포인트 선택 -->
+            <div class="api-key-input-group" style="margin-top: 15px;">
+                <label for="ollama-endpoint-select" style="margin-right: 10px; font-weight: bold;">API 엔드포인트:</label>
+                <select id="ollama-endpoint-select" style="flex-grow: 1; padding: 8px; border: 1px solid var(--vscode-input-border); background-color: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 3px;">
+                    <option value="/api/generate">/api/generate (로컬 Ollama)</option>
+                    <option value="/api/chat">/api/chat (외부 서버)</option>
+                </select>
+                <button id="save-ollama-endpoint-button">엔드포인트 저장</button>
+            </div>
+            <p id="ollama-endpoint-status" class="info-message"></p>
         </div>
     </div>
 

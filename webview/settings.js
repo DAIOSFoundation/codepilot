@@ -41,6 +41,11 @@ const ollamaApiUrlInput = document.getElementById('ollama-api-url-input');
 const saveOllamaApiUrlButton = document.getElementById('save-ollama-api-url-button');
 const ollamaApiUrlStatus = document.getElementById('ollama-api-url-status');
 
+// Ollama 엔드포인트 관련 요소들
+const ollamaEndpointSelect = document.getElementById('ollama-endpoint-select');
+const saveOllamaEndpointButton = document.getElementById('save-ollama-endpoint-button');
+const ollamaEndpointStatus = document.getElementById('ollama-endpoint-status');
+
 // Banya 라이센스 관련 요소들
 const banyaLicenseSerialInput = document.getElementById('banya-license-serial-input');
 const saveBanyaLicenseButton = document.getElementById('save-banya-license-button');
@@ -61,6 +66,7 @@ function updateSaveButtonsState() {
     const saveButtons = [
         saveGeminiApiKeyButton,
         saveOllamaApiUrlButton,
+        saveOllamaEndpointButton,
         saveWeatherApiKeyButton,
         saveNewsApiKeyButton,
         saveNewsApiSecretButton,
@@ -1086,6 +1092,20 @@ if (saveOllamaApiUrlButton) {
     });
 }
 
+// Ollama 엔드포인트 저장 이벤트 리스너
+if (saveOllamaEndpointButton) {
+    saveOllamaEndpointButton.addEventListener('click', () => {
+        const endpoint = ollamaEndpointSelect.value;
+        if (endpoint) {
+            vscode.postMessage({ command: 'saveOllamaEndpoint', endpoint: endpoint });
+            const savingText = 'Ollama 엔드포인트 저장 중...';
+            showStatus(ollamaEndpointStatus, savingText, 'info');
+        } else {
+            showStatus(ollamaEndpointStatus, '엔드포인트를 선택해주세요.', 'error');
+        }
+    });
+}
+
 // Banya 라이센스 저장 이벤트 리스너
 if (saveBanyaLicenseButton) {
     saveBanyaLicenseButton.addEventListener('click', () => {
@@ -1273,6 +1293,14 @@ window.addEventListener('message', event => {
                     (languageData['ollamaApiUrlNotSet'] || 'Ollama API URL이 설정되지 않았습니다.');
                 showStatus(ollamaApiUrlStatus, ollamaApiUrlSetText, message.ollamaApiUrl ? 'success' : 'info');
             }
+            // Ollama 엔드포인트 상태 로드
+            if (ollamaEndpointSelect && typeof message.ollamaEndpoint === 'string') {
+                ollamaEndpointSelect.value = message.ollamaEndpoint;
+                const ollamaEndpointSetText = message.ollamaEndpoint ? 
+                    `Ollama 엔드포인트가 설정되어 있습니다: ${message.ollamaEndpoint}` :
+                    'Ollama 엔드포인트가 설정되지 않았습니다.';
+                showStatus(ollamaEndpointStatus, ollamaEndpointSetText, message.ollamaEndpoint ? 'success' : 'info');
+            }
             // Banya 라이센스 상태 로드
             if (banyaLicenseSerialInput && typeof message.banyaLicenseSerial === 'string') {
                 // 추가 검증 - 잘못된 데이터 필터링
@@ -1360,6 +1388,12 @@ window.addEventListener('message', event => {
         case 'ollamaApiUrlError':
             const ollamaApiUrlErrorText = languageData['ollamaApiUrlError'] || 'Ollama API URL 저장 실패:';
             showStatus(ollamaApiUrlStatus, `${ollamaApiUrlErrorText} ${message.error}`, 'error');
+            break;
+        case 'ollamaEndpointSaved':
+            showStatus(ollamaEndpointStatus, 'Ollama 엔드포인트가 저장되었습니다.', 'success');
+            break;
+        case 'ollamaEndpointError':
+            showStatus(ollamaEndpointStatus, `Ollama 엔드포인트 저장 실패: ${message.error}`, 'error');
             break;
         case 'banyaLicenseSaved':
             const banyaLicenseSavedText = languageData['banyaLicenseSaved'] || 'Banya 라이센스가 저장되었습니다.';

@@ -43,7 +43,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Ollama API 초기화
     const initialOllamaUrl = await storageService.getOllamaApiUrl();
-    ollamaApi = new OllamaApi(initialOllamaUrl || 'http://localhost:11434');
+    const initialOllamaEndpoint = await storageService.getOllamaEndpoint();
+    ollamaApi = new OllamaApi(initialOllamaUrl || 'http://localhost:11434', initialOllamaEndpoint);
 
     // AI 관련 서비스 초기화
     codebaseContextService = new CodebaseContextService(configurationService, notificationService);
@@ -70,7 +71,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context.extensionUri,
         context,
         llmService,
-        (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService, notificationService, storageService, geminiApi, licenseService),
+        (viewColumn: vscode.ViewColumn) => openSettingsPanel(context.extensionUri, context, viewColumn, configurationService, notificationService, storageService, geminiApi, licenseService, ollamaApi),
         (viewColumn: vscode.ViewColumn) => openLicensePanel(context.extensionUri, context, viewColumn, storageService, geminiApi, notificationService, configurationService),
         configurationService,
         notificationService,
@@ -109,7 +110,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand(`${AskViewProvider.viewType}.focus`); // ASK 탭으로 포커스
     }));
     context.subscriptions.push(vscode.commands.registerCommand('codepilot.openSettingsPanel', () => {
-        openSettingsPanel(context.extensionUri, context, vscode.ViewColumn.One, configurationService, notificationService, storageService, geminiApi, licenseService);
+        openSettingsPanel(context.extensionUri, context, vscode.ViewColumn.One, configurationService, notificationService, storageService, geminiApi, licenseService, ollamaApi);
     }));
     context.subscriptions.push(vscode.commands.registerCommand('codepilot.openLicensePanel', () => {
         openLicensePanel(context.extensionUri, context, vscode.ViewColumn.One, storageService, geminiApi, notificationService, configurationService);

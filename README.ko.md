@@ -54,7 +54,10 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
 ### ⚙️ 포괄적 설정
 - **멀티모델 AI 설정**:
   - **AI 모델 선택**: Gemini 2.5 Pro Flash와 Ollama Gemma3:27b 중 선택
-  - **Ollama 서버 설정**: 로컬 Ollama API URL 설정 (기본값: http://localhost:11434)
+  - **Ollama 서버 설정**: Ollama API URL 및 엔드포인트 선택 설정
+    - 로컬 Ollama: `http://localhost:11434` + `/api/generate`
+    - 외부 서버: `https://your-server.com` + `/api/chat`
+    - Vessl AI 클러스터: `https://model-service-gateway-xxx.eu.h100-cluster.vessl.ai` + `/api/chat`
   - **동적 설정**: 선택된 모델에 따라 관련 설정 자동 활성화/비활성화
 - **API 키 관리**: 여러 외부 API 키를 안전하게 저장
   - Gemini API 키 설정

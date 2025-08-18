@@ -16,14 +16,20 @@ export enum PromptType {
 
 export class OllamaApi {
     private apiUrl: string;
+    private endpoint: string = '/api/generate';
     private modelName: string = 'gemma3:27b';
 
-    constructor(apiUrl?: string) {
+    constructor(apiUrl?: string, endpoint?: string) {
         this.apiUrl = apiUrl || 'http://localhost:11434';
+        this.endpoint = endpoint || '/api/generate';
     }
 
     public setApiUrl(apiUrl: string): void {
         this.apiUrl = apiUrl;
+    }
+
+    public setEndpoint(endpoint: string): void {
+        this.endpoint = endpoint;
     }
 
     public isInitialized(): boolean {
@@ -35,7 +41,7 @@ export class OllamaApi {
             const isHttps = url.protocol === 'https:';
             const client = isHttps ? https : http;
             
-            const options = {
+            const options: any = {
                 hostname: url.hostname,
                 port: url.port || (isHttps ? 443 : 80),
                 path: url.pathname + url.search,
@@ -45,6 +51,11 @@ export class OllamaApi {
                     'Content-Length': Buffer.byteLength(postData)
                 }
             };
+
+            // HTTPS인 경우 SSL 인증서 검증을 건너뛰는 옵션 추가
+            if (isHttps) {
+                options.rejectUnauthorized = false;
+            }
 
             const req = client.request(options, (res) => {
                 let data = '';
@@ -84,23 +95,47 @@ export class OllamaApi {
         }
 
         try {
-            const url = new URL(`${this.apiUrl}/api/generate`);
-            const postData = JSON.stringify({
-                model: this.modelName,
-                prompt: message,
-                stream: false,
-                options: {
-                    temperature: 0.7,
-                    top_k: 1,
-                    top_p: 1,
-                    num_predict: 500000,
-                }
-            });
+            const url = new URL(`${this.apiUrl}${this.endpoint}`);
+            
+            // 엔드포인트에 따라 다른 요청 형식 사용
+            if (this.endpoint === '/api/chat') {
+                const postData = JSON.stringify({
+                    model: this.modelName,
+                    messages: [
+                        { role: 'user', content: message }
+                    ],
+                    stream: false,
+                    options: {
+                        temperature: 0.7,
+                        top_k: 1,
+                        top_p: 1,
+                        num_predict: 500000,
+                    }
+                });
 
-            const response = await this.makeHttpRequest(url, postData, options?.signal);
-            const data = JSON.parse(response) as { response: string };
-            console.log('Ollama Response:', data.response);
-            return data.response;
+                const response = await this.makeHttpRequest(url, postData, options?.signal);
+                const data = JSON.parse(response) as { message: { content: string } };
+                console.log('Ollama Response (chat endpoint):', data.message.content);
+                return data.message.content;
+            } else {
+                // /api/generate 엔드포인트 사용
+                const postData = JSON.stringify({
+                    model: this.modelName,
+                    prompt: message,
+                    stream: false,
+                    options: {
+                        temperature: 0.7,
+                        top_k: 1,
+                        top_p: 1,
+                        num_predict: 500000,
+                    }
+                });
+
+                const response = await this.makeHttpRequest(url, postData, options?.signal);
+                const data = JSON.parse(response) as { response: string };
+                console.log('Ollama Response (generate endpoint):', data.response);
+                return data.response;
+            }
         } catch (error: any) {
             console.error('Error calling Ollama API:', error);
             if (error.name === 'AbortError') {
@@ -116,26 +151,48 @@ export class OllamaApi {
         }
 
         try {
-            // Ollama는 system prompt를 별도로 지원하지 않으므로 user prompt에 포함
+            const url = new URL(`${this.apiUrl}${this.endpoint}`);
             const fullPrompt = `${systemPrompt}\n\n${userParts.map(part => part.text).join('\n')}`;
+            
+            // 엔드포인트에 따라 다른 요청 형식 사용
+            if (this.endpoint === '/api/chat') {
+                const postData = JSON.stringify({
+                    model: this.modelName,
+                    messages: [
+                        { role: 'user', content: fullPrompt }
+                    ],
+                    stream: false,
+                    options: {
+                        temperature: 0.7,
+                        top_k: 1,
+                        top_p: 1,
+                        num_predict: 500000,
+                    }
+                });
 
-            const url = new URL(`${this.apiUrl}/api/generate`);
-            const postData = JSON.stringify({
-                model: this.modelName,
-                prompt: fullPrompt,
-                stream: false,
-                options: {
-                    temperature: 0.7,
-                    top_k: 1,
-                    top_p: 1,
-                    num_predict: 500000,
-                }
-            });
+                const response = await this.makeHttpRequest(url, postData, options?.signal);
+                const data = JSON.parse(response) as { message: { content: string } };
+                console.log('Ollama Response (chat endpoint, with system prompt):', data.message.content);
+                return data.message.content;
+            } else {
+                // /api/generate 엔드포인트 사용
+                const postData = JSON.stringify({
+                    model: this.modelName,
+                    prompt: fullPrompt,
+                    stream: false,
+                    options: {
+                        temperature: 0.7,
+                        top_k: 1,
+                        top_p: 1,
+                        num_predict: 500000,
+                    }
+                });
 
-            const response = await this.makeHttpRequest(url, postData, options?.signal);
-            const data = JSON.parse(response) as { response: string };
-            console.log('Ollama Response (with system prompt):', data.response);
-            return data.response;
+                const response = await this.makeHttpRequest(url, postData, options?.signal);
+                const data = JSON.parse(response) as { response: string };
+                console.log('Ollama Response (generate endpoint, with system prompt):', data.response);
+                return data.response;
+            }
         } catch (error: any) {
             console.error('Error calling Ollama API (with system prompt):', error);
             if (error.name === 'AbortError') {

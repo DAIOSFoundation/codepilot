@@ -20,7 +20,8 @@ export function openSettingsPanel(
     notificationService: NotificationService,
     storageService: StorageService, // StorageService 추가
     geminiApi: GeminiApi, // GeminiApi 추가
-    licenseService: LicenseService // LicenseService 추가
+    licenseService: LicenseService, // LicenseService 추가
+    ollamaApi?: any // OllamaApi 추가
 ) {
     const panel = createAndSetupWebviewPanel(extensionUri, context, 'settings', 'CodePilot Settings', 'settings', viewColumn,
         async (data, panel) => {
@@ -77,6 +78,7 @@ export function openSettingsPanel(
                     const stockApiKey = await configurationService.getStockApiKey();
                     const geminiApiKey = await storageService.getApiKey(); // Gemini API 키 추가
                     const ollamaApiUrl = await storageService.getOllamaApiUrl(); // Ollama API URL 추가
+                    const ollamaEndpoint = await storageService.getOllamaEndpoint(); // Ollama 엔드포인트 추가
                     const banyaLicenseSerial = await storageService.getBanyaLicenseSerial(); // Banya 라이센스 추가
                     
                     // Banya 라이센스 시리얼 검증 - 잘못된 데이터 필터링
@@ -100,6 +102,7 @@ export function openSettingsPanel(
                         stockApiKey: stockApiKey || '',
                         geminiApiKey: geminiApiKey || '', // Gemini API 키 추가
                         ollamaApiUrl: ollamaApiUrl || '', // Ollama API URL 추가
+                        ollamaEndpoint: ollamaEndpoint || '', // Ollama 엔드포인트 추가
                         banyaLicenseSerial: validBanyaLicenseSerial // 검증된 Banya 라이센스만 전송
                     });
                     break;
@@ -125,6 +128,10 @@ export function openSettingsPanel(
                     if (ollamaApiUrlToSave && typeof ollamaApiUrlToSave === 'string') {
                         try {
                             await storageService.saveOllamaApiUrl(ollamaApiUrlToSave);
+                            // OllamaApi 인스턴스의 URL도 업데이트
+                            if (ollamaApi && typeof ollamaApi.setApiUrl === 'function') {
+                                ollamaApi.setApiUrl(ollamaApiUrlToSave);
+                            }
                             panel.webview.postMessage({ command: 'ollamaApiUrlSaved' });
                             notificationService.showInfoMessage('CodePilot: Ollama API URL saved.');
                         } catch (error: any) {
@@ -134,6 +141,26 @@ export function openSettingsPanel(
                     } else {
                         panel.webview.postMessage({ command: 'ollamaApiUrlError', error: 'API URL empty.' });
                         notificationService.showErrorMessage('Ollama API URL is empty.');
+                    }
+                    break;
+                case 'saveOllamaEndpoint':
+                    const ollamaEndpointToSave = data.endpoint;
+                    if (ollamaEndpointToSave && typeof ollamaEndpointToSave === 'string') {
+                        try {
+                            await storageService.saveOllamaEndpoint(ollamaEndpointToSave);
+                            // OllamaApi 인스턴스의 엔드포인트도 업데이트
+                            if (ollamaApi && typeof ollamaApi.setEndpoint === 'function') {
+                                ollamaApi.setEndpoint(ollamaEndpointToSave);
+                            }
+                            panel.webview.postMessage({ command: 'ollamaEndpointSaved' });
+                            notificationService.showInfoMessage('CodePilot: Ollama endpoint saved.');
+                        } catch (error: any) {
+                            panel.webview.postMessage({ command: 'ollamaEndpointError', error: error.message });
+                            notificationService.showErrorMessage(`Error saving Ollama endpoint: ${error.message}`);
+                        }
+                    } else {
+                        panel.webview.postMessage({ command: 'ollamaEndpointError', error: 'Endpoint empty.' });
+                        notificationService.showErrorMessage('Ollama endpoint is empty.');
                     }
                     break;
                 case 'saveBanyaLicense':

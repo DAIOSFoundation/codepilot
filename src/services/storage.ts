@@ -5,6 +5,7 @@ import { CryptoUtils } from '../utils/cryptoUtils';
 
 const API_KEY_SECRET_KEY = 'codepilot.geminiApiKey';
 const OLLAMA_API_URL_SECRET_KEY = 'codepilot.ollamaApiUrl';
+const OLLAMA_ENDPOINT_SECRET_KEY = 'codepilot.ollamaEndpoint';
 const CURRENT_AI_MODEL_SECRET_KEY = 'codepilot.currentAiModel';
 const BANYA_LICENSE_SERIAL_SECRET_KEY = 'codepilot.banyaLicenseSerial';
 
@@ -75,6 +76,38 @@ export class StorageService {
     async deleteOllamaApiUrl(): Promise<void> {
         await this.secretStorage.delete(OLLAMA_API_URL_SECRET_KEY);
         console.log('Ollama API URL deleted from SecretStorage.');
+    }
+
+    /**
+     * Ollama API 엔드포인트를 VS Code SecretStorage에 안전하게 저장합니다.
+     * @param endpoint 저장할 Ollama API 엔드포인트
+     */
+    async saveOllamaEndpoint(endpoint: string): Promise<void> {
+        await this.secretStorage.store(OLLAMA_ENDPOINT_SECRET_KEY, endpoint);
+        console.log('Ollama API endpoint saved to SecretStorage.');
+    }
+
+    /**
+     * SecretStorage에서 저장된 Ollama API 엔드포인트를 불러옵니다.
+     * @returns 저장된 Ollama API 엔드포인트 또는 없을 경우 기본값 '/api/generate'
+     */
+    async getOllamaEndpoint(): Promise<string> {
+        const endpoint = await this.secretStorage.get(OLLAMA_ENDPOINT_SECRET_KEY);
+        if (endpoint) {
+            console.log('Ollama API endpoint loaded from SecretStorage.');
+            return endpoint;
+        } else {
+            console.log('No Ollama API endpoint found in SecretStorage, using default.');
+            return '/api/generate';
+        }
+    }
+
+    /**
+     * SecretStorage에서 Ollama API 엔드포인트를 삭제합니다.
+     */
+    async deleteOllamaEndpoint(): Promise<void> {
+        await this.secretStorage.delete(OLLAMA_ENDPOINT_SECRET_KEY);
+        console.log('Ollama API endpoint deleted from SecretStorage.');
     }
 
     /**

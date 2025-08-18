@@ -54,7 +54,10 @@ VSCode base code assistant plugin with LLM and LM support.
 ### ⚙️ Comprehensive Configuration
 - **Multi-Model AI Configuration**:
   - **AI Model Selection**: Choose between Gemini 2.5 Pro Flash and Ollama Gemma3:27b
-  - **Ollama Server Setup**: Configure local Ollama API URL (default: http://localhost:11434)
+  - **Ollama Server Setup**: Configure Ollama API URL and endpoint selection
+    - Local Ollama: `http://localhost:11434` + `/api/generate`
+    - External Server: `https://your-server.com` + `/api/chat`
+    - Vessl AI Cluster: `https://model-service-gateway-xxx.eu.h100-cluster.vessl.ai` + `/api/chat`
   - **Dynamic Settings**: Enable/disable model-specific settings based on selection
 - **API Key Management**: Secure storage for multiple external API keys
   - Gemini API key configuration
