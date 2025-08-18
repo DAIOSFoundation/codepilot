@@ -1096,11 +1096,14 @@ if (saveOllamaApiUrlButton) {
 if (saveOllamaEndpointButton) {
     saveOllamaEndpointButton.addEventListener('click', () => {
         const endpoint = ollamaEndpointSelect.value;
+        console.log('Ollama endpoint save button clicked, selected endpoint:', endpoint);
         if (endpoint) {
+            console.log('Sending saveOllamaEndpoint command to extension with endpoint:', endpoint);
             vscode.postMessage({ command: 'saveOllamaEndpoint', endpoint: endpoint });
             const savingText = 'Ollama 엔드포인트 저장 중...';
             showStatus(ollamaEndpointStatus, savingText, 'info');
         } else {
+            console.log('No endpoint selected, showing error');
             showStatus(ollamaEndpointStatus, '엔드포인트를 선택해주세요.', 'error');
         }
     });

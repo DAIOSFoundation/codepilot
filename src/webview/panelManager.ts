@@ -25,6 +25,7 @@ export function openSettingsPanel(
 ) {
     const panel = createAndSetupWebviewPanel(extensionUri, context, 'settings', 'CodePilot Settings', 'settings', viewColumn,
         async (data, panel) => {
+            console.log('Settings panel received message:', data.command, data);
             switch (data.command) {
                 case 'initSettings':
                     panel.webview.postMessage({
@@ -145,20 +146,30 @@ export function openSettingsPanel(
                     break;
                 case 'saveOllamaEndpoint':
                     const ollamaEndpointToSave = data.endpoint;
+                    console.log('Received saveOllamaEndpoint command with endpoint:', ollamaEndpointToSave);
                     if (ollamaEndpointToSave && typeof ollamaEndpointToSave === 'string') {
                         try {
+                            console.log('Saving Ollama endpoint to storage:', ollamaEndpointToSave);
                             await storageService.saveOllamaEndpoint(ollamaEndpointToSave);
+                            console.log('Ollama endpoint saved successfully');
+                            
                             // OllamaApi 인스턴스의 엔드포인트도 업데이트
                             if (ollamaApi && typeof ollamaApi.setEndpoint === 'function') {
+                                console.log('Updating OllamaApi instance endpoint');
                                 ollamaApi.setEndpoint(ollamaEndpointToSave);
+                            } else {
+                                console.log('OllamaApi instance not available or setEndpoint method not found');
                             }
+                            
                             panel.webview.postMessage({ command: 'ollamaEndpointSaved' });
                             notificationService.showInfoMessage('CodePilot: Ollama endpoint saved.');
                         } catch (error: any) {
+                            console.error('Error saving Ollama endpoint:', error);
                             panel.webview.postMessage({ command: 'ollamaEndpointError', error: error.message });
                             notificationService.showErrorMessage(`Error saving Ollama endpoint: ${error.message}`);
                         }
                     } else {
+                        console.log('Invalid endpoint data received:', ollamaEndpointToSave);
                         panel.webview.postMessage({ command: 'ollamaEndpointError', error: 'Endpoint empty.' });
                         notificationService.showErrorMessage('Ollama endpoint is empty.');
                     }
