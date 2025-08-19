@@ -305,6 +305,52 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 ## Release Notes
 
+### Version 2.5.0 (2025/08/19) - Ollama File Operations Fix & Enhanced Regex Support
+
+<details>
+<summary>Ollama File Operations Fix</summary>
+
+- **Fixed File Path Parsing**: Resolved issue where Ollama responses included `**` suffix in file names
+- **Enhanced Regex Pattern**: Improved regex to handle markdown headers (`##`) in Ollama responses
+- **File Name Cleaning**: Added automatic removal of `**` suffix from file paths for accurate matching
+- **Context File Matching**: Fixed issue where modified files couldn't be found in context file list
+- **Debug Logging**: Added detailed logging for regex match groups to improve troubleshooting
+
+</details>
+
+<details>
+<summary>Technical Improvements</summary>
+
+- **Regex Pattern Enhancement**: Updated pattern to `(?:##\s*)?(새 파일|수정 파일):\s+([^\r\n]+?)(?:\r?\n\s*\r?\n```[^\n]*\r?\n([\s\S]*?)\r?\n```)/g`
+- **File Path Processing**: Added `llmSpecifiedPath.replace(/\*\*$/, '')` to clean file names
+- **PromptType Import Fix**: Corrected import path from `geminiService` to `llmService`
+- **Duplicate Type Definition Removal**: Removed duplicate `PromptType` definition in `ollamaService.ts`
+- **System Prompt Enhancement**: Improved Ollama system prompt with explicit file creation instructions
+
+</details>
+
+<details>
+<summary>Ollama Integration Improvements</summary>
+
+- **External Server Support**: Enhanced support for external Ollama servers (Vessl AI, etc.)
+- **SSL Certificate Handling**: Added SSL certificate bypass for external HTTPS servers
+- **API Endpoint Flexibility**: Support for both `/api/generate` (local) and `/api/chat` (external) endpoints
+- **User-Configurable Endpoints**: Added dropdown in settings for endpoint selection
+- **Response Format Handling**: Automatic detection and handling of different response formats
+
+</details>
+
+<details>
+<summary>File Operation Enhancements</summary>
+
+- **Accurate File Matching**: Fixed context file list matching for file modifications
+- **Multi-File Support**: Improved handling of multiple file operations in single response
+- **Error Handling**: Enhanced error messages for file operation failures
+- **Success Indicators**: Clear success/error indicators for file creation, modification, and deletion
+- **Debug Information**: Added comprehensive logging for file operation debugging
+
+</details>
+
 ### Version 2.4.2 (2025/07/29) - Multi-Model AI Support & Ollama Integration
 
 <details>
