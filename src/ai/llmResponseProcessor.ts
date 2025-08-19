@@ -89,8 +89,11 @@ export class LlmResponseProcessor {
         while ((match = codeBlockRegex.exec(llmResponse)) !== null) {
             // Updated to correctly access captured groups
             const originalDirective = match[1].trim(); // "수정 파일" or "새 파일"
-            const llmSpecifiedPath = match[2].trim();  // e.g., 'src/components/Button.tsx'
+            let llmSpecifiedPath = match[2].trim();  // e.g., 'src/components/Button.tsx'
             const newContent = match[3];
+            
+            // 파일명에서 ** 제거 (Ollama 응답에서 발생하는 문제 해결)
+            llmSpecifiedPath = llmSpecifiedPath.replace(/\*\*$/, '');
 
             console.log(`[LLM Response Processor] Found directive: "${originalDirective}", LLM path: "${llmSpecifiedPath}"`);
             console.log(`[LLM Response Processor] Raw match groups:`, match.map((group, index) => `Group ${index}: "${group}"`));
