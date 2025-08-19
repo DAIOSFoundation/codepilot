@@ -351,7 +351,7 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 </details>
 
-### Version 2.5.1 (2025/08/19) - Multi-Model AI Support & Ollama Integration
+### Version 2.5.2 (2025/08/19) - Multi-Model AI Support & Ollama Integration
 
 <details>
 <summary>Multi-Model AI Support</summary>
@@ -376,6 +376,20 @@ Calling out known issues can help limit users opening duplicate issues against y
 </details>
 
 <details>
+<summary>Automatic Bash Command Execution</summary>
+
+- **Bash Command Detection**: Automatically detects ```bash code blocks in LLM responses
+- **Terminal Integration**: Executes detected commands in VSCode's integrated terminal
+- **Multi-Command Support**: Handles multiple commands in sequence from single response
+- **User Notifications**: Real-time feedback on executed commands with success/error status
+- **CodePilot Terminal**: Dedicated terminal instance for CodePilot command execution
+- **Automatic Terminal Activation**: Shows terminal when commands are being executed
+- **Error Handling**: Comprehensive error reporting for failed command execution
+- **System Prompt Enhancement**: Updated AI instructions to include bash command format examples
+
+</details>
+
+<details>
 <summary>Technical Improvements</summary>
 
 - **Network Resilience**: Replaced fetch with Node.js HTTP module for reliable local connections
@@ -383,6 +397,7 @@ Calling out known issues can help limit users opening duplicate issues against y
 - **Error Handling**: Enhanced error handling for network connectivity issues
 - **Type Safety**: Improved TypeScript type definitions and error checking
 - **Performance**: Optimized message handling and webview communication
+- **Terminal Management**: New terminal manager with bash command extraction and execution capabilities
 
 </details>
 
