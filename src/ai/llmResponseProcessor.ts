@@ -64,8 +64,8 @@ export class LlmResponseProcessor {
         const fileOperations: FileOperation[] = [];
         
         // Updated regex to capture the directive (group 1), the path (group 2), and the content (group 3)
-        // 수정: 빈 줄을 허용하도록 정규식 개선
-        const codeBlockRegex = /(새 파일|수정 파일):\s+(.+?)\r?\n\s*\r?\n```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
+        // 수정: 빈 줄을 허용하고 파일명을 더 정확하게 파싱하도록 정규식 개선
+        const codeBlockRegex = /(새 파일|수정 파일):\s+([^\r\n]+)\r?\n\s*\r?\n```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
         // 삭제 파일을 위한 별도 정규식 (코드 블록이 없음)
         const deleteFileRegex = /삭제 파일:\s+(.+?)(?:\r?\n|$)/g;
 
