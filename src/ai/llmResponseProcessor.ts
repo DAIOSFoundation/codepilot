@@ -64,8 +64,9 @@ export class LlmResponseProcessor {
         const fileOperations: FileOperation[] = [];
         
         // Updated regex to capture the directive (group 1), the path (group 2), and the content (group 3)
-        // 수정: 빈 줄을 허용하고 파일명을 더 정확하게 파싱하도록 정규식 개선
-        const codeBlockRegex = /(새 파일|수정 파일):\s+([^\r\n]+)\r?\n\s*\r?\n```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
+        // 수정: 빈 줄을 허용하고 파일명을 더 정확하게 파싱하며, ## 마크다운 헤더도 처리하도록 정규식 개선
+        // 파일명은 반드시 한 줄에만 있어야 하며, 코드 블록 시작 전에 끝나야 함
+        const codeBlockRegex = /(?:##\s*)?(새 파일|수정 파일):\s+([^\r\n]+?)(?:\r?\n\s*\r?\n```[^\n]*\r?\n([\s\S]*?)\r?\n```)/g;
         // 삭제 파일을 위한 별도 정규식 (코드 블록이 없음)
         const deleteFileRegex = /삭제 파일:\s+(.+?)(?:\r?\n|$)/g;
 
@@ -92,6 +93,7 @@ export class LlmResponseProcessor {
             const newContent = match[3];
 
             console.log(`[LLM Response Processor] Found directive: "${originalDirective}", LLM path: "${llmSpecifiedPath}"`);
+            console.log(`[LLM Response Processor] Raw match groups:`, match.map((group, index) => `Group ${index}: "${group}"`));
 
             let absolutePath: string | undefined;
             let operationType: 'modify' | 'create' | 'delete';
