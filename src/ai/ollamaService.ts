@@ -8,11 +8,7 @@ import { LlmResponseProcessor } from './llmResponseProcessor';
 import { NotificationService } from '../services/notificationService';
 import { ConfigurationService } from '../services/configurationService';
 import { ExternalApiService } from './externalApiService';
-
-export enum PromptType {
-    CODE_GENERATION = 'CODE_GENERATION',
-    GENERAL_ASK = 'GENERAL_ASK'
-}
+import { PromptType } from './llmService';
 
 export class OllamaApi {
     private apiUrl: string;
@@ -116,6 +112,7 @@ export class OllamaApi {
                 const response = await this.makeHttpRequest(url, postData, options?.signal);
                 const data = JSON.parse(response) as { message: { content: string } };
                 console.log('Ollama Response (chat endpoint):', data.message.content);
+                console.log('Ollama Response length:', data.message.content.length);
                 return data.message.content;
             } else {
                 // /api/generate 엔드포인트 사용
@@ -134,6 +131,7 @@ export class OllamaApi {
                 const response = await this.makeHttpRequest(url, postData, options?.signal);
                 const data = JSON.parse(response) as { response: string };
                 console.log('Ollama Response (generate endpoint):', data.response);
+                console.log('Ollama Response length:', data.response.length);
                 return data.response;
             }
         } catch (error: any) {

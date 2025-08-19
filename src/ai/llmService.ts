@@ -184,6 +184,25 @@ export class LlmService {
 2. 코드 수정 시 기존 코드의 구조와 스타일을 유지하세요.
 3. 파일 경로를 포함한 구체적인 수정 사항을 명시하세요.
 4. 한글로 설명을 제공하세요.
+5. 새 파일을 생성할 때는 반드시 "새 파일: [파일경로]" 형식으로 시작하고, 그 다음에 코드 블록을 포함하세요.
+6. 기존 파일을 수정할 때는 반드시 "수정 파일: [파일경로]" 형식으로 시작하고, 그 다음에 수정된 코드 블록을 포함하세요.
+7. 파일을 삭제할 때는 "삭제 파일: [파일경로]" 형식으로 명시하세요.
+
+파일 생성/수정 형식 예시:
+새 파일: src/components/Button.jsx
+\`\`\`javascript
+import React from 'react';
+
+function Button({ children, onClick }) {
+  return (
+    <button onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+export default Button;
+\`\`\`
 
 코드베이스 컨텍스트:
 ${codebaseContext}

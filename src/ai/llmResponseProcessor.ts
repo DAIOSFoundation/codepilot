@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
-import { PromptType } from './geminiService'; // Import PromptType
+import { PromptType } from './llmService'; // Import PromptType
 import { safePostMessage } from '../webview/panelUtils';
 
 // Define a type for file operations
@@ -64,17 +64,18 @@ export class LlmResponseProcessor {
         const fileOperations: FileOperation[] = [];
         
         // Updated regex to capture the directive (group 1), the path (group 2), and the content (group 3)
-        const codeBlockRegex = /(새 파일|수정 파일):\s+(.+?)\r?\n```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
+        // 수정: 빈 줄을 허용하도록 정규식 개선
+        const codeBlockRegex = /(새 파일|수정 파일):\s+(.+?)\r?\n\s*\r?\n```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
         // 삭제 파일을 위한 별도 정규식 (코드 블록이 없음)
         const deleteFileRegex = /삭제 파일:\s+(.+?)(?:\r?\n|$)/g;
 
         let match;
         let updateSummaryMessages: string[] = [];
 
-        // console.log("[LLM Response Processor] Starting. LLM Response:", llmResponse);
+        console.log("[LLM Response Processor] Starting. LLM Response:", llmResponse);
 
         const projectRoot = await this.getProjectRootPath();
-        // console.log(`[LLM Response Processor] Resolved project root for operations: ${projectRoot || 'Not found'}`);
+        console.log(`[LLM Response Processor] Resolved project root for operations: ${projectRoot || 'Not found'}`);
         
         // 새 파일 생성을 위한 프로젝트 루트가 없으면 경고
         if (!projectRoot && llmResponse.includes("새 파일:")) {
@@ -90,7 +91,7 @@ export class LlmResponseProcessor {
             const llmSpecifiedPath = match[2].trim();  // e.g., 'src/components/Button.tsx'
             const newContent = match[3];
 
-            // console.log(`[LLM Response Processor] Found directive: "${originalDirective}", LLM path: "${llmSpecifiedPath}"`);
+            console.log(`[LLM Response Processor] Found directive: "${originalDirective}", LLM path: "${llmSpecifiedPath}"`);
 
             let absolutePath: string | undefined;
             let operationType: 'modify' | 'create' | 'delete';
@@ -191,6 +192,8 @@ export class LlmResponseProcessor {
         
         safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: initialWebviewResponse });
 
+        console.log(`[LLM Response Processor] Found ${fileOperations.length} file operations:`, fileOperations.map(op => `${op.type}: ${op.llmSpecifiedPath}`));
+        
         // 파일 작업이 있는 경우에만 추가 처리
         if (fileOperations.length > 0) {
             // thinking 애니메이션을 먼저 제거
