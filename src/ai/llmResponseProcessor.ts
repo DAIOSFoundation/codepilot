@@ -4,6 +4,7 @@ import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
 import { PromptType } from './llmService'; // Import PromptType
 import { safePostMessage } from '../webview/panelUtils';
+import { executeBashCommandsFromLlmResponse, hasBashCommands } from '../terminal/terminalManager';
 
 // Define a type for file operations
 interface FileOperation {
@@ -363,6 +364,21 @@ export class LlmResponseProcessor {
                 safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: updateResultMessage });
             }
 
+            // Bash 명령어 실행 처리
+            if (hasBashCommands(llmResponse)) {
+                try {
+                    const executedCommands = executeBashCommandsFromLlmResponse(llmResponse);
+                    if (executedCommands.length > 0) {
+                        const bashMessage = `\n\n🚀 Bash 명령어 실행됨:\n${executedCommands.map(cmd => `• ${cmd}`).join('\n')}`;
+                        safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: bashMessage });
+                    }
+                } catch (error: any) {
+                    console.error('[LLM Response Processor] Bash command execution error:', error);
+                    const errorMessage = `\n\n❌ Bash 명령어 실행 중 오류 발생: ${error.message}`;
+                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: errorMessage });
+                }
+            }
+
             // 작업 요약과 설명을 마지막에 출력
             if (workSummary) {
                 const summaryMessage = "\n\n📋 AI 작업 요약\n" + workSummary;
@@ -377,6 +393,21 @@ export class LlmResponseProcessor {
             const infoMessage = "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:', '새 파일:', 또는 '삭제 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요.";
             safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: infoMessage });
             
+            // Bash 명령어 실행 처리
+            if (hasBashCommands(llmResponse)) {
+                try {
+                    const executedCommands = executeBashCommandsFromLlmResponse(llmResponse);
+                    if (executedCommands.length > 0) {
+                        const bashMessage = `\n\n🚀 Bash 명령어 실행됨:\n${executedCommands.map(cmd => `• ${cmd}`).join('\n')}`;
+                        safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: bashMessage });
+                    }
+                } catch (error: any) {
+                    console.error('[LLM Response Processor] Bash command execution error:', error);
+                    const errorMessage = `\n\n❌ Bash 명령어 실행 중 오류 발생: ${error.message}`;
+                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: errorMessage });
+                }
+            }
+            
             // 파일 작업이 없어도 작업 요약과 설명이 있으면 출력
             if (workSummary) {
                 const summaryMessage = "\n\n📋 AI 작업 요약\n" + workSummary;
@@ -390,6 +421,21 @@ export class LlmResponseProcessor {
         } else {
             // 파일 작업이 없는 경우 thinking 애니메이션 제거
             safePostMessage(webview, { command: 'hideLoading' });
+            
+            // Bash 명령어 실행 처리
+            if (hasBashCommands(llmResponse)) {
+                try {
+                    const executedCommands = executeBashCommandsFromLlmResponse(llmResponse);
+                    if (executedCommands.length > 0) {
+                        const bashMessage = `\n\n🚀 Bash 명령어 실행됨:\n${executedCommands.map(cmd => `• ${cmd}`).join('\n')}`;
+                        safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: bashMessage });
+                    }
+                } catch (error: any) {
+                    console.error('[LLM Response Processor] Bash command execution error:', error);
+                    const errorMessage = `\n\n❌ Bash 명령어 실행 중 오류 발생: ${error.message}`;
+                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: errorMessage });
+                }
+            }
             
             // 파일 작업이 없어도 작업 요약과 설명이 있으면 출력
             if (workSummary) {
