@@ -397,7 +397,7 @@ npm run lint
 
 </details>
 
-### Version 2.4.1 (2024/07/10) - LLM 프롬프트 구조 개선 및 코드 생성/수정 요청 방식 고도화
+### Version 2.4.1 (2025/08/19) - LLM 프롬프트 구조 개선 및 코드 생성/수정 요청 방식 고도화
 
 <details>
 <summary>LLM 프롬프트 및 코드 생성/수정 요청 방식 개선</summary>

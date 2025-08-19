@@ -351,7 +351,7 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 </details>
 
-### Version 2.4.2 (2025/07/29) - Multi-Model AI Support & Ollama Integration
+### Version 2.5.1 (2025/08/19) - Multi-Model AI Support & Ollama Integration
 
 <details>
 <summary>Multi-Model AI Support</summary>

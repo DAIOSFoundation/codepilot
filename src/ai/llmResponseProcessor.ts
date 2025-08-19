@@ -67,6 +67,10 @@ export class LlmResponseProcessor {
         // 수정: 빈 줄을 허용하고 파일명을 더 정확하게 파싱하며, ## 마크다운 헤더도 처리하도록 정규식 개선
         // 파일명은 반드시 한 줄에만 있어야 하며, 코드 블록 시작 전에 끝나야 함
         const codeBlockRegex = /(?:##\s*)?(새 파일|수정 파일):\s+([^\r\n]+?)(?:\r?\n\s*\r?\n```[^\n]*\r?\n([\s\S]*?)\r?\n```)/g;
+        
+        // 마크다운 파일을 위한 별도 정규식 (코드 블록 없이 마크다운 내용 직접 포함)
+        const markdownFileRegex = /(?:##\s*)?(새 파일|수정 파일):\s+([^\r\n]+\.md)\r?\n\s*\r?\n([\s\S]*?)(?=\r?\n\s*(?:새 파일|수정 파일|삭제 파일|$))/gs;
+        
         // 삭제 파일을 위한 별도 정규식 (코드 블록이 없음)
         const deleteFileRegex = /삭제 파일:\s+(.+?)(?:\r?\n|$)/g;
 
@@ -131,6 +135,60 @@ export class LlmResponseProcessor {
                 }
             } else {
                 // console.warn(`[LLM Response Processor] WARN: Unknown directive "${originalDirective}". Skipping.`);
+                continue; // Skip unknown directives
+            }
+
+            if (absolutePath && newContent) {
+                fileOperations.push({
+                    type: operationType,
+                    originalDirective,
+                    llmSpecifiedPath,
+                    absolutePath,
+                    newContent
+                });
+            }
+        }
+
+        // 마크다운 파일 작업 처리 (코드 블록 없이 마크다운 내용 직접 포함)
+        while ((match = markdownFileRegex.exec(llmResponse)) !== null) {
+            const originalDirective = match[1].trim(); // "수정 파일" or "새 파일"
+            let llmSpecifiedPath = match[2].trim();  // e.g., 'docs/README.md'
+            const newContent = match[3];
+            
+            // 파일명에서 ** 제거 (Ollama 응답에서 발생하는 문제 해결)
+            llmSpecifiedPath = llmSpecifiedPath.replace(/\*\*$/, '');
+
+            console.log(`[LLM Response Processor] Found markdown directive: "${originalDirective}", LLM path: "${llmSpecifiedPath}"`);
+            console.log(`[LLM Response Processor] Markdown content length:`, newContent.length);
+
+            let absolutePath: string | undefined;
+            let operationType: 'modify' | 'create' | 'delete';
+
+            if (originalDirective === '수정 파일') {
+                operationType = 'modify';
+                // 컨텍스트 파일 목록에서 AI가 제안한 파일명과 일치하는지 찾기
+                const matchedFile = contextFiles.find((f: { name: string, fullPath: string }) => f.name === llmSpecifiedPath);
+                
+                if (matchedFile) {
+                    absolutePath = matchedFile.fullPath;
+                } else {
+                    const warnMsg = `경고: AI가 수정을 제안한 마크다운 파일 '${llmSpecifiedPath}'을(를) 컨텍스트 목록에서 찾을 수 없습니다. 해당 파일은 업데이트되지 않았습니다.`;
+                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
+                    updateSummaryMessages.push(`⚠️ ${warnMsg}`);
+                    continue; // Skip this operation
+                }
+            } else if (originalDirective === '새 파일') {
+                operationType = 'create';
+                if (projectRoot) {
+                    absolutePath = path.join(projectRoot, llmSpecifiedPath);
+                } else {
+                    const warnMsg = `경고: '새 파일' 지시어 '${llmSpecifiedPath}'가 감지되었으나, 프로젝트 루트 경로를 찾을 수 없어 마크다운 파일 생성을 건너뜀.`;
+                    this.notificationService.showWarningMessage(`CodePilot: ${warnMsg}`);
+                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
+                    updateSummaryMessages.push(`⚠️ ${warnMsg}`);
+                    continue; // Skip this operation
+                }
+            } else {
                 continue; // Skip unknown directives
             }
 
