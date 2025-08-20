@@ -305,7 +305,16 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 ## Release Notes
 
-### Version 2.5.0 (2025/08/19) - Ollama File Operations Fix & Enhanced Regex Support
+For detailed release notes, please see [RELEASE.md](RELEASE.md).
+
+### Latest Version 2.5.3 (2025/08/19) - Interactive Command Handling
+
+- **Interactive Command Detection**: Automatically detects interactive commands like npm create, git clone, SSH, Docker, etc.
+- **Automatic Response System**: Provides default responses for common interactive scenarios
+- **Command Sequence Execution**: Handles multiple commands in sequence with proper timing
+- **Enhanced User Experience**: Real-time notifications for interactive command execution
+
+### Version 2.5.2 (2025/08/19) - Multi-Model AI Support & Ollama Integration
 
 <details>
 <summary>Ollama File Operations Fix</summary>
@@ -353,293 +362,66 @@ Calling out known issues can help limit users opening duplicate issues against y
 
 ### Version 2.5.2 (2025/08/19) - Multi-Model AI Support & Ollama Integration
 
-<details>
-<summary>Multi-Model AI Support</summary>
-
 - **Ollama Integration**: Added support for local Ollama Gemma3:27b model
-- **Dynamic Model Selection**: AI model dropdown in settings to choose between Gemini and Ollama
-- **Model-Specific Settings**: Automatic enabling/disabling of relevant settings based on selected model
-- **Unified LLM Service**: Centralized service to handle both Gemini and Ollama API calls
-- **Offline Capability**: Full offline AI processing with local Ollama server
-
-</details>
-
-<details>
-<summary>Enhanced Settings Interface</summary>
-
-- **AI Model Configuration**: New dropdown for selecting AI model (Gemini 2.5 Pro Flash / Gemma3:27b)
-- **Ollama API URL Setup**: Input field for configuring local Ollama server address
-- **Banya License Management**: License serial input and verification system
-- **Dynamic UI**: Settings sections automatically enable/disable based on model selection
-- **Default Configuration**: Gemini 2.5 Pro Flash set as default model
-
-</details>
-
-<details>
-<summary>Automatic Bash Command Execution</summary>
-
-- **Bash Command Detection**: Automatically detects ```bash code blocks in LLM responses
-- **Terminal Integration**: Executes detected commands in VSCode's integrated terminal
-- **Multi-Command Support**: Handles multiple commands in sequence from single response
-- **Interactive Command Handling**: Automatically responds to interactive commands like npm create, git clone, SSH connections
-- **User Notifications**: Real-time feedback on executed commands with success/error status
-- **CodePilot Terminal**: Dedicated terminal instance for CodePilot command execution
-- **Automatic Terminal Activation**: Shows terminal when commands are being executed
-- **Error Handling**: Comprehensive error reporting for failed command execution
-- **System Prompt Enhancement**: Updated AI instructions to include bash command format examples
-
-</details>
-
-<details>
-<summary>Technical Improvements</summary>
-
-- **Network Resilience**: Replaced fetch with Node.js HTTP module for reliable local connections
-- **Webview Safety**: Added safePostMessage function to prevent disposed webview errors
-- **Error Handling**: Enhanced error handling for network connectivity issues
-- **Type Safety**: Improved TypeScript type definitions and error checking
-- **Performance**: Optimized message handling and webview communication
-- **Terminal Management**: New terminal manager with bash command extraction and execution capabilities
-
-</details>
-
-<details>
-<summary>Ollama Setup Instructions</summary>
-
-- **Server Installation**: curl -fsSL https://ollama.ai/install.sh | sh
-- **Model Download**: ollama pull gemma3:27b
-- **Server Start**: ollama serve
-- **API URL**: Default http://localhost:11434
-- **Network Configuration**: Support for local network addresses
-
-</details>
+- **Dynamic Model Selection**: AI model dropdown in settings
+- **Automatic Bash Command Execution**: Terminal command execution from LLM responses
+- **Enhanced Settings Interface**: Improved configuration options
 
 ### Version 2.4.1 (2024/07/10) - Improved LLM Prompt Structure & Code Generation/Modification Requests
 
-<details>
-<summary>LLM Prompt and Code Generation/Modification Request Enhancements</summary>
-
-- Enhanced system prompt for LLM (Large Language Model) to strictly specify output format and rules for code generation, modification, and deletion requests
-- Reinforced prompt structure to require full file code, per-file directives (Modified File/New File/Deleted File), work summary, and detailed explanation in every response
-- Actual code context, user request, and project structure information are now always included, improving AI reliability and automation
-- Work summary (created/modified/deleted files) and work description (logic, key functions/classes, improvements, test instructions, etc.) are now mandatory in responses
-- Example and rules for prompt are clearly included in the system prompt to ensure consistent response format
-- Directly improved and customized the prompt generation logic in geminiService.ts (user customization applied)
-
-</details>
+- Enhanced system prompt for LLM to strictly specify output format and rules
+- Reinforced prompt structure with mandatory file directives and work summaries
+- Improved AI reliability and automation with better context handling
 
 ### Version 2.4.0 (2025/06/26) - Enhanced AI response structure & UX improvements
 
-<details>
-<summary>Enhanced AI Response Structure</summary>
-
 - Improved system prompts for better code generation and file operations
-- Structured response format with clear file operation directives
-- Mandatory work summary and detailed operation descriptions
-- Enhanced error handling and user feedback
-
-</details>
-
-<details>
-<summary>Improved User Experience</summary>
-
-- Fixed chat interface scrolling issues for immediate response visibility
-- Optimized message display order: AI response → file operations → work summary → operation description
-- Added emoji indicators for better visual organization:
-  - 📁 File update results
-  - 📋 AI work summary  
-  - 💡 Work execution description
-- Enhanced thinking animation with proper timing and visibility
-
-</details>
-
-<details>
-<summary>Code Generation Enhancements</summary>
-
-- Mandatory file operation directives: "수정 파일:", "새 파일:", "삭제 파일:"
-- Complete file content output instead of partial changes
-- Automatic work summary generation for all operations
-- Detailed operation explanations for better understanding
-
-</details>
-
-<details>
-<summary>File Operation Improvements</summary>
-
-- Sequential processing: thinking animation removal → file operations → result display
-- Enhanced file operation feedback with success/error indicators
-- Better error handling for file creation, modification, and deletion
-- Improved diff viewing for code modifications
-
-</details>
-
-<details>
-<summary>API Key Management</summary>
-
-- Moved Gemini API key configuration from License to Settings menu
-- Centralized API key management in Settings panel
-- Enhanced security with VS Code SecretStorage
-- Improved API key validation and error handling
-
-</details>
-
-<details>
-<summary>Real-time Information Enhancements</summary>
-
-- Enhanced weather information with 7-day forecasts
-- Improved news search with topic-specific queries
-- Better stock information display with change indicators
-- Natural language processing for information queries
-
-</details>
-
-<details>
-<summary>Multi-Language Support</summary>
-
-- Added comprehensive internationalization (i18n) support
-- Supported languages: Korean, English, Chinese, Spanish, German, French, Japanese
-- Dynamic language switching with immediate UI updates
-- Localized settings interface with translated labels and descriptions
-- Persistent language preference storage
-- Real-time language change without requiring page reload
-
-</details>
-
-<details>
-<summary>Technical Improvements</summary>
-
-- Fixed webview message handling and display issues
-- Enhanced code block rendering with proper syntax highlighting
-- Improved context management for better AI responses
-- Better error recovery and user notification system
-- Optimized language data loading and caching
-- Enhanced UI responsiveness for language changes
-
-</details>
+- Enhanced user experience with better message display and emoji indicators
+- Added comprehensive internationalization (i18n) support for 7 languages
+- Enhanced real-time information features (weather, news, stock)
 
 ### Version 2.3b (2025/6/15) - Real-time information features
 
-<details>
-<summary>ASK tab real-time information features added</summary>
-
-- Weather information lookup (Korean Meteorological Administration API integration)
-- News information lookup (NewsAPI integration)
-- Stock information lookup (Alpha Vantage API integration)
-- Natural language queries for real-time information
-
-</details>
-
-<details>
-<summary>Settings</summary>
-
-- External API key configuration options added (weather, news, stock)
-- API keys are securely managed in VS Code settings
-- New API key management section in settings page
-- Individual save buttons for each API key type
-- Real-time status display for API key configuration
-
-</details>
-
-<details>
-<summary>Usage</summary>
-
-- "Seoul weather" → Current weather information for Seoul
-- "News" → Latest news headlines
-- "Stock" → Major stock information (AAPL, GOOGL, MSFT, TSLA, AMZN)
-
-</details>
+- Added weather, news, and stock information lookup features
+- External API key configuration for real-time data
+- Natural language queries for information retrieval
 
 ### Version 2.2b (2025/06/10) - API compatibility fixes
 
-<details>
-<summary>AI</summary>
-
-- Fixed Gemini API error related to unsupported webSearch tools
-- Temporarily removed web search functionality due to API compatibility issues
-- ASK tab now works without web search grounding
+- Fixed Gemini API compatibility issues
 - Improved error handling for API calls
-
-</details>
 
 ### Version 2.1b (2025/06/5) - File selection & context
 
-<details>
-<summary>CHAT panel</summary>
-
-- File selection feature with @ button in CODE tab
-- Selected files are displayed as context tags with white borders
-- Selected files remain persistent across messages for continuous context
-- Horizontal divider line between file selection area and input area
-- Vertical center alignment for selected file tags
-- File picker starts at configured project root path
-- Multiple file selection support
-
-</details>
-
-<details>
-<summary>AI</summary>
-
-- Selected files from @ button are included as additional context to LLM
-- File context works in both CODE and ASK tabs
+- Added file selection feature with @ button in CODE tab
+- Persistent file context across messages
 - Enhanced context processing for better file operation tracking
-
-</details>
 
 ### Version 2.0.0 - Complete UI redesign
 
-<details>
-<summary>Major Changes</summary>
-
 - Complete UI redesign with modern interface
 - Added dedicated view container with CODE and ASK tabs
-- Implemented persistent file selection feature
 - Enhanced code block display with copy functionality
-- Added real-time information features
-
-</details>
 
 ### Version 1.4.0 - Image support & file picker
 
-<details>
-<summary>Features</summary>
-
 - Added image support for code analysis
 - Implemented file picker functionality
-- Enhanced context management
-
-</details>
 
 ### Version 1.3.0 - Enhanced chat interface
 
-<details>
-<summary>Improvements</summary>
-
 - Enhanced chat interface with better code block display
 - Added file operation tracking
-- Improved error handling
-
-</details>
 
 ### Version 1.2.0 - Project scope features
 
-<details>
-<summary>Features</summary>
-
 - Added project scope code watching
 - Implemented auto debug functionality
-- Fixed various UI issues
-
-</details>
 
 ### Version 1.1.0 - Enhanced LLM support
 
-<details>
-<summary>Enhancements</summary>
-
 - Added support for custom LLM models
 - Improved code generation accuracy
-- Enhanced natural language processing
-
-</details>
 
 ### Version 1.0.0 - Initial release
 
@@ -650,6 +432,7 @@ Initial release of CodePilot
 
 </details>
 
+**For complete release history, see [RELEASE.md](RELEASE.md)**
 
 ### For more information
 I'm seeking individuals to help me grow this source code. Please contact me at: tony@banya.ai
