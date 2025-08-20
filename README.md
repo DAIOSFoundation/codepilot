@@ -381,6 +381,7 @@ Calling out known issues can help limit users opening duplicate issues against y
 - **Bash Command Detection**: Automatically detects ```bash code blocks in LLM responses
 - **Terminal Integration**: Executes detected commands in VSCode's integrated terminal
 - **Multi-Command Support**: Handles multiple commands in sequence from single response
+- **Interactive Command Handling**: Automatically responds to interactive commands like npm create, git clone, SSH connections
 - **User Notifications**: Real-time feedback on executed commands with success/error status
 - **CodePilot Terminal**: Dedicated terminal instance for CodePilot command execution
 - **Automatic Terminal Activation**: Shows terminal when commands are being executed

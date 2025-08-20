@@ -235,6 +235,7 @@ CodePilot은 LLM 응답에서 bash 명령어를 자동으로 감지하고 VSCode
 - **자동 명령어 감지**: ```bash 코드 블록을 자동으로 인식
 - **터미널 통합**: VSCode 통합 터미널에서 명령어 실행
 - **다중 명령어 지원**: 여러 명령어를 순차적으로 처리
+- **대화형 명령어 처리**: npm create, git clone 등 대화형 명령어 자동 응답
 - **실시간 알림**: 실행된 명령어 목록과 결과 표시
 - **오류 처리**: 명령어 실행 실패 시 상세한 오류 메시지
 
@@ -279,18 +280,42 @@ React Router를 설치하고 기본 설정을 추가하겠습니다:
 npm install react-router-dom
 ```
 
+**대화형 명령어 예시:**
+```
+사용자: "React 프로젝트를 생성해줘"
+
+AI 응답:
+Vite를 사용해서 React 프로젝트를 생성하겠습니다:
+
+```bash
+npm create vite@latest my-react-app --template react
+cd my-react-app
+npm install
+```
+
 #### 실행 결과:
 CodePilot이 자동으로 다음을 수행합니다:
 1. **명령어 감지**: ```bash 블록에서 명령어 추출
 2. **터미널 활성화**: CodePilot 전용 터미널 표시
 3. **명령어 실행**: 각 명령어를 순차적으로 실행
-4. **결과 알림**: 채팅창에 "🚀 Bash 명령어 실행됨: • npm install • npm run build • npm start" 메시지 표시
+4. **대화형 처리**: npm create 등 대화형 명령어에 자동 응답 (기본값: 'y')
+5. **결과 알림**: 채팅창에 "🚀 Bash 명령어 실행됨: • npm create vite@latest my-react-app --template react • cd my-react-app • npm install" 메시지 표시
+
+#### 대화형 명령어 지원:
+CodePilot은 다음과 같은 대화형 명령어들을 자동으로 처리합니다:
+
+- **npm create 명령어들**: `npm create vite`, `npx create-react-app` 등 (기본 응답: 'y')
+- **git clone**: 저장소 클론 (기본 응답: Enter)
+- **SSH 연결**: 호스트 키 확인 (기본 응답: 'yes')
+- **Docker 대화형 명령어**: 컨테이너 실행/접속 (기본 응답: 'exit')
+- **데이터베이스 연결**: MySQL, PostgreSQL, MongoDB 등
 
 #### 주의사항:
 - **보안**: 실행할 명령어를 신중히 검토하세요
 - **권한**: 일부 명령어는 관리자 권한이 필요할 수 있습니다
 - **환경**: 프로젝트 디렉토리에서 명령어가 실행됩니다
 - **취소**: 명령어 실행 중에는 AI 요청을 취소할 수 없습니다
+- **대화형 명령어**: 자동 응답이 제공되지만, 필요시 터미널에서 직접 조정 가능
 
 ### 4. 마크다운 파일 생성 지원 📝
 CodePilot은 LLM 응답에서 마크다운 파일(.md)을 자동으로 생성하고 수정할 수 있습니다.
