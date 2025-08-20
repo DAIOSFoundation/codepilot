@@ -97,7 +97,7 @@ This document contains the complete release history for CodePilot VSCode extensi
 
 </details>
 
-## Version 2.5.0 (2025/08/19) - Ollama File Operations Fix & Enhanced Regex Support
+## Version 2.5.0 (2025/08/18) - Ollama File Operations Fix & Enhanced Regex Support
 
 <details>
 <summary>Ollama File Operations Fix</summary>
