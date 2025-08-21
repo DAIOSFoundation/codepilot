@@ -1305,32 +1305,20 @@ window.addEventListener('message', event => {
                 showStatus(geminiApiKeyStatus, geminiApiKeySetText, message.geminiApiKey ? 'success' : 'info');
             }
             // Ollama API URL 상태 로드
-            console.log('Processing ollamaApiUrl:', message.ollamaApiUrl, 'Type:', typeof message.ollamaApiUrl);
             if (ollamaApiUrlInput && typeof message.ollamaApiUrl === 'string') {
-                console.log('Setting ollamaApiUrlInput.value to:', message.ollamaApiUrl);
                 ollamaApiUrlInput.value = message.ollamaApiUrl;
                 const ollamaApiUrlSetText = message.ollamaApiUrl ? 
                     (languageData['ollamaApiUrlSet'] || 'Ollama API URL이 설정되어 있습니다.') :
                     (languageData['ollamaApiUrlNotSet'] || 'Ollama API URL이 설정되지 않았습니다.');
                 showStatus(ollamaApiUrlStatus, ollamaApiUrlSetText, message.ollamaApiUrl ? 'success' : 'info');
-            } else {
-                console.log('ollamaApiUrlInput not found or message.ollamaApiUrl is not a string');
-                console.log('ollamaApiUrlInput:', ollamaApiUrlInput);
-                console.log('message.ollamaApiUrl:', message.ollamaApiUrl);
             }
             // Ollama 엔드포인트 상태 로드
-            console.log('Processing ollamaEndpoint:', message.ollamaEndpoint);
-            console.log('ollamaEndpointSelect element:', ollamaEndpointSelect);
             if (ollamaEndpointSelect && typeof message.ollamaEndpoint === 'string') {
-                console.log('Setting ollamaEndpointSelect.value to:', message.ollamaEndpoint);
                 ollamaEndpointSelect.value = message.ollamaEndpoint;
-                console.log('ollamaEndpointSelect.value after setting:', ollamaEndpointSelect.value);
                 const ollamaEndpointSetText = message.ollamaEndpoint ? 
                     `Ollama 엔드포인트가 설정되어 있습니다: ${message.ollamaEndpoint}` :
                     'Ollama 엔드포인트가 설정되지 않았습니다.';
                 showStatus(ollamaEndpointStatus, ollamaEndpointSetText, message.ollamaEndpoint ? 'success' : 'info');
-            } else {
-                console.log('ollamaEndpointSelect not found or message.ollamaEndpoint is not a string');
             }
             // Banya 라이센스 상태 로드
             if (banyaLicenseSerialInput && typeof message.banyaLicenseSerial === 'string') {

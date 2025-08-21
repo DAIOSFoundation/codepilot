@@ -185,8 +185,7 @@ export class OllamaApi {
                             }
                         });
                         
-                        console.log('Ollama: Attempting multimodal request with image');
-                        console.log('Ollama Request (chat endpoint, with image):', postData);
+
                         
                         const response = await this.makeHttpRequest(url, postData, options?.signal);
                         const data = JSON.parse(response) as { message: { content: string } };
@@ -195,10 +194,10 @@ export class OllamaApi {
                     } else {
                         // Generate API에서는 이미지를 텍스트로 변환
                         fullPrompt += `${textParts.join('\n')}\n[이미지 첨부됨: ${imagePart.inlineData.mimeType}]`;
-                        console.log('Ollama: Using generate endpoint, converting image to text');
+
                     }
                 } catch (error) {
-                    console.warn('Ollama: Multimodal request failed, falling back to text format:', error);
+
                     // 멀티모달 요청 실패 시 텍스트로 변환
                     fullPrompt += `${textParts.join('\n')}\n[이미지 첨부됨: ${imagePart.inlineData.mimeType}]`;
                 }
@@ -223,7 +222,7 @@ export class OllamaApi {
                     }
                 });
 
-                console.log('Ollama Request (chat endpoint, no image):', postData);
+
 
                 const response = await this.makeHttpRequest(url, postData, options?.signal);
                 const data = JSON.parse(response) as { message: { content: string } };
@@ -243,7 +242,7 @@ export class OllamaApi {
                     }
                 });
 
-                console.log('Ollama Request (generate endpoint):', postData);
+
 
                 const response = await this.makeHttpRequest(url, postData, options?.signal);
                 const data = JSON.parse(response) as { response: string };
