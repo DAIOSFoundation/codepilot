@@ -63,31 +63,47 @@ let isLicenseVerified = false;
 
 // 저장 버튼들의 활성화/비활성화를 제어하는 함수
 function updateSaveButtonsState() {
-    const saveButtons = [
+    // 라이선스 검증이 필요한 버튼들 (API 키 관련)
+    const licenseRequiredButtons = [
         saveGeminiApiKeyButton,
-        saveOllamaApiUrlButton,
-        saveOllamaEndpointButton,
         saveWeatherApiKeyButton,
         saveNewsApiKeyButton,
         saveNewsApiSecretButton,
         saveStockApiKeyButton
     ];
     
+    // 라이선스 검증이 필요하지 않은 버튼들 (설정 관련)
+    const alwaysEnabledButtons = [
+        saveOllamaApiUrlButton,
+        saveOllamaEndpointButton
+    ];
+    
     console.log('Updating save buttons state. License verified:', isLicenseVerified);
     
-    saveButtons.forEach(button => {
+    // 라이선스 검증이 필요한 버튼들 처리
+    licenseRequiredButtons.forEach(button => {
         if (button) {
             if (isLicenseVerified) {
                 button.disabled = false;
                 button.style.opacity = '1';
                 button.style.cursor = 'pointer';
-                console.log('Button enabled:', button.id);
+                console.log('Button enabled (license required):', button.id);
             } else {
                 button.disabled = true;
                 button.style.opacity = '0.5';
                 button.style.cursor = 'not-allowed';
-                console.log('Button disabled:', button.id);
+                console.log('Button disabled (license required):', button.id);
             }
+        }
+    });
+    
+    // 항상 활성화되는 버튼들 처리
+    alwaysEnabledButtons.forEach(button => {
+        if (button) {
+            button.disabled = false;
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
+            console.log('Button enabled (always enabled):', button.id);
         }
     });
 }

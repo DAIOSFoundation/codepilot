@@ -259,8 +259,37 @@ export class OllamaService {
                 abortSignal
             );
 
+            // 선택된 파일들의 내용을 읽어서 컨텍스트에 추가
+            let selectedFilesContext = "";
+            if (selectedFiles && selectedFiles.length > 0) {
+                for (const filePath of selectedFiles) {
+                    try {
+                        const fileUri = vscode.Uri.file(filePath);
+                        const contentBytes = await vscode.workspace.fs.readFile(fileUri);
+                        const content = Buffer.from(contentBytes).toString('utf8');
+                        const fileName = filePath.split(/[/\\]/).pop() || 'Unknown';
+                        
+                        // 선택된 파일을 includedFilesForContext 배열에 추가
+                        includedFilesForContext.push({ 
+                            name: fileName, 
+                            fullPath: filePath 
+                        });
+                        
+                        selectedFilesContext += `파일명: ${fileName}\n경로: ${filePath}\n코드:\n\`\`\`\n${content}\n\`\`\`\n\n`;
+                    } catch (error) {
+                        console.error(`Error reading selected file ${filePath}:`, error);
+                        selectedFilesContext += `파일명: ${filePath.split(/[/\\]/).pop() || 'Unknown'}\n경로: ${filePath}\n오류: 파일을 읽을 수 없습니다.\n\n`;
+                    }
+                }
+            }
+
+            // 선택된 파일 컨텍스트를 기존 컨텍스트에 추가
+            const fullFileContentsContext = selectedFilesContext 
+                ? `${fileContentsContext}\n--- 사용자가 선택한 추가 파일들 ---\n${selectedFilesContext}`
+                : fileContentsContext;
+
             // 시스템 프롬프트 생성
-            const systemPrompt = this.generateSystemPrompt(promptType, fileContentsContext, realTimeInfo);
+            const systemPrompt = this.generateSystemPrompt(promptType, fullFileContentsContext, realTimeInfo);
 
             // 사용자 메시지 파트 구성
             const userParts = [{ text: userQuery }];
