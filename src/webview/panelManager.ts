@@ -21,7 +21,8 @@ export function openSettingsPanel(
     storageService: StorageService, // StorageService 추가
     geminiApi: GeminiApi, // GeminiApi 추가
     licenseService: LicenseService, // LicenseService 추가
-    ollamaApi?: any // OllamaApi 추가
+    ollamaApi?: any, // OllamaApi 추가
+    llmService?: any // LlmService 추가
 ) {
     const panel = createAndSetupWebviewPanel(extensionUri, context, 'settings', 'CodePilot Settings', 'settings', viewColumn,
         async (data, panel) => {
@@ -71,7 +72,7 @@ export function openSettingsPanel(
                          panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: '' });
                     }
                     break;
-                case 'loadApiKeys':
+                                case 'loadApiKeys':
                     // API 키 상태 로드
                     const weatherApiKey = await configurationService.getWeatherApiKey();
                     const newsApiKey = await configurationService.getNewsApiKey();
@@ -95,17 +96,37 @@ export function openSettingsPanel(
                         validBanyaLicenseSerial = banyaLicenseSerial.trim();
                     }
                     
-                    panel.webview.postMessage({ 
+                    // 라이선스 검증 상태 확인
+                    let isLicenseVerified = false;
+                    if (validBanyaLicenseSerial) {
+                        try {
+                            console.log('Verifying license:', validBanyaLicenseSerial);
+                            const verificationResult = await licenseService.verifyLicense(validBanyaLicenseSerial);
+                            isLicenseVerified = verificationResult.success;
+                            console.log('License verification result:', verificationResult);
+                            console.log('isLicenseVerified set to:', isLicenseVerified);
+                        } catch (error) {
+                            console.error('License verification failed:', error);
+                            isLicenseVerified = false;
+                        }
+                    } else {
+                        console.log('No valid license serial found');
+                    }
+                    
+                    const messageToSend = { 
                         command: 'currentApiKeys', 
                         weatherApiKey: weatherApiKey || '', 
                         newsApiKey: newsApiKey || '', 
                         newsApiSecret: newsApiSecret || '',
-                        stockApiKey: stockApiKey || '',
+                        stockApiKey: stockApiKey || '', 
                         geminiApiKey: geminiApiKey || '', // Gemini API 키 추가
                         ollamaApiUrl: ollamaApiUrl || '', // Ollama API URL 추가
                         ollamaEndpoint: ollamaEndpoint || '', // Ollama 엔드포인트 추가
-                        banyaLicenseSerial: validBanyaLicenseSerial // 검증된 Banya 라이센스만 전송
-                    });
+                        banyaLicenseSerial: validBanyaLicenseSerial, // 검증된 Banya 라이센스만 전송
+                        isLicenseVerified: isLicenseVerified // 라이선스 검증 상태 추가
+                    };
+                    console.log('Sending currentApiKeys message:', messageToSend);
+                    panel.webview.postMessage(messageToSend);
                     break;
                 case 'saveApiKey': // Gemini API 키 저장 케이스 추가
                     const apiKeyToSave = data.apiKey;
@@ -228,6 +249,10 @@ export function openSettingsPanel(
                     if (aiModelToSave && typeof aiModelToSave === 'string') {
                         try {
                             await storageService.saveCurrentAiModel(aiModelToSave);
+                            // LlmService의 현재 모델도 업데이트
+                            if (llmService) {
+                                llmService.setCurrentModel(aiModelToSave as any);
+                            }
                             panel.webview.postMessage({ command: 'aiModelSaved' });
                             notificationService.showInfoMessage(`CodePilot: AI model changed to ${aiModelToSave}.`);
                         } catch (error: any) {

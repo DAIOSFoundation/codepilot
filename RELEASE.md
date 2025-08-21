@@ -2,6 +2,73 @@
 
 This document contains the complete release history for CodePilot VSCode extension.
 
+## Version 2.5.4 (2025/08/21) - ASK Tab File Selection & Enhanced Settings
+
+<details>
+<summary>ASK Tab File Selection Feature</summary>
+
+- **File Selection in ASK Tab**: Added @ file selection functionality to ASK tab for context-aware queries
+- **Unified File Selection UI**: Consistent file selection interface across CODE and ASK tabs
+- **Context-Aware Responses**: Selected files are included as context for better AI responses
+- **File Tag Management**: Visual file tags with individual remove and clear all functionality
+- **Multi-File Support**: Select multiple files for comprehensive context
+- **File Picker Integration**: Native VSCode file picker with project root detection
+
+</details>
+
+<details>
+<summary>ASK Tab Function Restrictions</summary>
+
+- **Purpose-Specific Design**: ASK tab restricted to query-response functionality only
+- **File Operation Prevention**: Blocks file creation, modification, and deletion in ASK tab
+- **Terminal Command Prevention**: Prevents terminal command execution in ASK tab
+- **Warning System**: Displays helpful warnings when restricted operations are attempted
+- **Clear Tab Distinction**: Clear separation between CODE tab (full functionality) and ASK tab (query only)
+
+</details>
+
+<details>
+<summary>Enhanced Settings Management</summary>
+
+- **License Verification State Persistence**: Settings buttons now properly maintain enabled state after license verification
+- **Improved Button State Management**: Fixed issue where buttons remained disabled after page reload
+- **Real-time License Status**: License verification status is checked and applied on settings page load
+- **Better User Experience**: No need to re-verify license when reopening settings
+
+</details>
+
+<details>
+<summary>ASK Tab Response Display Fix</summary>
+
+- **Response Output Fix**: Resolved issue where AI responses were not displaying in ASK tab UI despite successful generation
+- **Message Handler Optimization**: Fixed duplicate message handlers causing response display conflicts
+- **UI State Management**: Improved loading state management and response rendering
+- **File Context Integration**: Enhanced file content processing and context integration for ASK tab queries
+
+</details>
+
+<details>
+<summary>Token Management System</summary>
+
+- **Input Token Calculation**: Added comprehensive token counting system for both Gemini and Ollama models
+- **Model-Specific Limits**: 
+  - Gemini 2.5 Flash: 1,000,000 input tokens, 500,000 output tokens
+  - Gemma3:27b: 128,000 input/output tokens
+- **Token Limit Warnings**: Automatic detection and user warnings when input tokens exceed model limits
+- **Usage Monitoring**: Real-time token usage logging and percentage tracking
+
+</details>
+
+<details>
+<summary>Technical Improvements</summary>
+
+- **Type Safety**: Separated `AiModelType` and `PromptType` enums into dedicated `types.ts` file
+- **Circular Dependency Resolution**: Fixed circular import issues between modules
+- **Enhanced Error Handling**: Improved error messages and user feedback for token limit violations
+- **Code Architecture**: Improved modular structure and dependency management
+
+</details>
+
 ## Version 2.5.3 (2025/08/19) - Interactive Command Handling
 
 <details>

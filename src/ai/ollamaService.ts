@@ -8,7 +8,7 @@ import { LlmResponseProcessor } from './llmResponseProcessor';
 import { NotificationService } from '../services/notificationService';
 import { ConfigurationService } from '../services/configurationService';
 import { ExternalApiService } from './externalApiService';
-import { PromptType } from './llmService';
+import { PromptType } from './types';
 
 export class OllamaApi {
     private apiUrl: string;
@@ -105,7 +105,7 @@ export class OllamaApi {
                         temperature: 0.7,
                         top_k: 1,
                         top_p: 1,
-                        num_predict: 500000,
+                        num_predict: 128000, // Gemma3:27b의 토큰 제한
                     }
                 });
 
@@ -124,7 +124,7 @@ export class OllamaApi {
                         temperature: 0.7,
                         top_k: 1,
                         top_p: 1,
-                        num_predict: 500000,
+                        num_predict: 128000, // Gemma3:27b의 토큰 제한
                     }
                 });
 
@@ -164,7 +164,7 @@ export class OllamaApi {
                         temperature: 0.7,
                         top_k: 1,
                         top_p: 1,
-                        num_predict: 500000,
+                        num_predict: 128000, // Gemma3:27b의 토큰 제한
                     }
                 });
 
@@ -182,7 +182,7 @@ export class OllamaApi {
                         temperature: 0.7,
                         top_k: 1,
                         top_p: 1,
-                        num_predict: 500000,
+                        num_predict: 128000, // Gemma3:27b의 토큰 제한
                     }
                 });
 

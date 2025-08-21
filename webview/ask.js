@@ -15,12 +15,22 @@ const imagePreviewContainer = document.getElementById('image-preview-container')
 const imagePreview = document.getElementById('image-preview');
 const removeImageButton = document.getElementById('remove-image-button');
 
+// 파일 선택 관련 요소들
+const filePickerButton = document.getElementById('file-picker-button');
+const fileSelectionArea = document.getElementById('file-selection-area');
+const selectedFilesContainer = document.getElementById('selected-files-container');
+const clearFilesButton = document.getElementById('clear-files-button');
+const fileInputDivider = document.querySelector('.file-input-divider');
+
 // 채팅 컨테이너 참조 추가
 const chatContainer = document.getElementById('chat-container');
 
 let thinkingBubbleElement = null;
 let selectedImageBase64 = null;
 let selectedImageMimeType = null;
+
+// 파일 선택 관련 변수들
+let selectedFiles = [];
 
 const md = markdownit({
     html: false,
@@ -93,6 +103,65 @@ const md = markdownit({
 //     });
 // }
 
+// 파일 선택 관련 함수들
+function addSelectedFile(filePath, fileName) {
+    if (selectedFiles.some(file => file.path === filePath)) {
+        console.log('File already selected:', filePath);
+        return;
+    }
+
+    selectedFiles.push({ path: filePath, name: fileName });
+    updateFileSelectionDisplay();
+}
+
+// 선택된 파일 제거
+function removeSelectedFile(filePath) {
+    selectedFiles = selectedFiles.filter(file => file.path !== filePath);
+    updateFileSelectionDisplay();
+}
+
+// 모든 선택된 파일 제거
+function clearAllSelectedFiles() {
+    selectedFiles = [];
+    updateFileSelectionDisplay();
+}
+
+// 파일 선택 영역 UI 업데이트
+function updateFileSelectionDisplay() {
+    if (!selectedFilesContainer || !fileSelectionArea) return;
+
+    selectedFilesContainer.innerHTML = '';
+
+    if (selectedFiles.length === 0) {
+        fileSelectionArea.classList.add('hidden');
+        if (fileInputDivider) {
+            fileInputDivider.classList.add('hidden');
+        }
+    } else {
+        fileSelectionArea.classList.remove('hidden');
+        if (fileInputDivider) {
+            fileInputDivider.classList.remove('hidden');
+        }
+
+        selectedFiles.forEach(file => {
+            const fileTag = document.createElement('div');
+            fileTag.classList.add('selected-file-tag');
+            fileTag.innerHTML = `
+                <span class="file-name" title="${file.path}">${file.name}</span>
+                <button class="remove-file" data-path="${file.path}" title="Remove file">×</button>
+            `;
+
+            // 개별 파일 제거 버튼 이벤트
+            const removeButton = fileTag.querySelector('.remove-file');
+            removeButton.addEventListener('click', () => {
+                removeSelectedFile(file.path);
+            });
+
+            selectedFilesContainer.appendChild(fileTag);
+        });
+    }
+}
+
 // 페이지 로드 시 기본 언어 적용 (ASK에서는 제거)
 // window.addEventListener('DOMContentLoaded', () => {
 //     // VS Code 설정에서 언어를 가져오도록 요청
@@ -133,6 +202,18 @@ if (cancelButton) {
 // 이미지 제거 버튼 클릭 이벤트 리스너
 if (removeImageButton) {
     removeImageButton.addEventListener('click', removeAttachedImage);
+}
+
+// 파일 선택 버튼 클릭 이벤트 리스너
+if (filePickerButton) {
+    filePickerButton.addEventListener('click', () => {
+        vscode.postMessage({ command: 'openFilePicker' });
+    });
+}
+
+// 모든 파일 제거 버튼 클릭 이벤트 리스너
+if (clearFilesButton) {
+    clearFilesButton.addEventListener('click', clearAllSelectedFiles);
 }
 
 function handlePaste(event) {
@@ -195,12 +276,13 @@ function handleSendMessage() {
             text: text,
             imageData: selectedImageBase64,
             imageMimeType: selectedImageMimeType,
-            selectedFiles: [] // ASK 탭에서는 파일 선택 없음
+            selectedFiles: selectedFiles.map(file => file.path) // 선택된 파일 경로들 전달
         });
 
         chatInput.value = '';
         chatInput.style.height = 'auto';
         removeAttachedImage();
+        clearAllSelectedFiles(); // 선택된 파일들도 초기화
         autoResizeTextarea();
         chatInput.focus();
         
@@ -618,4 +700,17 @@ function displayCodePilotMessage(markdownText) {
 window.displayUserMessage = displayUserMessage;
 window.showLoading = showLoading;
 window.hideLoading = hideLoading;
-window.displayCodePilotMessage = displayCodePilotMessage; 
+window.displayCodePilotMessage = displayCodePilotMessage;
+
+// 메시지 수신 핸들러 (파일 선택 및 기타 명령)
+window.addEventListener('message', event => {
+    const message = event.data;
+    switch (message.command) {
+        case 'fileSelected':
+            addSelectedFile(message.filePath, message.fileName);
+            break;
+        case 'hideLoading':
+            hideLoading();
+            break;
+    }
+}); 

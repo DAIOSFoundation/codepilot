@@ -7,11 +7,7 @@ import { NotificationService } from '../services/notificationService';
 import { ConfigurationService } from '../services/configurationService';
 import { RequestOptions, Part } from '@google/generative-ai'; // Part 임포트
 import { ExternalApiService } from './externalApiService'; // 새로 추가
-
-export enum PromptType {
-    CODE_GENERATION = 'CODE_GENERATION',
-    GENERAL_ASK = 'GENERAL_ASK'
-}
+import { PromptType } from './types';
 
 export class GeminiService {
     private storageService: StorageService;

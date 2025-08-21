@@ -1346,13 +1346,20 @@ window.addEventListener('message', event => {
                 }
             }
             
+            // 라이선스 검증 상태 처리
+            if (typeof message.isLicenseVerified === 'boolean') {
+                isLicenseVerified = message.isLicenseVerified;
+                console.log('License verification status received:', isLicenseVerified);
+            } else {
+                console.log('No license verification status received, message:', message);
+            }
+            
             // API 키 로드 완료 후 저장 버튼 상태 재확인
             setTimeout(() => {
-                if (!isLicenseVerified) {
-                    updateSaveButtonsState();
-                }
+                console.log('Final button state update after API keys load, isLicenseVerified:', isLicenseVerified);
+                updateSaveButtonsState();
                 updateLicenseButtonsState();
-            }, 50);
+            }, 100);
             break;
         case 'weatherApiKeySaved':
             const weatherApiKeySavedText = languageData['weatherApiKeySaved'] || '기상청 API 키가 저장되었습니다.';
@@ -1619,12 +1626,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showStatus(ollamaApiUrlStatus, apiKeysLoadingText, 'info');
     showStatus(banyaLicenseStatus, apiKeysLoadingText, 'info');
     
-    // API 키 로드 후에도 저장 버튼들 비활성화 상태 유지
-    setTimeout(() => {
-        isLicenseVerified = false;
-        updateSaveButtonsState();
-        updateLicenseButtonsState();
-    }, 100);
+    // API 키 로드 후 저장 버튼 상태 업데이트는 currentApiKeys 메시지를 받은 후에 수행됨
+    // 여기서는 초기화만 하고, 실제 업데이트는 서버 응답 후에 수행
     
     // AI 모델 설정 요청
     vscode.postMessage({ command: 'loadAiModel' });
@@ -1633,8 +1636,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (geminiSettingsSection) geminiSettingsSection.classList.remove('disabled');
     if (ollamaSettingsSection) ollamaSettingsSection.classList.add('disabled');
     
-    // 초기 상태: 라이센스가 검증되지 않았으므로 저장 버튼들 비활성화
-    isLicenseVerified = false;
-    updateSaveButtonsState();
-    updateLicenseButtonsState();
+    // 초기 상태: 라이선스 검증 상태는 서버에서 받아올 때까지 대기
+    // isLicenseVerified는 서버에서 전송된 값으로 설정됨
 });

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
-import { PromptType } from './llmService'; // Import PromptType
+import { PromptType } from './types'; // Import PromptType
 import { safePostMessage } from '../webview/panelUtils';
 import { executeBashCommandsFromLlmResponse, hasBashCommands } from '../terminal/terminalManager';
 
@@ -62,12 +62,48 @@ export class LlmResponseProcessor {
         promptType: PromptType // Add this parameter
     ): Promise<void> 
     {
+        // GENERAL_ASK 타입일 때는 파일 생성, 수정, 삭제 및 터미널 명령어 실행을 건너뜀
+        if (promptType === PromptType.GENERAL_ASK) {
+            
+            let cleanedResponse = llmResponse;
+            let hasWarnings = false;
+            
+            // 터미널 명령어가 포함되어 있으면 경고 메시지 표시하고 제거
+            if (hasBashCommands(llmResponse)) {
+                const warningMsg = "ASK 탭에서는 터미널 명령어를 실행할 수 없습니다. CODE 탭을 사용해주세요.";
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warningMsg });
+                this.notificationService.showWarningMessage(`CodePilot: ${warningMsg}`);
+                hasWarnings = true;
+                
+                // 터미널 명령어 부분 제거
+                cleanedResponse = this.removeBashCommands(cleanedResponse);
+            }
+            
+            // 파일 생성/수정/삭제 지시어가 포함되어 있으면 경고 메시지 표시하고 제거
+            if (llmResponse.includes("새 파일:") || llmResponse.includes("수정 파일:") || llmResponse.includes("삭제 파일:")) {
+                const warningMsg = "ASK 탭에서는 파일 생성, 수정, 삭제를 할 수 없습니다. CODE 탭을 사용해주세요.";
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warningMsg });
+                this.notificationService.showWarningMessage(`CodePilot: ${warningMsg}`);
+                hasWarnings = true;
+                
+                // 파일 작업 지시어 부분 제거
+                cleanedResponse = this.removeFileDirectives(cleanedResponse);
+            }
+            
+            // 정리된 응답을 웹뷰에 전달
+            if (cleanedResponse.trim()) {
+                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: cleanedResponse });
+            }
+            
+            return;
+        }
+        
         const fileOperations: FileOperation[] = [];
         
         // Updated regex to capture the directive (group 1), the path (group 2), and the content (group 3)
-        // 수정: 빈 줄을 허용하고 파일명을 더 정확하게 파싱하며, ## 마크다운 헤더도 처리하도록 정규식 개선
-        // 파일명은 반드시 한 줄에만 있어야 하며, 코드 블록 시작 전에 끝나야 함
-        const codeBlockRegex = /(?:##\s*)?(새 파일|수정 파일):\s+([^\r\n]+?)(?:\r?\n\s*\r?\n```[^\n]*\r?\n([\s\S]*?)\r?\n```)/g;
+        // 수정: 파일 경로를 더 정확하게 파싱하도록 정규식 개선
+        // 파일 경로는 directive 다음에 오는 텍스트에서 코드 블록 시작 전까지 추출
+        const codeBlockRegex = /(?:##\s*)?(새 파일|수정 파일):\s*([^\r\n]+?)(?:\s*\r?\n\s*\r?\n|\s*\r?\n)\s*```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
         
         // 마크다운 파일을 위한 별도 정규식 (코드 블록 없이 마크다운 내용 직접 포함)
         const markdownFileRegex = /(?:##\s*)?(새 파일|수정 파일):\s+([^\r\n]+\.md)\r?\n\s*\r?\n([\s\S]*?)(?=\r?\n\s*(?:새 파일|수정 파일|삭제 파일|$))/gs;
@@ -78,10 +114,7 @@ export class LlmResponseProcessor {
         let match;
         let updateSummaryMessages: string[] = [];
 
-        console.log("[LLM Response Processor] Starting. LLM Response:", llmResponse);
-
         const projectRoot = await this.getProjectRootPath();
-        console.log(`[LLM Response Processor] Resolved project root for operations: ${projectRoot || 'Not found'}`);
         
         // 새 파일 생성을 위한 프로젝트 루트가 없으면 경고
         if (!projectRoot && llmResponse.includes("새 파일:")) {
@@ -89,6 +122,7 @@ export class LlmResponseProcessor {
             safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: "오류: 새 파일 생성을 위한 프로젝트 루트 경로를 찾을 수 없습니다." });
             // 여기서 return하지 않고, 아래 루프에서 새 파일 생성을 건너뛰도록 처리
         }
+
 
         // 코드 블록이 있는 파일 작업 처리 (생성, 수정)
         while ((match = codeBlockRegex.exec(llmResponse)) !== null) {
@@ -100,8 +134,7 @@ export class LlmResponseProcessor {
             // 파일명에서 ** 제거 (Ollama 응답에서 발생하는 문제 해결)
             llmSpecifiedPath = llmSpecifiedPath.replace(/\*\*$/, '');
 
-            console.log(`[LLM Response Processor] Found directive: "${originalDirective}", LLM path: "${llmSpecifiedPath}"`);
-            console.log(`[LLM Response Processor] Raw match groups:`, match.map((group, index) => `Group ${index}: "${group}"`));
+
 
             let absolutePath: string | undefined;
             let operationType: 'modify' | 'create' | 'delete';
@@ -109,14 +142,17 @@ export class LlmResponseProcessor {
             if (originalDirective === '수정 파일') {
                 operationType = 'modify';
                 // 컨텍스트 파일 목록에서 AI가 제안한 파일명과 일치하는지 찾기
-                const matchedFile = contextFiles.find((f: { name: string, fullPath: string }) => f.name === llmSpecifiedPath);
+                // 파일명만 비교하거나 전체 경로로 비교
+                const matchedFile = contextFiles.find((f: { name: string, fullPath: string }) => {
+                    const fileName = llmSpecifiedPath.split(/[/\\]/).pop() || llmSpecifiedPath;
+                    return f.name === fileName || f.name === llmSpecifiedPath || f.fullPath.endsWith(llmSpecifiedPath);
+                });
                 
                 if (matchedFile) {
                     absolutePath = matchedFile.fullPath;
-                    // console.log(`[LLM Response Processor] Matched 'modify' to existing file: "${absolutePath}"`);
                 } else {
                     const warnMsg = `경고: AI가 수정을 제안한 파일 '${llmSpecifiedPath}'을(를) 컨텍스트 목록에서 찾을 수 없습니다. 해당 파일은 업데이트되지 않았습니다.`;
-                    // console.warn(`[LLM Response Processor] WARN: '수정 파일' specified as "${llmSpecifiedPath}" but not found in context. Context files:`, contextFiles.map((f: { name: string, fullPath: string }) => f.name));
+                    console.warn(`[LLM Response Processor] WARN: '수정 파일' specified as "${llmSpecifiedPath}" but not found in context. Context files:`, contextFiles.map((f: { name: string, fullPath: string }) => `${f.name} -> ${f.fullPath}`));
                     safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
                     updateSummaryMessages.push(`⚠️ ${warnMsg}`);
                     continue; // Skip this operation
@@ -150,6 +186,7 @@ export class LlmResponseProcessor {
             }
         }
 
+
         // 마크다운 파일 작업 처리 (코드 블록 없이 마크다운 내용 직접 포함)
         while ((match = markdownFileRegex.exec(llmResponse)) !== null) {
             const originalDirective = match[1].trim(); // "수정 파일" or "새 파일"
@@ -159,8 +196,7 @@ export class LlmResponseProcessor {
             // 파일명에서 ** 제거 (Ollama 응답에서 발생하는 문제 해결)
             llmSpecifiedPath = llmSpecifiedPath.replace(/\*\*$/, '');
 
-            console.log(`[LLM Response Processor] Found markdown directive: "${originalDirective}", LLM path: "${llmSpecifiedPath}"`);
-            console.log(`[LLM Response Processor] Markdown content length:`, newContent.length);
+
 
             let absolutePath: string | undefined;
             let operationType: 'modify' | 'create' | 'delete';
@@ -168,12 +204,17 @@ export class LlmResponseProcessor {
             if (originalDirective === '수정 파일') {
                 operationType = 'modify';
                 // 컨텍스트 파일 목록에서 AI가 제안한 파일명과 일치하는지 찾기
-                const matchedFile = contextFiles.find((f: { name: string, fullPath: string }) => f.name === llmSpecifiedPath);
+                // 파일명만 비교하거나 전체 경로로 비교
+                const matchedFile = contextFiles.find((f: { name: string, fullPath: string }) => {
+                    const fileName = llmSpecifiedPath.split(/[/\\]/).pop() || llmSpecifiedPath;
+                    return f.name === fileName || f.name === llmSpecifiedPath || f.fullPath.endsWith(llmSpecifiedPath);
+                });
                 
                 if (matchedFile) {
                     absolutePath = matchedFile.fullPath;
                 } else {
                     const warnMsg = `경고: AI가 수정을 제안한 마크다운 파일 '${llmSpecifiedPath}'을(를) 컨텍스트 목록에서 찾을 수 없습니다. 해당 파일은 업데이트되지 않았습니다.`;
+                    console.warn(`[LLM Response Processor] WARN: '수정 파일' markdown specified as "${llmSpecifiedPath}" but not found in context. Context files:`, contextFiles.map((f: { name: string, fullPath: string }) => `${f.name} -> ${f.fullPath}`));
                     safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warnMsg });
                     updateSummaryMessages.push(`⚠️ ${warnMsg}`);
                     continue; // Skip this operation
@@ -203,6 +244,7 @@ export class LlmResponseProcessor {
                 });
             }
         }
+
 
         // 삭제 파일 작업 처리
         while ((match = deleteFileRegex.exec(llmResponse)) !== null) {
@@ -247,16 +289,11 @@ export class LlmResponseProcessor {
             initialWebviewResponse += `\n\n--- 컨텍스트에 포함된 파일 ---\n(없음)`;
         }
 
-        console.log("[LLM Response Processor] Sending initial message to webview:", {
-            command: 'receiveMessage',
-            sender: 'CodePilot',
-            textLength: initialWebviewResponse.length,
-            textPreview: initialWebviewResponse.substring(0, 200) + '...'
-        });
+
         
         safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: initialWebviewResponse });
 
-        console.log(`[LLM Response Processor] Found ${fileOperations.length} file operations:`, fileOperations.map(op => `${op.type}: ${op.llmSpecifiedPath}`));
+
         
         // 파일 작업이 있는 경우에만 추가 처리
         if (fileOperations.length > 0) {
@@ -389,6 +426,9 @@ export class LlmResponseProcessor {
                 const descriptionMessage = "\n\n💡 작업 수행 설명\n" + workDescription;
                 safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
             }
+
+            // 파일 작업 완료 후 hideLoading 호출
+            safePostMessage(webview, { command: 'hideLoading' });
         } else if (llmResponse.includes("Copy") && !llmResponse.includes("수정 파일:") && !llmResponse.includes("새 파일:") && !llmResponse.includes("삭제 파일:")) {
             const infoMessage = "\n\n[정보] 코드 블록이 응답에 포함되어 있으나, '수정 파일:', '새 파일:', 또는 '삭제 파일:' 지시어가 없어 자동 업데이트가 시도되지 않았습니다. 필요시 수동으로 복사하여 사용해주세요.";
             safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: infoMessage });
@@ -487,5 +527,35 @@ export class LlmResponseProcessor {
         result = result.replace(/\n\n+/g, '\n\n');
         
         return result.trim();
+    }
+
+    /**
+     * 터미널 명령어를 제거합니다.
+     */
+    private removeBashCommands(response: string): string {
+        // ```bash로 시작하고 ```로 끝나는 코드 블록 제거
+        return response.replace(/```bash[\s\S]*?```/g, '');
+    }
+
+    /**
+     * 파일 작업 지시어를 제거합니다.
+     */
+    private removeFileDirectives(response: string): string {
+        // 새 파일, 수정 파일, 삭제 파일 지시어와 관련 코드 블록 제거
+        let cleaned = response;
+        
+        // 코드 블록이 있는 파일 작업 제거
+        cleaned = cleaned.replace(/(?:##\s*)?(새 파일|수정 파일):\s+[^\r\n]+?(?:\r?\n\s*\r?\n```[^\n]*\r?\n[\s\S]*?\r?\n```)/g, '');
+        
+        // 마크다운 파일 작업 제거
+        cleaned = cleaned.replace(/(?:##\s*)?(새 파일|수정 파일):\s+[^\r\n]+\.md\r?\n\s*\r?\n[\s\S]*?(?=\r?\n\s*(?:새 파일|수정 파일|삭제 파일|$))/gs, '');
+        
+        // 삭제 파일 지시어 제거
+        cleaned = cleaned.replace(/삭제 파일:\s+[^\r\n]+(?:\r?\n|$)/g, '');
+        
+        // 빈 줄 정리
+        cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
+        
+        return cleaned.trim();
     }
 }

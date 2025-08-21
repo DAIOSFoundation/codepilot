@@ -27,10 +27,13 @@ VSCode base code assistant plugin with LLM and LM support.
 
 ### 📁 Advanced File Management
 - **Smart File Selection**: Use the @ button to select specific files for context inclusion
+  - **CODE Tab**: Full file operations with context-aware code generation and modification
+  - **ASK Tab**: File selection for context-aware queries (read-only, no file operations)
 - **Persistent File Context**: Selected files remain available across multiple conversations
 - **Multi-File Operations**: Support for creating, modifying, and deleting multiple files simultaneously
 - **Project Root Configuration**: Configurable project root path for accurate file operations
 - **Auto File Updates**: Optional automatic file creation and modification based on AI suggestions
+- **File Tag Management**: Visual file tags with individual remove and clear all functionality
 
 ### 🖼️ Visual Code Analysis
 - **Image Support**: Upload images for code analysis and debugging
@@ -50,6 +53,14 @@ VSCode base code assistant plugin with LLM and LM support.
   - Real-time stock prices and changes
   - Major stock tracking (AAPL, GOOGL, MSFT, TSLA, AMZN)
   - Percentage change calculations
+
+### 🔢 Token Management System
+- **Input Token Calculation**: Automatic token counting for both Gemini and Ollama models
+- **Model-Specific Limits**: 
+  - Gemini 2.5 Flash: 1,000,000 input tokens, 500,000 output tokens
+  - Gemma3:27b: 128,000 input/output tokens
+- **Token Limit Warnings**: Automatic detection and user warnings when input tokens exceed model limits
+- **Usage Monitoring**: Real-time token usage logging and percentage tracking
 
 ### ⚙️ Comprehensive Configuration
 - **Multi-Model AI Configuration**:
@@ -128,6 +139,10 @@ VSCode base code assistant plugin with LLM and LM support.
 - **Real-time Info**: "What's the weather in Seoul?" or "Show me the latest tech news"
 - **Stock Queries**: "What are the current stock prices?"
 - **File Operations**: "Create a new utility file for date formatting"
+- **File Selection**: Use the @ button to select specific files for context inclusion
+- **CODE Tab Operations**: "Analyze and refactor this code" (full file operations)
+- **ASK Tab Queries**: "Analyze the performance of this code" (read-only analysis)
+- **Token Management**: Automatic token usage monitoring and limit warnings
 
 ## Requirements
 

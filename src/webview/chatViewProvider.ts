@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { getHtmlContentWithUris } from './panelUtils';
-import { LlmService, PromptType } from '../ai/llmService'; // LlmService 및 PromptType 임포트
+import { LlmService } from '../ai/llmService';
+import { PromptType } from '../ai/types'; // LlmService 및 PromptType 임포트
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
 import { StorageService } from '../services/storage';

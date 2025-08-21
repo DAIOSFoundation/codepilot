@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { getHtmlContentWithUris } from './panelUtils';
-import { LlmService, PromptType } from '../ai/llmService'; // LlmService 및 PromptType 임포트
+import { LlmService } from '../ai/llmService'; // LlmService 임포트
+import { PromptType } from '../ai/types'; // PromptType 임포트
 import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
 import { StorageService } from '../services/storage';
@@ -82,11 +83,51 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                     this.llmService.cancelCurrentCall();
                     webviewView.webview.postMessage({ command: 'receiveMessage', sender: 'CodePilot', text: 'AI 호출이 취소되었습니다.' });
                     break;
+                case 'openFilePicker':
+                    console.log('[Extension Host] Opening file picker from Ask tab...');
+                    this.openFilePicker(webviewView.webview);
+                    break;
             }
         });
         webviewView.onDidDispose(() => {
             console.log('[AskViewProvider] Ask view disposed');
             this._view = undefined;
         }, null, this.context.subscriptions);
+    }
+
+    private async openFilePicker(webview: vscode.Webview) {
+        try {
+            // 설정에서 프로젝트 루트 경로 가져오기
+            const projectRoot = await this.configurationService.getProjectRoot();
+            let defaultUri: vscode.Uri | undefined;
+            
+            if (projectRoot) {
+                defaultUri = vscode.Uri.file(projectRoot);
+            } else if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+                defaultUri = vscode.workspace.workspaceFolders[0].uri;
+            }
+
+            const uris = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: true,
+                openLabel: 'Select Files for Context',
+                defaultUri: defaultUri
+            });
+
+            if (uris && uris.length > 0) {
+                for (const uri of uris) {
+                    const fileName = uri.fsPath.split(/[/\\]/).pop() || 'Unknown';
+                    webview.postMessage({
+                        command: 'fileSelected',
+                        filePath: uri.fsPath,
+                        fileName: fileName
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error opening file picker:', error);
+            this.notificationService.showErrorMessage('파일 선택 중 오류가 발생했습니다.');
+        }
     }
 }
