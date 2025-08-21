@@ -150,7 +150,62 @@ export class OllamaApi {
 
         try {
             const url = new URL(`${this.apiUrl}${this.endpoint}`);
-            const fullPrompt = `${systemPrompt}\n\n${userParts.map(part => part.text).join('\n')}`;
+            
+            // 이미지가 포함된 경우 처리
+            const hasImage = userParts.some(part => part.inlineData);
+            let fullPrompt = `${systemPrompt}\n\n`;
+            
+            if (hasImage) {
+                // 이미지가 있는 경우 멀티모달 요청 시도 (Gemma3:27b는 이미지 지원)
+                const imagePart = userParts.find(part => part.inlineData);
+                const textParts = userParts.filter(part => part.text).map(part => part.text);
+                
+                try {
+                    if (this.endpoint === '/api/chat') {
+                        // Chat API에서 멀티모달 요청 시도
+                        const messages = [
+                            {
+                                role: 'user',
+                                content: [
+                                    { type: 'text', text: `${systemPrompt}\n\n${textParts.join('\n')}` },
+                                    { type: 'image_url', image_url: { url: `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}` } }
+                                ]
+                            }
+                        ];
+                        
+                        const postData = JSON.stringify({
+                            model: this.modelName,
+                            messages: messages,
+                            stream: false,
+                            options: {
+                                temperature: 0.7,
+                                top_k: 1,
+                                top_p: 1,
+                                num_predict: 128000,
+                            }
+                        });
+                        
+                        console.log('Ollama: Attempting multimodal request with image');
+                        console.log('Ollama Request (chat endpoint, with image):', postData);
+                        
+                        const response = await this.makeHttpRequest(url, postData, options?.signal);
+                        const data = JSON.parse(response) as { message: { content: string } };
+                        console.log('Ollama Response (chat endpoint, with image):', data.message.content);
+                        return data.message.content;
+                    } else {
+                        // Generate API에서는 이미지를 텍스트로 변환
+                        fullPrompt += `${textParts.join('\n')}\n[이미지 첨부됨: ${imagePart.inlineData.mimeType}]`;
+                        console.log('Ollama: Using generate endpoint, converting image to text');
+                    }
+                } catch (error) {
+                    console.warn('Ollama: Multimodal request failed, falling back to text format:', error);
+                    // 멀티모달 요청 실패 시 텍스트로 변환
+                    fullPrompt += `${textParts.join('\n')}\n[이미지 첨부됨: ${imagePart.inlineData.mimeType}]`;
+                }
+            } else {
+                // 이미지가 없는 경우 기존 방식
+                fullPrompt += userParts.map(part => part.text).join('\n');
+            }
             
             // 엔드포인트에 따라 다른 요청 형식 사용
             if (this.endpoint === '/api/chat') {
@@ -167,6 +222,8 @@ export class OllamaApi {
                         num_predict: 128000, // Gemma3:27b의 토큰 제한
                     }
                 });
+
+                console.log('Ollama Request (chat endpoint, no image):', postData);
 
                 const response = await this.makeHttpRequest(url, postData, options?.signal);
                 const data = JSON.parse(response) as { message: { content: string } };
@@ -185,6 +242,8 @@ export class OllamaApi {
                         num_predict: 128000, // Gemma3:27b의 토큰 제한
                     }
                 });
+
+                console.log('Ollama Request (generate endpoint):', postData);
 
                 const response = await this.makeHttpRequest(url, postData, options?.signal);
                 const data = JSON.parse(response) as { response: string };

@@ -126,18 +126,13 @@ export class LlmService {
 
             // 이미지가 있는 경우 추가
             if (imageData && imageMimeType) {
-                if (this.currentModelType === AiModelType.GEMINI) {
-                    // Gemini는 이미지 지원
-                    userParts.push({ 
-                        inlineData: { 
-                            data: imageData, 
-                            mimeType: imageMimeType 
-                        } 
-                    });
-                } else {
-                    // Ollama는 이미지 지원이 제한적이므로 텍스트로 처리
-                    userParts.push({ text: `[이미지 첨부됨: ${imageMimeType}]` });
-                }
+                // Gemini와 Ollama 모두 이미지 데이터 전달 (Ollama는 멀티모달 모델에서 지원)
+                userParts.push({ 
+                    inlineData: { 
+                        data: imageData, 
+                        mimeType: imageMimeType 
+                    } 
+                });
             }
 
 
