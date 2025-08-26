@@ -2,6 +2,32 @@
 
 This document contains the complete release history for CodePilot VSCode extension.
 
+## Version 2.5.6 (2025/08/26) - Markdown File Generation Fix
+
+<details>
+<summary>Markdown File Generation Fix</summary>
+
+- **3-Stage Regex System**: Implemented a robust 3-stage regular expression system for markdown file detection
+- **Sequential Fallback Mechanism**: If one regex pattern fails, the system automatically tries the next pattern
+- **Enhanced Pattern Matching**: 
+  - Stage 1: Strict pattern with work summary and description sections
+  - Stage 2: Medium pattern with basic directives only
+  - Stage 3: Simple pattern capturing all content
+- **Improved Debugging**: Added comprehensive logging to track regex matching process
+- **Reliable File Creation**: Markdown files are now consistently created when requested
+
+</details>
+
+<details>
+<summary>Technical Improvements</summary>
+
+- **Regex Pattern Optimization**: Simplified and improved markdown file detection patterns
+- **Error Handling**: Better error handling for file creation operations
+- **Debug Logging**: Enhanced logging system for troubleshooting file generation issues
+- **Code Stability**: Improved overall stability of file generation system
+
+</details>
+
 ## Version 2.5.4 (2025/08/21) - ASK Tab File Selection & Enhanced Settings
 
 <details>

@@ -37,7 +37,19 @@ export function openSettingsPanel(
                     });
                     break;
                 case 'addDirectory':
-                    const uris = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: true, canSelectMany: true, openLabel: 'Select Sources' });
+                    const uris = await vscode.window.showOpenDialog({ 
+                        canSelectFiles: true, 
+                        canSelectFolders: true, 
+                        canSelectMany: true, 
+                        openLabel: 'Select Files and Folders',
+                        filters: {
+                            'All Files': ['*'],
+                            'Source Files': ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala', 'html', 'css', 'scss', 'sass', 'json', 'xml', 'yaml', 'yml', 'md', 'txt'],
+                            'Code Files': ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala'],
+                            'Web Files': ['html', 'css', 'scss', 'sass', 'js', 'ts', 'jsx', 'tsx'],
+                            'Config Files': ['json', 'xml', 'yaml', 'yml', 'md', 'txt']
+                        }
+                    });
                     if (uris && uris.length > 0) {
                         const newPaths = uris.map(u => u.fsPath);
                         const current = await configurationService.getSourcePaths();
@@ -62,7 +74,12 @@ export function openSettingsPanel(
                     }
                     break;
                 case 'setProjectRoot':
-                    const rootUris = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: 'Select Project Root' });
+                    const rootUris = await vscode.window.showOpenDialog({ 
+                        canSelectFiles: false, 
+                        canSelectFolders: true, 
+                        canSelectMany: false, 
+                        openLabel: 'Select Project Root Directory'
+                    });
                     if (rootUris && rootUris.length > 0) {
                         const newRootPath = rootUris[0].fsPath;
                         await configurationService.updateProjectRoot(newRootPath);

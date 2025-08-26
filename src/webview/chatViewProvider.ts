@@ -173,7 +173,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                 canSelectFolders: false,
                 canSelectMany: true,
                 openLabel: 'Select Files for Context',
-                defaultUri: defaultUri
+                defaultUri: defaultUri,
+                filters: {
+                    'All Files': ['*'],
+                    'Source Files': ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala', 'html', 'css', 'scss', 'sass', 'json', 'xml', 'yaml', 'yml', 'md', 'txt'],
+                    'Code Files': ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala'],
+                    'Web Files': ['html', 'css', 'scss', 'sass', 'js', 'ts', 'jsx', 'tsx'],
+                    'Config Files': ['json', 'xml', 'yaml', 'yml', 'md', 'txt']
+                }
             });
 
             if (uris && uris.length > 0) {
