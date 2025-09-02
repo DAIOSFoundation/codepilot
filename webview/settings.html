@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP를 위한 meta 태그는 extension.ts에서 getHtmlContentWithUris 함수를 통해 동적으로 삽입됩니다. -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; img-src {{cspSource}} https: data:; script-src 'nonce-{{nonce}}'; font-src {{cspSource}};"> -->
+    <title>CodePilot Settings</title>
+    <!-- commonStylesUri와 settingsStylesUri는 extension.ts에서 치환됩니다. -->
+    <link rel="stylesheet" type="text/css" href="{{commonStylesUri}}">
+    <link rel="stylesheet" type="text/css" href="{{settingsStylesUri}}">
+    <style>
+        /* settings.html 고유 스타일 및 license.html과 동기화된 스타일 */
+        body {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            padding: 20px;
+            line-height: 1.5;
+            display: flex; /* <-- 추가: body를 flex 컨테이너로 설정 (세로 스크롤 가능하게) */
+            flex-direction: column; /* <-- 추가: 자식 요소들을 세로로 쌓음 */
+            height: 100vh; /* <-- 추가: 뷰포트 높이 전체를 차지하게 함 */
+            overflow: auto; /* <-- 추가: 내용이 넘칠 때 스크롤바 생성 */
+        }
+
+        h1 {
+            color: var(--vscode-textLink-foreground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .section-container {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--vscode-panel-border);
+        }
+
+        .section-container h2 {
+             margin-bottom: 10px;
+             color: var(--vscode-textLink-foreground);
+        }
+
+        .info-message {
+            color: var(--vscode-descriptionForeground);
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        .info-message.success-message { color: var(--vscode-terminal-ansiGreen); }
+        .info-message.error-message { color: var(--vscode-terminal-ansiRed); }
+
+        /* 소스 경로 리스트 스타일 */
+        .path-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 5px;
+            max-height: 200px; /* 고정 높이, 스크롤 가능 */
+            overflow-y: auto;
+            background-color: var(--vscode-input-background);
+        }
+        .path-list .path-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        .path-list .path-item:last-child { border-bottom: none; }
+        .path-list .path-item:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+        .path-list .path-item .path-text {
+            flex-grow: 1;
+            white-space: nowrap; /* 줄바꿈 방지 */
+            overflow: hidden; /* 넘치는 내용 숨김 */
+            text-overflow: ellipsis; /* ... 표시 */
+            margin-right: 10px;
+            color: var(--vscode-foreground);
+        }
+        .path-list .path-item .delete-button {
+            background: none;
+            border: none;
+            color: var(--vscode-textLink-foreground);
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1; /* 높이 맞춤 */
+        }
+        .path-list .path-item .delete-button:hover {
+            color: var(--vscode-textLink-activeForeground);
+        }
+
+        /* 버튼 그룹 스타일 */
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* 버튼과 상태 메시지 간 간격 */
+            margin-top: 15px;
+        }
+        #add-directory-button,
+        #select-project-root-button { /* 프로젝트 Root 버튼 스타일 추가 */
+            padding: 8px 15px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #add-directory-button:hover,
+        #select-project-root-button:hover { /* 프로젝트 Root 버튼 호버 스타일 추가 */
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        /* 토글 스위치 스타일 (기존과 동일) */
+        .toggle-switch-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .toggle-switch-container input[type="checkbox"] {
+            height: 0;
+            width: 0;
+            visibility: hidden;
+        }
+        .toggle-switch-container label {
+            cursor: pointer;
+            text-indent: -9999px;
+            width: 40px; /* 스위치 너비 */
+            height: 20px; /* 스위치 높이 */
+            background: grey;
+            display: block;
+            border-radius: 100px;
+            position: relative;
+            margin-right: 10px; /* 스위치와 텍스트 사이 간격 */
+        }
+        .toggle-switch-container label:after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px; /* 핸들 너비 */
+            height: 16px; /* 핸들 높이 */
+            background: #fff;
+            border-radius: 90px;
+            transition: 0.3s;
+        }
+        .toggle-switch-container input:checked + label {
+            background: var(--vscode-button-background); /* 활성화 시 VS Code 버튼 배경색 */
+        }
+        .toggle-switch-container input:checked + label:after {
+            left: calc(100% - 2px);
+            transform: translateX(-100%);
+        }
+        .toggle-switch-container label:active:after {
+            width: 22px; /* 클릭 시 핸들 약간 커짐 */
+        }
+        .toggle-label-text {
+            font-weight: normal; /* 일반 텍스트처럼 */
+            margin-bottom: 0; /* label 태그의 기본 마진 제거 */
+        }
+
+        /* 프로젝트 Root 경로 표시 스타일 */
+        #project-root-container {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 5px;
+            background-color: var(--vscode-input-background);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #project-root-path-display {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--vscode-foreground);
+            margin-right: 10px;
+        }
+
+        #clear-project-root-button {
+            background: none;
+            border: none;
+            color: var(--vscode-textLink-foreground);
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1;
+        }
+        #clear-project-root-button:hover {
+            color: var(--vscode-textLink-activeForeground);
+        }
+
+        /* API 키 섹션 스타일 */
+        .api-key-section {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 5px;
+            background-color: var(--vscode-input-background);
+        }
+
+        .api-key-section h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--vscode-textLink-foreground);
+            font-size: 1.1em;
+        }
+
+        .api-key-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .api-key-input-group input[type="password"] {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            outline: none;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            border-radius: 3px;
+        }
+
+        .api-key-input-group input[type="password"]:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .api-key-input-group button {
+            padding: 8px 15px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+        }
+
+        .api-key-input-group button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .api-key-section .info-message {
+            margin-top: 8px;
+            margin-bottom: 0;
+        }
+
+        .api-key-section a {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: none;
+        }
+
+        .api-key-section a:hover {
+            text-decoration: underline;
+        }
+
+        /* 라이센스 입력 그룹 스타일 */
+        .license-input-group {
+            margin-top: 10px;
+        }
+
+        .license-input-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .license-input-group input[type="text"] {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            outline: none;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            border-radius: 3px;
+            margin-right: 10px;
+        }
+
+        .license-input-group input[type="text"]:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+
+        /* 읽기 전용 입력 필드 스타일 */
+        .license-input-group input[type="text"][readonly] {
+            background-color: var(--vscode-disabledForeground);
+            color: var(--vscode-disabledForeground);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .license-input-group input[type="text"][readonly]:focus {
+            border-color: var(--vscode-input-border);
+            outline: none;
+        }
+
+        /* 라이센스 검증 버튼 스타일 */
+        #verify-banya-license-button {
+            padding: 8px 15px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            white-space: nowrap;
+            min-width: 60px;
+        }
+
+        #verify-banya-license-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        #verify-banya-license-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: var(--vscode-disabledForeground);
+        }
+
+        #verify-banya-license-button:disabled:hover {
+            background-color: var(--vscode-disabledForeground);
+        }
+
+        .license-button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .license-button-group button {
+            padding: 8px 15px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+        }
+
+        .license-button-group button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        /* Ollama API URL 입력 스타일 */
+        #ollama-api-url-input {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+        }
+
+        /* AI 모델 선택 컨테이너 스타일 */
+        .model-selection-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 5px;
+            background-color: var(--vscode-input-background);
+        }
+
+        .model-selection-container label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--vscode-foreground);
+            font-weight: bold;
+        }
+
+        .model-selection-container select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            outline: none;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            border-radius: 3px;
+        }
+
+        .model-selection-container select:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+
+        /* 비활성화된 설정 섹션 스타일 */
+        .api-key-section.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .api-key-section.disabled input,
+        .api-key-section.disabled button {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .api-key-section.disabled h3 {
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .api-key-section.disabled .info-message {
+            color: var(--vscode-descriptionForeground);
+        }
+
+        /* 비활성화된 저장 버튼 스타일 */
+        .api-key-input-group button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: var(--vscode-disabledForeground);
+        }
+
+        .api-key-input-group button:disabled:hover {
+            background-color: var(--vscode-disabledForeground);
+        }
+
+    </style>
+</head>
+<body>
+    <h1 id="settings-title">CodePilot 설정</h1>
+
+    <!-- 언어 설정 드롭다운 추가 -->
+    <div class="settings-section">
+        <label id="language-label" for="language-select"><b>언어 (Language)</b></label>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <select id="language-select">
+                <option value="ko">한국어</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="es">Español</option>
+                <option value="de">Deutsch</option>
+                <option value="fr">Français</option>
+                <option value="ja">日本語</option>
+            </select>
+            <button id="save-language-button" class="save-button">언어 저장</button>
+        </div>
+    </div>
+
+    <div class="section-container">
+        <h2 id="banya-license-title">🔑 Banya 라이센스 설정</h2>
+        <p class="info-message">CodePilot의 고급 기능을 사용하기 위한 Banya 라이센스 시리얼을 입력하고 검증합니다.</p>
+        
+        <div class="api-key-section">
+            <h3 id="banya-license-label">라이센스 시리얼</h3>
+            <p class="info-message">Banya 라이센스 시리얼을 입력하여 제품을 활성화하세요.</p>
+            <div class="license-input-group">
+                <div class="license-input-row">
+                    <input type="text" id="banya-license-serial-input" placeholder="하이픈을 포함한 16자리의 시리얼 번호를 입력하세요">
+                    <button id="verify-banya-license-button">검증</button>
+                </div>
+                <div class="license-button-group">
+                    <button id="save-banya-license-button">라이센스 저장</button>
+                    <button id="delete-banya-license-button">라이센스 삭제</button>
+                </div>
+            </div>
+            <p id="banya-license-status" class="info-message"></p>
+        </div>
+    </div>
+
+    <div class="section-container">
+        <h2 id="project-root-label">프로젝트 Root 설정</h2>
+        <p class="info-message" id="project-root-description">CodePilot이 프로젝트의 최상위 경로로 인식할 디렉토리를 설정합니다. 이 경로는 파일 경로를 참조할 때 기준점으로 사용될 수 있습니다.</p>
+        <div id="project-root-container">
+            <p id="project-root-path-display" class="path-text">설정된 프로젝트 Root 없음</p>
+            <button id="clear-project-root-button" title="프로젝트 Root 지우기">×</button>
+        </div>
+        <div class="button-group">
+            <button id="select-project-root-button">경로 선택</button>
+            <span id="project-root-status" class="info-message"></span>
+        </div>
+        <p class="info-message">설정 변경은 즉시 저장됩니다.</p>
+    </div>
+
+    <div class="section-container">
+        <h2 id="source-path-label">소스 코드 경로 지정</h2>
+        <p class="info-message">CodePilot이 AI 응답을 생성할 때 참조할 소스 코드 경로 목록입니다. 지정된 파일 및 폴더의 내용이 AI에게 컨텍스트로 제공될 수 있습니다.</p>
+        <ul id="source-paths-list" class="path-list">
+            <!-- 경로들이 여기에 동적으로 추가됩니다. -->
+        </ul>
+        <div class="button-group">
+            <button id="add-source-path-button">경로 추가</button>
+            <span id="source-path-status" class="info-message"></span>
+        </div>
+        <p class="info-message">설정 변경은 즉시 저장됩니다.</p>
+    </div>
+
+    <div class="section-container">
+        <h2 id="auto-update-label">파일 자동 업데이트</h2>
+        <p class="info-message">LLM이 제안한 코드를 기반으로 파일을 자동으로 업데이트할지 여부를 설정합니다. 비활성화 시, 업데이트 전에 확인 메시지가 표시됩니다.</p>
+        <div class="toggle-switch-container">
+            <input type="checkbox" id="auto-update-toggle" />
+            <label for="auto-update-toggle">Toggle</label> <!-- 스위치 핸들 -->
+            <span class="toggle-label-text" id="auto-update-enabled-text">파일 자동 업데이트 활성화</span>
+        </div>
+        <p id="auto-update-status" class="info-message" style="margin-top: 5px;"></p>
+        <span id="auto-update-on">켜기</span>
+        <span id="auto-update-off">끄기</span>
+    </div>
+
+    <div class="section-container">
+        <h2 id="api-key-section-title">🤖 AI 모델 설정</h2>
+        <p class="info-message">CodePilot의 AI 기능을 사용하기 위한 모델 설정입니다. 사용할 AI 모델을 선택하고 해당 설정을 구성하세요.</p>
+        
+        <!-- AI 모델 선택 드롭다운 -->
+        <div class="model-selection-container">
+            <label id="ai-model-select-label" for="ai-model-select"><b>AI 모델 선택</b></label>
+            <select id="ai-model-select">
+                <option value="gemini" selected>Gemini 2.5 Pro Flash</option>
+                <option value="ollama">Gemma3:27b (Ollama)</option>
+            </select>
+        </div>
+        
+        <!-- Gemini API 키 설정 -->
+        <div class="api-key-section" id="gemini-settings-section">
+            <h3 id="gemini-api-key-label">🌐 Gemini 2.5 Pro Flash</h3>
+            <p class="info-message">Google의 Gemini 2.5 Pro Flash API를 사용하여 AI 코드 생성 및 분석 기능을 활성화합니다.</p>
+            <p class="info-message"><strong>등록 방법:</strong> <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio API 키 페이지</a>에서 새 API 키를 생성하세요.</p>
+            <div class="api-key-input-group">
+                <input type="password" id="gemini-api-key-input" placeholder="Gemini API 키를 입력하세요...">
+                <button id="save-gemini-api-key-button">저장</button>
+            </div>
+            <p id="gemini-api-key-status" class="info-message"></p>
+        </div>
+
+        <!-- Ollama Gemma3:27b 설정 -->
+        <div class="api-key-section" id="ollama-settings-section">
+            <h3 id="ollama-api-label">🏠 Gemma3:27b (Ollama)</h3>
+            <p class="info-message">로컬 네트워크에 설치된 Ollama의 Gemma3:27b 모델을 사용하여 AI 코드 생성 및 분석 기능을 활성화합니다.</p>
+            <p class="info-message"><strong>설정 방법:</strong> 로컬 네트워크에서 실행 중인 Ollama 서버의 HTTP API 주소를 입력하세요. (예: http://192.168.1.100:11434)</p>
+            
+            <!-- Ollama API URL 설정 -->
+            <div class="api-key-input-group">
+                <input type="text" id="ollama-api-url-input" placeholder="http://localhost:11434">
+                <button id="save-ollama-api-url-button">저장</button>
+            </div>
+            <p id="ollama-api-url-status" class="info-message"></p>
+            
+            <!-- Ollama 엔드포인트 선택 -->
+            <div class="api-key-input-group" style="margin-top: 15px;">
+                <label for="ollama-endpoint-select" style="margin-right: 10px; font-weight: bold;">API 엔드포인트:</label>
+                <select id="ollama-endpoint-select" style="flex-grow: 1; padding: 8px; border: 1px solid var(--vscode-input-border); background-color: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 3px;">
+                    <option value="/api/generate">/api/generate (로컬 Ollama)</option>
+                    <option value="/api/chat">/api/chat (외부 서버)</option>
+                </select>
+                <button id="save-ollama-endpoint-button">엔드포인트 저장</button>
+            </div>
+            <p id="ollama-endpoint-status" class="info-message"></p>
+        </div>
+    </div>
+
+    <div class="section-container">
+        <h2 id="external-api-keys-title">외부 API 키 설정</h2>
+        <p class="info-message">실시간 정보 기능을 사용하기 위한 외부 API 키들을 설정합니다. 각 서비스의 웹사이트에서 API 키를 발급받아 입력하세요.</p>
+        
+        <!-- 기상청 API 키 -->
+        <div class="api-key-section">
+            <h3 id="weather-api-key-label">🌤️ 기상청 API 키</h3>
+            <p class="info-message">한국의 정확한 날씨 정보를 제공합니다.</p>
+            <p class="info-message"><strong>등록 방법:</strong> <a href="https://apihub.kma.go.kr/" target="_blank">기상청 API 허브</a>에서 회원가입 후 API 키를 발급받으세요.</p>
+            <div class="api-key-input-group">
+                <input type="password" id="weather-api-key-input" placeholder="기상청 API 키를 입력하세요...">
+                <button id="save-weather-api-key-button" class="save-button">저장</button>
+            </div>
+            <p id="weather-api-key-status" class="info-message"></p>
+        </div>
+
+        <!-- 네이버 뉴스 API 키 -->
+        <div class="api-key-section">
+            <h3 id="news-api-key-label">📰 네이버 뉴스 API</h3>
+            <p class="info-message">한국의 최신 뉴스 정보를 제공합니다.</p>
+            <p class="info-message"><strong>등록 방법:</strong> <a href="https://developers.naver.com/apps/#/list" target="_blank">네이버 개발자 센터</a>에서 애플리케이션을 등록하고 Client ID와 Client Secret을 발급받으세요.</p>
+            <div class="api-key-input-group">
+                <input type="password" id="news-api-key-input" placeholder="네이버 API Client ID를 입력하세요...">
+                <button id="save-news-api-key-button" class="save-button">저장</button>
+            </div>
+            <p id="news-api-key-status" class="info-message"></p>
+            <div class="api-key-input-group" style="margin-top: 10px;">
+                <input type="password" id="news-api-secret-input" placeholder="네이버 API Client Secret을 입력하세요...">
+                <button id="save-news-api-secret-button" class="save-button">저장</button>
+            </div>
+            <p id="news-api-secret-status" class="info-message"></p>
+        </div>
+
+        <!-- 주식 API 키 -->
+        <div class="api-key-section">
+            <h3 id="stock-api-key-label">📈 주식 API 키</h3>
+            <p class="info-message">실시간 주식 정보를 제공합니다.</p>
+            <p class="info-message"><strong>등록 방법:</strong> <a href="https://www.alphavantage.co/support/#api-key" target="_blank">Alpha Vantage</a>에서 무료 API 키를 발급받으세요.</p>
+            <div class="api-key-input-group">
+                <input type="password" id="stock-api-key-input" placeholder="Alpha Vantage API 키를 입력하세요...">
+                <button id="save-stock-api-key-button" class="save-button">저장</button>
+            </div>
+            <p id="stock-api-key-status" class="info-message"></p>
+        </div>
+    </div>
+
+    <!-- Nonce가 적용된 스크립트 로드 -->
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>

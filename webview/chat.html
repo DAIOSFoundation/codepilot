@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CodePilot Chat</title>
+    <style>
+        /* (기존 스타일 유지) */
+        body {
+            margin: 0;
+            padding: 0;
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* body 스크롤 숨김 */
+        }
+
+        /* 아이콘 헤더 스타일 (이전 단계에서 추가된 경우 포함) */
+        .chat-header-icons {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            background-color: var(--vscode-editor-background);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+        .icon-button { /* 아이콘 버튼 스타일 */
+             background: none; border: none; padding: 0; margin-left: 10px; cursor: pointer;
+             color: var(--vscode-foreground); font-size: 18px;
+        }
+        .icon-button:hover { color: var(--vscode-textLink-activeForeground); }
+         .icon-button img { width: 18px; height: 18px; vertical-align: middle; filter: var(--vscode-icon-foreground-filter); }
+
+        /* 메인 컨테이너 - 채팅 영역과 입력 영역을 포함 */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #chat-container {
+            /* 하단 고정 영역의 높이를 고려한 패딩 설정 */
+            padding: 10px 10px 120px 10px; /* 하단 패딩을 120px로 증가 (입력 영역 + 파일 선택 영역 고려) */
+            overflow-y: auto; /* 내용 넘칠 시 세로 스크롤 생성 */
+            flex-grow: 1; /* 부모 flex 컨테이너의 남은 공간을 모두 차지 */
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            /* 스크롤 시 부드러운 동작 */
+            scroll-behavior: smooth;
+        }
+
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            align-items: flex-start;
+        }
+
+        /* 하단 고정 영역 - 파일 선택 영역과 입력 영역 */
+        .bottom-fixed-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--vscode-editor-background);
+            border-top: 1px solid var(--vscode-panel-border);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-input-area {
+            display: flex; /* <-- 필수: 입력 필드와 버튼 그룹을 가로로 배치 (상위 컨테이너) */
+            flex-direction: row; /* <-- 필수: 가로 배치 */
+            align-items: flex-end; /* <-- 필수: 전체 그룹을 하단으로 정렬 */
+            padding: 10px; /* 내부 패딩 */
+            background-color: var(--vscode-editor-background); /* 배경색 */
+            box-sizing: border-box;
+            /* <-- 추가: 이미지 썸네일 영역을 위해 min-height 조정 가능 --> */
+            min-height: 50px; /* 텍스트 에어리어의 최소 높이보다 크게 설정하여 썸네일 공간 확보 */
+            flex-wrap: wrap; /* 썸네일과 입력창이 한 줄에 안 들어갈 경우 줄바꿈 */
+        }
+
+        /* <-- chatInput 스타일 (기존 스타일 유지하며 자동조절 속성 추가) --> */
+        #chat-input {
+            flex-grow: 1; /* 남은 공간을 모두 차지하여 늘어남 */
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border); /* 테두리 스타일 */
+            background-color: var(--vscode-input-background); /* 배경색 */
+            color: var(--vscode-input-foreground); /* 글자색 */
+            margin-right: 8px; /* 오른쪽 여백 (버튼 그룹과의 간격) */
+            outline: none; /* 포커스 시 기본 아웃라인 제거 */
+            resize: none; /* 사용자 수동 리사이즈 방지 (JS 자동 조절 사용) */
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            line-height: 1.5em; /* 행 높이 명시 */
+            /* <-- 수정: 최소 높이를 버튼 3개 높이에 맞춤 (button-group의 height가 이 높이를 결정하므로, 이 calc는 참고용) --> */
+            min-height: calc(3 * (1.5em + 8px + 8px) + 2 * 8px); /* 3개 버튼 높이 + 3*버튼패딩 + 2*버튼 사이 마진 */
+            max-height: 150px; /* 최대 높이 제한 */
+            overflow: auto; /* 내용 넘칠 시 스크롤바 보이도록 'auto' 사용 */
+            box-sizing: border-box;
+        }
+        /* <-- 수정 끝 --> */
+
+
+        #chat-input:focus {
+            border-color: var(--vscode-focusBorder); /* 포커스 시 테두리 색상 변경 */
+        }
+
+        /* <-- Send, Clear, Cancel 버튼 공통 스타일 및 개별 스타일 --> */
+        /* Send 버튼은 이제 .button-group 안에 들어갑니다. */
+        #send-button, #clean-history-button, #cancel-call-button { /* <-- 수정: 모든 버튼에 공통 스타일 적용 */
+            padding: 8px 15px; /* 모든 버튼에 동일한 패딩 */
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            user-select: none;
+            flex-shrink: 0;
+            width: 100%; /* <-- 수정: 버튼 그룹 내에서 너비 전체 사용 */
+            height: auto; /* <-- 유지: 부모 flex item의 height: auto가 필요함 */
+        }
+        
+        #send-button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+        }
+        #send-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        /* Clean (-> Clear) 버튼 스타일 */
+        #clean-history-button {
+            background-color: #4CAF50; /* <-- 수정: 녹색 계열 배경색 */
+            color: white; /* 텍스트 색상 (흰색) */
+            margin-bottom: 8px; /* <-- 수정: Cancel 버튼과의 간격 */
+        }
+
+        #clean-history-button:hover {
+            background-color: #45a049; /* 호버 시 약간 어두운 녹색 */
+        }
+
+        /* 붉은색 Cancel 버튼 고유 스타일 */
+        #cancel-call-button {
+            background-color: #ff4444; /* 빨간색 배경 */
+            color: white; /* 텍스트 색상 (흰색) */
+            margin-bottom: 0; /* 하단 마진 제거 (top-button-row에서 관리) */
+            width: 50%; /* 크기를 절반으로 줄임 */
+        }
+        #cancel-call-button:hover {
+            background-color: #ff6666; /* 호버 시 약간 밝은 빨간색 */
+        }
+        /* <-- 수정 끝 --> */
+
+
+        /* <-- 추가: 버튼 그룹 컨테이너 스타일 --> */
+        .button-group {
+            display: flex;
+            flex-direction: column; /* 버튼들을 세로로 쌓음 */
+            align-items: flex-end; /* 버튼들을 오른쪽으로 정렬 */
+            justify-content: flex-end; /* 버튼들을 컨테이너 하단으로 정렬 */
+            height: auto; /* 내용에 따라 높이 조절 (Textarea 높이에 맞춰 늘어남) */
+            flex-shrink: 0; /* 줄어들지 않음 */
+            width: 100px; /* <-- 수정: 버튼 그룹 고정 너비 (필요시 조정) */
+        }
+
+        /* @ 버튼과 Cancel 버튼을 가로로 배치하는 컨테이너 */
+        .top-button-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 4px; /* 버튼 사이 간격 */
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        /* <-- 추가 끝 --> */
+
+
+        /* (기존 메시지 관련 스타일 유지) */
+        .user-plain-message {
+            margin-bottom: 0;
+            word-wrap: break-word;
+            white-space: pre-wrap; /* <-- 추가: user-plain-message에서도 줄바꿈 유지 */
+            align-self: flex-start;
+            max-width: 100%;
+            color: white; /* 요청에 따라 흰색으로 변경 */
+            font-weight: bold; /* 요청에 따라 굵게 변경 */
+            padding: 0 10px;
+            box-sizing: border-box;
+            width: 100%;
+            display: flex; /* 이미지와 텍스트를 함께 표시하기 위해 flex 사용 */
+            flex-direction: column; /* 이미지와 텍스트를 세로로 쌓음 */
+            align-items: flex-start;
+        }
+
+        .message-separator {
+            width: 100%;
+            border: none;
+            border-top: 1px solid var(--vscode-panel-border);
+            margin-top: 5px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .codepilot-message-container {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            max-width: 100%;
+            width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .message-bubble {
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 0;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            align-self: flex-start;
+            max-width: 100%;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .thinking-bubble {
+            background-color: var(--vscode-sideBar-background);
+            color: var(--vscode-foreground);
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            align-self: flex-start;
+            display: inline-block;
+            max-width: 50%;
+             min-width: 60px;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .thinking-dots {
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .thinking-dots span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin: 0 2px;
+            background-color: var(--vscode-foreground);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .message-bubble pre {
+            background-color: var(--vscode-editorWidget-background);
+            color: var(--vscode-editor-foreground);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-top: 10px;
+            margin-bottom: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+             width: 100%;
+             box-sizing: border-box;
+             flex-shrink: 0;
+        }
+
+         .message-bubble pre code {
+             font-family: var(--vscode-editor-font-family);
+             font-size: var(--vscode-editor-font-size);
+         }
+
+         .copy-code-button {
+             display: flex;
+             justify-content: center;
+             align-items: center;
+
+             margin-top: 5px;
+             margin-bottom: 10px;
+             margin-left: auto;
+
+             padding: 2px 8px;
+             font-size: 11px;
+             line-height: 1;
+             background-color: var(--vscode-button-secondary-background);
+             color: var(--vscode-button-secondary-foreground);
+             border: none;
+             border-radius: 3px;
+             cursor: pointer;
+             opacity: 0;
+             transition: opacity 0.2s ease-in-out;
+             z-index: 2;
+         }
+
+         .codepilot-message-container:hover .copy-code-button,
+         .message-bubble:hover .copy-code-button {
+             opacity: 1;
+         }
+
+         .copy-code-button:hover {
+             background-color: var(--vscode-button-secondary-hoverBackground);
+         }
+
+         .copy-code-button:active {
+             background-color: var(--vscode-button-background);
+             color: var(--vscode-button-foreground);
+         }
+
+        .message-bubble p { margin-top: 0; margin-bottom: 10px; }
+        .message-bubble p:last-child { margin-bottom: 0; }
+
+        .message-bubble ul, .message-bubble ol {
+            padding-left: 20px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .message-bubble li { margin-bottom: 5px; word-wrap: break-word; }
+
+        .message-bubble h1, .message-bubble h2, .message-bubble h3, .message-bubble h4, .message-bubble h5, .message-bubble h6 {
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: var(--vscode-textLink-foreground);
+        }
+        .message-bubble h1 { font-size: 1.5em; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 5px; }
+        .message-bubble h2 { font-size: 1.4em; border-bottom: 1px solid var(--vscode-panel-border); padding-bottom: 4px; }
+        .message-bubble h3 { font-size: 1.3em; }
+        .message-bubble h4 { font-size: 1.2em; }
+        .message-bubble h5 { font-size: 1.1em; }
+        .message-bubble h6 { font-size: 1em; }
+
+         .message-bubble table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            width: 100%;
+            overflow-x: auto;
+            display: block;
+        }
+        .message-bubble th, .message-bubble td {
+            border: 1px solid var(--vscode-panel-border);
+            padding: 8px;
+            text-align: left;
+        }
+        .message-bubble th {
+            background-color: var(--vscode-sideBar-background);
+            font-weight: bold;
+        }
+        .message-bubble a {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: underline;
+        }
+        .message-bubble a:hover {
+            color: var(--vscode-textLink-activeForeground);
+        }
+
+        /* <-- Image Preview Styles --> */
+        #image-preview-container {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            background-color: var(--vscode-input-background);
+            border-radius: 5px;
+            margin-bottom: 8px; /* 텍스트 에어리어와의 간격 */
+            position: relative;
+            max-width: 150px; /* 썸네일 최대 너비 */
+            max-height: 150px; /* 썸네일 최대 높이 */
+            overflow: hidden; /* 이미지 오버플로우 숨김 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #image-preview-container.hidden {
+            display: none;
+        }
+
+        #image-preview {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* 이미지 비율 유지하며 컨테이너에 맞춤 */
+            border-radius: 3px;
+        }
+
+        #remove-image-button {
+            position: absolute;
+            top: -5px; /* 컨테이너 밖으로 약간 빼서 썸네일 안 가리게 */
+            right: -5px;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-foreground);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        #remove-image-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+            color: var(--vscode-button-foreground);
+        }
+
+        /* User message image style */
+        .user-message-image {
+            max-width: 200px; /* 사용자 메시지 안의 이미지 최대 너비 */
+            height: auto;
+            border-radius: 5px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            border: 1px solid var(--vscode-panel-border);
+        }
+
+        /* 코드 블록 컨테이너 스타일 */
+        .code-block-container {
+            margin: 10px 0;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
+            overflow: hidden;
+            background-color: var(--vscode-editor-background);
+        }
+
+        /* 코드 블록 헤더 스타일 */
+        .code-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: var(--vscode-editor-inactiveSelectionBackground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .code-language {
+            color: var(--vscode-descriptionForeground);
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .code-line-count {
+            color: var(--vscode-descriptionForeground);
+            font-size: 11px;
+        }
+
+        /* 코드 컨테이너 스타일 */
+        .code-container {
+            position: relative;
+            max-height: 300px; /* 최대 높이 설정 */
+            overflow-y: auto; /* 수직 스크롤 추가 */
+        }
+
+        .code-container pre {
+            margin: 0;
+            padding: 12px;
+            background-color: var(--vscode-editor-background);
+            border-radius: 0;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre;
+        }
+
+        .code-container code {
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            font-family: inherit;
+            font-size: inherit;
+            color: var(--vscode-editor-foreground);
+        }
+
+        /* 스크롤바 스타일링 */
+        .code-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .code-container::-webkit-scrollbar-track {
+            background: var(--vscode-editor-background);
+        }
+
+        .code-container::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-background);
+            border-radius: 4px;
+        }
+
+        .code-container::-webkit-scrollbar-thumb:hover {
+            background: var(--vscode-scrollbarSlider-hoverBackground);
+        }
+
+        /* 8줄 이하인 경우 헤더 스타일 조정 */
+        .code-block-container:not(.has-toggle) .code-block-header {
+            padding: 4px 12px;
+        }
+
+        .code-block-container:not(.has-toggle) .code-language {
+            font-size: 10px;
+        }
+
+        /* File Selection Area Styles */
+        #file-selection-area {
+            display: flex;
+            align-items: center; /* 수직 가운데 정렬로 변경 */
+            padding: 4px 8px; /* 패딩 최소화 */
+            background-color: var(--vscode-input-background);
+            border-radius: 3px; /* 둥근 모서리 감소 */
+            margin: 4px 10px; /* 상하좌우 마진 조정 */
+            max-width: calc(100% - 20px); /* 좌우 마진 고려 */
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 그림자 감소 */
+            min-height: 24px; /* 최소 높이 감소 */
+            max-height: 80px; /* 최대 높이 제한 */
+            overflow-y: auto; /* 세로 스크롤 추가 */
+            border: 1px solid var(--vscode-panel-border); /* 테두리 추가 */
+            flex-shrink: 0; /* 크기 고정 */
+            border-bottom: 2px solid var(--vscode-panel-border); /* 하단 구분선 추가 */
+        }
+
+        #file-selection-area.hidden {
+            display: none;
+        }
+
+        /* 파일 선택 영역과 입력 영역 사이의 구분선 */
+        .file-input-divider {
+            width: 100%;
+            height: 1px;
+            background-color: var(--vscode-panel-border);
+            margin: 0;
+            border: none;
+            flex-shrink: 0;
+        }
+
+        .file-input-divider.hidden {
+            display: none;
+        }
+
+        #selected-files-container {
+            flex-grow: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px; /* 간격 최소화 */
+            margin-right: 20px; /* Clear 버튼 공간 확보 */
+            align-items: center; /* 수직 가운데 정렬로 변경 */
+        }
+
+        .selected-file-tag {
+            display: inline-flex; /* inline-flex로 변경 */
+            align-items: center;
+            background-color: transparent; /* 배경색 제거 */
+            color: var(--vscode-foreground); /* 텍스트 색상을 기본 색상으로 변경 */
+            border: 1px solid white; /* 흰색 테두리 */
+            border-radius: 2px; /* 둥근 모서리 최소화 */
+            padding: 2px 4px; /* 패딩 최소화 */
+            font-size: 10px; /* 폰트 크기 최소화 */
+            max-width: 120px; /* 최대 너비 감소 */
+            min-width: 40px; /* 최소 너비 감소 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* 그림자 최소화 */
+            transition: all 0.15s ease; /* 전환 시간 단축 */
+        }
+
+        .selected-file-tag:hover {
+            background-color: rgba(255, 255, 255, 0.1); /* 호버 시 약간의 흰색 배경 */
+            transform: translateY(-1px); /* 호버 시 살짝 위로 이동 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        .selected-file-tag .file-name {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 400; /* 폰트 굵기 감소 */
+        }
+
+        .selected-file-tag .remove-file {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            margin-left: 3px; /* 간격 최소화 */
+            padding: 1px; /* 패딩 최소화 */
+            font-size: 10px; /* 폰트 크기 최소화 */
+            line-height: 1;
+            border-radius: 50%; /* 원형 버튼 */
+            width: 12px; /* 너비 감소 */
+            height: 12px; /* 높이 감소 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .selected-file-tag .remove-file:hover {
+            color: var(--vscode-errorForeground);
+            background-color: var(--vscode-button-secondary-hoverBackground);
+            transform: scale(1.1); /* 호버 시 살짝 확대 */
+        }
+
+        #clear-files-button {
+            position: absolute;
+            top: 2px; /* 위치 조정 */
+            right: 2px; /* 위치 조정 */
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-foreground);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 50%;
+            width: 14px; /* 크기 감소 */
+            height: 14px; /* 크기 감소 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px; /* 폰트 크기 감소 */
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        #clear-files-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+            color: var(--vscode-button-foreground);
+            transform: scale(1.1); /* 호버 시 살짝 확대 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        /* File Picker Button Style */
+        #file-picker-button {
+            background-color: var(--vscode-button-secondary-background);
+            color: var(--vscode-button-secondary-foreground);
+            border: 1px solid var(--vscode-button-secondary-border);
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            width: 50%; /* Cancel 버튼과 같은 크기 */
+            margin-bottom: 0; /* 하단 마진 제거 (top-button-row에서 관리) */
+        }
+
+        #file-picker-button:hover {
+            background-color: var(--vscode-button-secondary-hoverBackground);
+        }
+
+        #file-picker-button:active {
+            background-color: var(--vscode-button-secondary-activeBackground);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div id="chat-container">
+            <div id="chat-messages"></div>
+        </div>
+    </div>
+
+    <div class="bottom-fixed-area">
+        <!-- File Selection Area - 입력창과 채팅 출력창 사이로 이동 -->
+        <div id="file-selection-area" class="hidden">
+            <div id="selected-files-container">
+                <!-- 선택된 파일들이 여기에 표시됩니다 -->
+            </div>
+            <button id="clear-files-button" title="Clear all selected files">×</button>
+        </div>
+
+        <!-- 파일 선택 영역과 입력 영역 사이의 구분선 -->
+        <hr class="file-input-divider hidden" />
+
+        <div id="chat-input-area">
+            <!-- Image Preview Container -->
+            <div id="image-preview-container" class="hidden">
+                <img id="image-preview" src="#" alt="Image thumbnail" />
+                <button id="remove-image-button" title="Remove image">×</button>
+            </div>
+            
+            <textarea id="chat-input" rows="4" placeholder="Type your message..."></textarea>
+            <!-- <-- 추가: 버튼 그룹을 포함하는 div -->
+            <div class="button-group">
+                <div class="top-button-row">
+                    <button id="file-picker-button" title="파일 선택">@</button>
+                    <button id="cancel-call-button" class="cancel-button">Cancel</button>
+                </div>
+                <button id="clean-history-button">Clear</button> <!-- <-- Clean -> Clear 이름 변경, ID는 그대로 유지 -->
+                <button id="send-button">Send</button>
+            </div>
+            <!-- <-- 추가 끝 -->
+        </div>
+    </div>
+
+    <div class="chat-header-icons">
+        <label id="language-label" for="language-select" style="margin-right:6px;">Language</label>
+        <select id="language-select">
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="es">Español</option>
+            <option value="de">Deutsch</option>
+            <option value="fr">Français</option>
+            <option value="ja">日本語</option>
+        </select>
+    </div>
+    <h1 id="chat-title" style="display:none;">CodePilot Chat</h1>
+
+    <script>
+        console.log("✅ chat.html loaded");
+    </script>
+    <script src="{{scriptUri}}"></script>
+    <script src="{{codeCopyScriptUri}}"></script>
+</body>
+</html>

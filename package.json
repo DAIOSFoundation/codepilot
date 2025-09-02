@@ -1,0 +1,204 @@
+{
+  "name": "codepilot",
+  "displayName": "codepilot",
+  "description": "Coding assistant with customizable LLM",
+  "version": "2.5.7",
+  "publisher": "banya",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "This extension can work with untrusted workspaces."
+    },
+    "virtualWorkspaces": {
+      "supported": true,
+      "description": "This extension can work with virtual workspaces."
+    }
+  },
+  "enableProposedApi": false,
+  "enabledApiProposals": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DAIOSFoundation/codepilot"
+  },
+  "categories": [
+    "LLM",
+    "AI",
+    "Chat",
+    "Code Editor",
+    "VSCode Plugin"
+  ],
+  "activationEvents": [
+    "onView:codepilot.chatView",
+    "onView:codepilot.askView",
+    "onCommand:codepilot.openSettingsPanel",
+    "onCommand:codepilot.openLicensePanel",
+    "onCommand:codepilot.openChatView",
+    "onCommand:codepilot.openAskView"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewContainers": {
+      "activitybar": [
+        {
+          "id": "codepilot",
+          "title": "CodePilot",
+          "icon": "./media/codepilot.svg"
+        }
+      ]
+    },
+    "views": {
+      "codepilot": [
+        {
+          "id": "codepilot.chatView",
+          "name": "CODE",
+          "type": "webview",
+          "icon": "$(comment-discussion)"
+        },
+        {
+          "id": "codepilot.askView",
+          "name": "ASK",
+          "type": "webview",
+          "icon": "$(lightbulb-sparkle)"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "codepilot.openSettingsPanel",
+        "title": "Setting"
+      },
+      {
+        "command": "codepilot.openLicensePanel",
+        "title": "License"
+      },
+      {
+        "command": "codepilot.openChatView",
+        "title": "Open CodePilot Chat"
+      },
+      {
+        "command": "codepilot.openAskView",
+        "title": "Open CodePilot Ask"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "codepilot.openSettingsPanel",
+          "when": "view == codepilot.chatView",
+          "group": "navigation",
+          "order": 1,
+          "icon": "$(settings-gear)",
+          "title": "Setting"
+        },
+        {
+          "command": "codepilot.openLicensePanel",
+          "when": "view == codepilot.chatView",
+          "group": "navigation",
+          "order": 2,
+          "icon": "$(law)",
+          "title": "License"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CodePilot Configuration",
+      "properties": {
+        "codepilot.sourcePaths": {
+          "type": "array",
+          "default": [],
+          "description": "CodePilot이 AI 응답을 생성할 때 참조할 소스 코드 파일 및 디렉토리 경로 목록을 지정합니다. 여기에 지정된 모든 파일과 폴더의 내용이 AI에게 컨텍스트 정보로 제공될 수 있습니다.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "codepilot.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Banya API Key를 설정합니다. Secret Storage에 안전하게 저장됩니다.",
+          "scope": "resource",
+          "markdownDescription": "Banya API Key를 설정합니다. 이는 VS Code의 Secret Storage에 안전하게 저장되며, 확장이 이 키를 사용하여 Gemini API에 접근합니다. [여기](https://aistudio.google.com/app/apikey)에서 API 키를 얻을 수 있습니다."
+        },
+        "codepilot.autoUpdateFiles": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable or disable automatic updating of files based on LLM's code block suggestions. If disabled, you will be prompted before updating.",
+          "scope": "resource"
+        },
+        "codepilot.projectRoot": {
+          "type": "string",
+          "default": "",
+          "description": "CodePilot이 프로젝트의 최상위 경로로 인식할 디렉토리를 설정합니다. 이 경로는 파일 경로를 참조할 때 기준점으로 사용될 수 있습니다.",
+          "scope": "resource"
+        },
+        "codepilot.weatherApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "기상청 API 키를 설정합니다. 날씨 정보 조회에 사용됩니다. (https://apihub.kma.go.kr/)",
+          "scope": "resource"
+        },
+        "codepilot.newsApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "네이버 API Client ID를 설정합니다. 뉴스 정보 조회에 사용됩니다. (https://developers.naver.com/)",
+          "scope": "resource"
+        },
+        "codepilot.newsApiSecret": {
+          "type": "string",
+          "default": "",
+          "description": "네이버 API Client Secret을 설정합니다. 뉴스 정보 조회에 사용됩니다. (https://developers.naver.com/)",
+          "scope": "resource"
+        },
+        "codepilot.stockApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Alpha Vantage API 키를 설정합니다. 주식 정보 조회에 사용됩니다.",
+          "scope": "resource"
+        },
+        "codepilot.language": {
+          "type": "string",
+          "default": "ko",
+          "enum": ["ko", "en", "zh", "es", "de", "fr", "ja"],
+          "description": "CodePilot UI 언어를 설정합니다. 지원 언어: 한국어(ko), 영어(en), 중국어(zh), 스페인어(es), 독일어(de), 프랑스어(fr), 일본어(ja)",
+          "scope": "resource"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "dependencies": {
+    "firebase": "^10.7.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.27.3",
+    "@babel/preset-env": "^7.27.2",
+    "@google/generative-ai": "^0.16.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2",
+    "babel-loader": "^10.0.0",
+    "dompurify": "^3.2.6",
+    "eslint": "^9.25.1",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.7",
+    "webpack-cli": "^6.0.1",
+    "markdown-it": "^14.1.0"
+  }
+}
