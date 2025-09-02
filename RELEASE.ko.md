@@ -2,7 +2,7 @@
 
 이 문서는 CodePilot VSCode 확장의 완전한 릴리즈 히스토리를 포함합니다.
 
-## Version 2.5.7 (2025/01/27) - Remote SSH 환경 파일 수정 문제 해결
+## Version 2.5.7 - Remote SSH 환경 파일 수정 문제 해결
 
 <details>
 <summary>Remote SSH 환경 지원 강화</summary>
