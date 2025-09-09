@@ -37,10 +37,10 @@ export function openSettingsPanel(
                     });
                     break;
                 case 'addDirectory':
-                    const uris = await vscode.window.showOpenDialog({ 
-                        canSelectFiles: true, 
-                        canSelectFolders: true, 
-                        canSelectMany: true, 
+                    const uris = await vscode.window.showOpenDialog({
+                        canSelectFiles: true,
+                        canSelectFolders: true,
+                        canSelectMany: true,
                         openLabel: 'Select Files and Folders',
                         filters: {
                             'All Files': ['*'],
@@ -74,10 +74,10 @@ export function openSettingsPanel(
                     }
                     break;
                 case 'setProjectRoot':
-                    const rootUris = await vscode.window.showOpenDialog({ 
-                        canSelectFiles: false, 
-                        canSelectFolders: true, 
-                        canSelectMany: false, 
+                    const rootUris = await vscode.window.showOpenDialog({
+                        canSelectFiles: false,
+                        canSelectFolders: true,
+                        canSelectMany: false,
                         openLabel: 'Select Project Root Directory'
                     });
                     if (rootUris && rootUris.length > 0) {
@@ -85,11 +85,11 @@ export function openSettingsPanel(
                         await configurationService.updateProjectRoot(newRootPath);
                         panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: newRootPath });
                     } else if (data.clear) {
-                         await configurationService.updateProjectRoot(undefined);
-                         panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: '' });
+                        await configurationService.updateProjectRoot(undefined);
+                        panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: '' });
                     }
                     break;
-                                case 'loadApiKeys':
+                case 'loadApiKeys':
                     // API 키 상태 로드
                     const weatherApiKey = await configurationService.getWeatherApiKey();
                     const newsApiKey = await configurationService.getNewsApiKey();
@@ -98,21 +98,22 @@ export function openSettingsPanel(
                     const geminiApiKey = await storageService.getApiKey(); // Gemini API 키 추가
                     const ollamaApiUrl = await storageService.getOllamaApiUrl(); // Ollama API URL 추가
                     const ollamaEndpoint = await storageService.getOllamaEndpoint(); // Ollama 엔드포인트 추가
+                    const ollamaModel = await storageService.getOllamaModel(); // Ollama 모델 추가
                     const banyaLicenseSerial = await storageService.getBanyaLicenseSerial(); // Banya 라이센스 추가
-                    
+
                     // Banya 라이센스 시리얼 검증 - 잘못된 데이터 필터링
                     let validBanyaLicenseSerial = '';
-                    if (banyaLicenseSerial && 
-                        typeof banyaLicenseSerial === 'string' && 
+                    if (banyaLicenseSerial &&
+                        typeof banyaLicenseSerial === 'string' &&
                         banyaLicenseSerial.trim() !== '' &&
-                        !banyaLicenseSerial.includes('/') && 
+                        !banyaLicenseSerial.includes('/') &&
                         !banyaLicenseSerial.includes('\\') &&
                         !banyaLicenseSerial.includes('프로젝트') &&
                         !banyaLicenseSerial.includes('Project') &&
                         banyaLicenseSerial.length > 5) {
                         validBanyaLicenseSerial = banyaLicenseSerial.trim();
                     }
-                    
+
                     // 라이선스 검증 상태 확인
                     let isLicenseVerified = false;
                     if (validBanyaLicenseSerial) {
@@ -129,16 +130,17 @@ export function openSettingsPanel(
                     } else {
                         console.log('No valid license serial found');
                     }
-                    
-                    const messageToSend = { 
-                        command: 'currentApiKeys', 
-                        weatherApiKey: weatherApiKey || '', 
-                        newsApiKey: newsApiKey || '', 
+
+                    const messageToSend = {
+                        command: 'currentApiKeys',
+                        weatherApiKey: weatherApiKey || '',
+                        newsApiKey: newsApiKey || '',
                         newsApiSecret: newsApiSecret || '',
-                        stockApiKey: stockApiKey || '', 
+                        stockApiKey: stockApiKey || '',
                         geminiApiKey: geminiApiKey || '', // Gemini API 키 추가
                         ollamaApiUrl: ollamaApiUrl || '', // Ollama API URL 추가
                         ollamaEndpoint: ollamaEndpoint || '', // Ollama 엔드포인트 추가
+                        ollamaModel: ollamaModel || '', // Ollama 모델 추가
                         banyaLicenseSerial: validBanyaLicenseSerial, // 검증된 Banya 라이센스만 전송
                         isLicenseVerified: isLicenseVerified // 라이선스 검증 상태 추가
                     };
@@ -190,7 +192,7 @@ export function openSettingsPanel(
                             console.log('Saving Ollama endpoint to storage:', ollamaEndpointToSave);
                             await storageService.saveOllamaEndpoint(ollamaEndpointToSave);
                             console.log('Ollama endpoint saved successfully');
-                            
+
                             // OllamaApi 인스턴스의 엔드포인트도 업데이트
                             if (ollamaApi && typeof ollamaApi.setEndpoint === 'function') {
                                 console.log('Updating OllamaApi instance endpoint');
@@ -198,7 +200,7 @@ export function openSettingsPanel(
                             } else {
                                 console.log('OllamaApi instance not available or setEndpoint method not found');
                             }
-                            
+
                             panel.webview.postMessage({ command: 'ollamaEndpointSaved' });
                             notificationService.showInfoMessage('CodePilot: Ollama endpoint saved.');
                         } catch (error: any) {
@@ -234,7 +236,7 @@ export function openSettingsPanel(
                         try {
                             // 실제 라이센스 검증 로직 구현
                             const verificationResult = await licenseService.verifyLicense(licenseSerialToVerify);
-                            
+
                             if (verificationResult.success) {
                                 panel.webview.postMessage({ command: 'banyaLicenseVerified' });
                                 notificationService.showInfoMessage(`CodePilot: ${verificationResult.message}`);
@@ -265,10 +267,17 @@ export function openSettingsPanel(
                     const aiModelToSave = data.model;
                     if (aiModelToSave && typeof aiModelToSave === 'string') {
                         try {
-                            await storageService.saveCurrentAiModel(aiModelToSave);
+                            // Ollama 모델인 경우 실제 모델명을 가져와서 저장
+                            let modelToSave = aiModelToSave;
+                            if (aiModelToSave === 'ollama') {
+                                const currentOllamaModel = await storageService.getOllamaModel();
+                                modelToSave = currentOllamaModel === 'deepseek-r1:70b' ? 'ollama-deepseek' : 'ollama-gemma';
+                            }
+
+                            await storageService.saveCurrentAiModel(modelToSave);
                             // LlmService의 현재 모델도 업데이트
                             if (llmService) {
-                                llmService.setCurrentModel(aiModelToSave as any);
+                                llmService.setCurrentModel(modelToSave as any);
                             }
                             panel.webview.postMessage({ command: 'aiModelSaved' });
                             notificationService.showInfoMessage(`CodePilot: AI model changed to ${aiModelToSave}.`);
@@ -288,6 +297,46 @@ export function openSettingsPanel(
                     } catch (error: any) {
                         // 오류 시 기본값 반환
                         panel.webview.postMessage({ command: 'currentAiModel', model: 'gemini' });
+                    }
+                    break;
+                case 'saveOllamaModel':
+                    const ollamaModelToSave = data.model;
+                    if (ollamaModelToSave && typeof ollamaModelToSave === 'string') {
+                        try {
+                            await storageService.saveOllamaModel(ollamaModelToSave);
+                            // OllamaApi 인스턴스의 모델도 업데이트
+                            if (ollamaApi && typeof ollamaApi.setModel === 'function') {
+                                ollamaApi.setModel(ollamaModelToSave);
+                            }
+
+                            // 현재 AI 모델이 Ollama인 경우 AI 모델도 업데이트
+                            const currentAiModel = await storageService.getCurrentAiModel();
+                            if (currentAiModel === 'ollama-gemma' || currentAiModel === 'ollama-deepseek') {
+                                const newAiModel = ollamaModelToSave === 'deepseek-r1:70b' ? 'ollama-deepseek' : 'ollama-gemma';
+                                await storageService.saveCurrentAiModel(newAiModel);
+                                if (llmService) {
+                                    llmService.setCurrentModel(newAiModel as any);
+                                }
+                            }
+
+                            panel.webview.postMessage({ command: 'ollamaModelSaved' });
+                            notificationService.showInfoMessage(`CodePilot: Ollama model changed to ${ollamaModelToSave}.`);
+                        } catch (error: any) {
+                            panel.webview.postMessage({ command: 'ollamaModelError', error: error.message });
+                            notificationService.showErrorMessage(`Error saving Ollama model: ${error.message}`);
+                        }
+                    } else {
+                        panel.webview.postMessage({ command: 'ollamaModelError', error: 'Ollama model empty.' });
+                        notificationService.showErrorMessage('Ollama model is empty.');
+                    }
+                    break;
+                case 'loadOllamaModel':
+                    try {
+                        const currentOllamaModel = await storageService.getOllamaModel();
+                        panel.webview.postMessage({ command: 'currentOllamaModel', model: currentOllamaModel || 'gemma3:27b' });
+                    } catch (error: any) {
+                        // 오류 시 기본값 반환
+                        panel.webview.postMessage({ command: 'currentOllamaModel', model: 'gemma3:27b' });
                     }
                     break;
                 case 'saveWeatherApiKey':
@@ -338,7 +387,7 @@ export function openSettingsPanel(
                             await configurationService.updateLanguage(language);
                             panel.webview.postMessage({ command: 'languageSaved', language: language });
                             notificationService.showInfoMessage(`CodePilot: Language changed to ${language}.`);
-                            
+
                             // 모든 활성 webview에 언어 변경 브로드캐스트
                             allWebviews.forEach(webview => {
                                 webview.postMessage({ command: 'languageChanged', language });
@@ -364,16 +413,16 @@ export function openSettingsPanel(
                         if (language && typeof language === 'string') {
                             // 언어 파일 경로
                             const languageFilePath = vscode.Uri.joinPath(extensionUri, 'webview', 'locales', `lang_${language}.json`);
-                            
+
                             // 파일 읽기
                             const fileContent = await vscode.workspace.fs.readFile(languageFilePath);
                             const languageData = JSON.parse(Buffer.from(fileContent).toString('utf8'));
-                            
+
                             // 웹뷰에 언어 데이터 전송
-                            panel.webview.postMessage({ 
-                                command: 'languageDataReceived', 
-                                language: language, 
-                                data: languageData 
+                            panel.webview.postMessage({
+                                command: 'languageDataReceived',
+                                language: language,
+                                data: languageData
                             });
                         }
                     } catch (error: any) {
@@ -383,10 +432,10 @@ export function openSettingsPanel(
                             const defaultLanguagePath = vscode.Uri.joinPath(extensionUri, 'webview', 'locales', 'lang_ko.json');
                             const defaultContent = await vscode.workspace.fs.readFile(defaultLanguagePath);
                             const defaultData = JSON.parse(Buffer.from(defaultContent).toString('utf8'));
-                            panel.webview.postMessage({ 
-                                command: 'languageDataReceived', 
-                                language: 'ko', 
-                                data: defaultData 
+                            panel.webview.postMessage({
+                                command: 'languageDataReceived',
+                                language: 'ko',
+                                data: defaultData
                             });
                         } catch (fallbackError) {
                             console.error('Error loading fallback language data:', fallbackError);
@@ -396,10 +445,10 @@ export function openSettingsPanel(
             }
         }
     );
-    
+
     // webview를 전역 배열에 등록
     allWebviews.push(panel.webview);
-    
+
     // 패널이 dispose될 때 배열에서 제거
     panel.onDidDispose(() => {
         const idx = allWebviews.indexOf(panel.webview);
@@ -407,7 +456,7 @@ export function openSettingsPanel(
             allWebviews.splice(idx, 1);
         }
     }, undefined, context.subscriptions);
-    
+
     return panel;
 }
 
@@ -462,16 +511,16 @@ export function openLicensePanel(
                         if (language && typeof language === 'string') {
                             // 언어 파일 경로
                             const languageFilePath = vscode.Uri.joinPath(extensionUri, 'webview', 'locales', `lang_${language}.json`);
-                            
+
                             // 파일 읽기
                             const fileContent = await vscode.workspace.fs.readFile(languageFilePath);
                             const languageData = JSON.parse(Buffer.from(fileContent).toString('utf8'));
-                            
+
                             // 웹뷰에 언어 데이터 전송
-                            panel.webview.postMessage({ 
-                                command: 'languageDataReceived', 
-                                language: language, 
-                                data: languageData 
+                            panel.webview.postMessage({
+                                command: 'languageDataReceived',
+                                language: language,
+                                data: languageData
                             });
                         }
                     } catch (error: any) {
@@ -481,10 +530,10 @@ export function openLicensePanel(
                             const defaultLanguagePath = vscode.Uri.joinPath(extensionUri, 'webview', 'locales', 'lang_ko.json');
                             const defaultContent = await vscode.workspace.fs.readFile(defaultLanguagePath);
                             const defaultData = JSON.parse(Buffer.from(defaultContent).toString('utf8'));
-                            panel.webview.postMessage({ 
-                                command: 'languageDataReceived', 
-                                language: 'ko', 
-                                data: defaultData 
+                            panel.webview.postMessage({
+                                command: 'languageDataReceived',
+                                language: 'ko',
+                                data: defaultData
                             });
                         } catch (fallbackError) {
                             console.error('Error loading fallback language data:', fallbackError);
@@ -494,10 +543,10 @@ export function openLicensePanel(
             }
         }
     );
-    
+
     // webview를 전역 배열에 등록
     allWebviews.push(panel.webview);
-    
+
     // 패널이 dispose될 때 배열에서 제거
     panel.onDidDispose(() => {
         const idx = allWebviews.indexOf(panel.webview);
@@ -505,6 +554,6 @@ export function openLicensePanel(
             allWebviews.splice(idx, 1);
         }
     }, undefined, context.subscriptions);
-    
+
     return panel;
 }

@@ -16,8 +16,11 @@ VSCode base code assistant plugin with LLM and LM support.
 ### 🤖 AI-Powered Code Assistance
 - **Multi-Model AI Support**: 
   - **Gemini 2.5 Pro Flash**: Google's advanced LLM for intelligent code generation and analysis
-  - **Ollama Gemma3:27b**: Local Ollama server integration for offline AI processing
+  - **Ollama Integration**: Local Ollama server integration for offline AI processing
+    - **Gemma3:27b**: 128K token limit for code generation and analysis
+    - **DeepSeek R1:70B**: 200K token limit with Korean language optimization
   - **Dynamic Model Selection**: Switch between cloud and local AI models in settings
+  - **Intuitive UI**: Simplified model selection (Gemini vs Ollama) with specific model selection below
 - **Dual-Mode Interface**: 
   - **CODE Tab**: Specialized for code generation, modification, and project-specific tasks
   - **ASK Tab**: General Q&A and real-time information queries
@@ -59,17 +62,21 @@ VSCode base code assistant plugin with LLM and LM support.
 - **Model-Specific Limits**: 
   - Gemini 2.5 Flash: 1,000,000 input tokens, 500,000 output tokens
   - Gemma3:27b: 128,000 input/output tokens
+  - DeepSeek R1:70B: 200,000 input/output tokens
 - **Token Limit Warnings**: Automatic detection and user warnings when input tokens exceed model limits
 - **Usage Monitoring**: Real-time token usage logging and percentage tracking
+- **Safe Fallback**: Automatic fallback to default token limits for unknown model types
 
 ### ⚙️ Comprehensive Configuration
 - **Multi-Model AI Configuration**:
-  - **AI Model Selection**: Choose between Gemini 2.5 Pro Flash and Ollama Gemma3:27b
+  - **AI Model Selection**: Choose between Gemini 2.5 Pro Flash and Ollama
+  - **Ollama Model Selection**: Select specific Ollama model (Gemma3:27b or DeepSeek R1:70B)
   - **Ollama Server Setup**: Configure Ollama API URL and endpoint selection
     - Local Ollama: `http://localhost:11434` + `/api/generate`
     - External Server: `https://your-server.com` + `/api/chat`
     - Vessl AI Cluster: `https://model-service-gateway-xxx.eu.h100-cluster.vessl.ai` + `/api/chat`
   - **Dynamic Settings**: Enable/disable model-specific settings based on selection
+  - **Automatic Migration**: Legacy 'ollama' settings automatically converted to specific model types
 - **API Key Management**: Secure storage for multiple external API keys
   - Gemini API key configuration
   - Weather API key configuration
@@ -207,8 +214,9 @@ VSCode base code assistant plugin with LLM and LM support.
    # Start Ollama server
    ollama serve
    
-   # Pull Gemma3:27b model
+   # Pull models
    ollama pull gemma3:27b
+   ollama pull deepseek-r1:70b
    ```
 
 3. **Optional External APIs**

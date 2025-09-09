@@ -28,6 +28,27 @@ export class OllamaApi {
         this.endpoint = endpoint;
     }
 
+    public setModel(modelName: string): void {
+        this.modelName = modelName;
+    }
+
+    public getModel(): string {
+        return this.modelName;
+    }
+
+    /**
+     * 모델에 따른 토큰 제한을 반환합니다.
+     */
+    private getTokenLimit(): number {
+        if (this.modelName.includes('deepseek-r1:70b')) {
+            return 200000; // DeepSeek R1:70B는 더 많은 토큰 지원
+        } else if (this.modelName.includes('gemma3:27b')) {
+            return 128000; // Gemma3:27b의 토큰 제한
+        } else {
+            return 128000; // 기본값
+        }
+    }
+
     public isInitialized(): boolean {
         return !!this.apiUrl;
     }
@@ -105,7 +126,7 @@ export class OllamaApi {
                         temperature: 0.7,
                         top_k: 1,
                         top_p: 1,
-                        num_predict: 128000, // Gemma3:27b의 토큰 제한
+                        num_predict: this.getTokenLimit(),
                     }
                 });
 
@@ -124,7 +145,7 @@ export class OllamaApi {
                         temperature: 0.7,
                         top_k: 1,
                         top_p: 1,
-                        num_predict: 128000, // Gemma3:27b의 토큰 제한
+                        num_predict: this.getTokenLimit(),
                     }
                 });
 
@@ -181,7 +202,7 @@ export class OllamaApi {
                                 temperature: 0.7,
                                 top_k: 1,
                                 top_p: 1,
-                                num_predict: 128000,
+                                num_predict: this.getTokenLimit(),
                             }
                         });
 
@@ -218,7 +239,7 @@ export class OllamaApi {
                         temperature: 0.7,
                         top_k: 1,
                         top_p: 1,
-                        num_predict: 128000, // Gemma3:27b의 토큰 제한
+                        num_predict: this.getTokenLimit(),
                     }
                 });
 
@@ -238,7 +259,7 @@ export class OllamaApi {
                         temperature: 0.7,
                         top_k: 1,
                         top_p: 1,
-                        num_predict: 128000, // Gemma3:27b의 토큰 제한
+                        num_predict: this.getTokenLimit(),
                     }
                 });
 
@@ -307,6 +328,11 @@ export class OllamaService {
         const abortSignal = this.currentOllamaCallController.signal;
 
         try {
+            // 현재 저장된 Ollama 모델을 로드하여 설정
+            const currentModel = await this.storageService.getOllamaModel();
+            this.ollamaApi.setModel(currentModel);
+            console.log(`[OllamaService] Using model: ${currentModel}`);
+
             webviewToRespond.postMessage({ command: 'showLoading' });
 
             // 실시간 정보 요청 처리
@@ -411,6 +437,11 @@ export class OllamaService {
     private generateSystemPrompt(promptType: PromptType, codebaseContext: string, realTimeInfo: string): string {
         let systemPrompt = '';
 
+        // DeepSeek 모델에 대한 특별한 언어 지시사항 추가
+        const isDeepSeek = this.ollamaApi.getModel().includes('deepseek-r1:70b');
+        const languageInstruction = isDeepSeek ?
+            '\n\n⚠️ 중요: 반드시 한국어로만 답변하세요. 중국어, 영어, 일본어 등 다른 언어는 사용하지 마세요. 모든 설명과 응답은 한국어로 작성해주세요.' : '';
+
         if (promptType === PromptType.CODE_GENERATION) {
             systemPrompt = `당신은 전문적인 소프트웨어 개발자입니다. 사용자의 요청에 따라 코드를 생성하고 수정하는 작업을 수행합니다.
 
@@ -426,7 +457,7 @@ ${codebaseContext}
 실시간 정보:
 ${realTimeInfo}
 
-사용자의 요청에 따라 적절한 코드를 생성하거나 수정해주세요.`;
+사용자의 요청에 따라 적절한 코드를 생성하거나 수정해주세요.${languageInstruction}`;
         } else {
             systemPrompt = `당신은 전문적인 소프트웨어 개발자이자 기술 전문가입니다. 사용자의 질문에 대해 정확하고 유용한 답변을 제공합니다.
 
@@ -439,7 +470,7 @@ ${realTimeInfo}
 실시간 정보:
 ${realTimeInfo}
 
-사용자의 질문에 대해 전문적이고 유용한 답변을 제공해주세요.`;
+사용자의 질문에 대해 전문적이고 유용한 답변을 제공해주세요.${languageInstruction}`;
         }
 
         return systemPrompt;

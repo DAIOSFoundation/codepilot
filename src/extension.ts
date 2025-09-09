@@ -45,7 +45,9 @@ export async function activate(context: vscode.ExtensionContext) {
     // Ollama API 초기화
     const initialOllamaUrl = await storageService.getOllamaApiUrl();
     const initialOllamaEndpoint = await storageService.getOllamaEndpoint();
+    const initialOllamaModel = await storageService.getOllamaModel();
     ollamaApi = new OllamaApi(initialOllamaUrl || 'http://localhost:11434', initialOllamaEndpoint);
+    ollamaApi.setModel(initialOllamaModel);
 
     // AI 관련 서비스 초기화
     codebaseContextService = new CodebaseContextService(configurationService, notificationService);
@@ -62,7 +64,13 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // 현재 AI 모델 설정 로드
-    const currentAiModel = await storageService.getCurrentAiModel();
+    let currentAiModel = await storageService.getCurrentAiModel();
+    // 마이그레이션: 과거 'ollama' 값이 저장된 경우, 현재 Ollama 모델을 확인하여 구체적인 타입으로 변환
+    if (currentAiModel === 'ollama') {
+        const storedOllamaModel = await storageService.getOllamaModel();
+        currentAiModel = storedOllamaModel === 'deepseek-r1:70b' ? 'ollama-deepseek' : 'ollama-gemma';
+        await storageService.saveCurrentAiModel(currentAiModel as any);
+    }
     if (currentAiModel) {
         llmService.setCurrentModel(currentAiModel as AiModelType);
     }
@@ -125,7 +133,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 terminal.sendText(`echo "Language changed to: ${language}"`);
             }
         });
-        
+
         // 모든 활성 webview 패널에 언어 변경 메시지 전송
         vscode.window.terminals.forEach(terminal => {
             if (terminal.name.includes('CodePilot')) {

@@ -515,7 +515,7 @@
             <label id="ai-model-select-label" for="ai-model-select"><b>AI 모델 선택</b></label>
             <select id="ai-model-select">
                 <option value="gemini" selected>Gemini 2.5 Pro Flash</option>
-                <option value="ollama">Gemma3:27b (Ollama)</option>
+                <option value="ollama">Ollama</option>
             </select>
         </div>
         
@@ -531,11 +531,22 @@
             <p id="gemini-api-key-status" class="info-message"></p>
         </div>
 
-        <!-- Ollama Gemma3:27b 설정 -->
+        <!-- Ollama 설정 -->
         <div class="api-key-section" id="ollama-settings-section">
-            <h3 id="ollama-api-label">🏠 Gemma3:27b (Ollama)</h3>
-            <p class="info-message">로컬 네트워크에 설치된 Ollama의 Gemma3:27b 모델을 사용하여 AI 코드 생성 및 분석 기능을 활성화합니다.</p>
+            <h3 id="ollama-api-label">🏠 Ollama 모델</h3>
+            <p class="info-message">로컬 네트워크에 설치된 Ollama 서버의 모델을 사용하여 AI 코드 생성 및 분석 기능을 활성화합니다.</p>
             <p class="info-message"><strong>설정 방법:</strong> 로컬 네트워크에서 실행 중인 Ollama 서버의 HTTP API 주소를 입력하세요. (예: http://192.168.1.100:11434)</p>
+            
+            <!-- Ollama 모델 선택 -->
+            <div class="api-key-input-group" style="margin-bottom: 15px;">
+                <label for="ollama-model-select" style="margin-right: 10px; font-weight: bold;">Ollama 모델:</label>
+                <select id="ollama-model-select" style="flex-grow: 1; padding: 8px; border: 1px solid var(--vscode-input-border); background-color: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 3px;">
+                    <option value="gemma3:27b">Gemma3:27b</option>
+                    <option value="deepseek-r1:70b">DeepSeek R1:70B</option>
+                </select>
+                <button id="save-ollama-model-button">모델 저장</button>
+            </div>
+            <p id="ollama-model-status" class="info-message"></p>
             
             <!-- Ollama API URL 설정 -->
             <div class="api-key-input-group">

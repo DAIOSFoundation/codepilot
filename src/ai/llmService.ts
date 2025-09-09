@@ -76,11 +76,11 @@ export class LlmService {
 
             // 실시간 정보 요청 처리
             const realTimeInfo = await this.processRealTimeInfoRequest(userQuery);
-            
+
             // 코드베이스 컨텍스트 수집 (GENERAL_ASK 타입일 때는 건너뜀)
             let fileContentsContext = '';
             let includedFilesForContext: { name: string, fullPath: string }[] = [];
-            
+
             if (promptType === PromptType.CODE_GENERATION) {
                 const contextResult = await this.codebaseContextService.getProjectCodebaseContext(abortSignal);
                 fileContentsContext = contextResult.fileContentsContext;
@@ -96,13 +96,13 @@ export class LlmService {
                         const contentBytes = await vscode.workspace.fs.readFile(fileUri);
                         const content = Buffer.from(contentBytes).toString('utf8');
                         const fileName = filePath.split(/[/\\]/).pop() || 'Unknown';
-                        
+
                         // 선택된 파일을 includedFilesForContext 배열에 추가
-                        includedFilesForContext.push({ 
-                            name: fileName, 
-                            fullPath: filePath 
+                        includedFilesForContext.push({
+                            name: fileName,
+                            fullPath: filePath
                         });
-                        
+
                         selectedFilesContext += `파일명: ${fileName}\n경로: ${filePath}\n코드:\n\`\`\`\n${content}\n\`\`\`\n\n`;
                     } catch (error) {
                         console.error(`Error reading selected file ${filePath}:`, error);
@@ -112,7 +112,7 @@ export class LlmService {
             }
 
             // 선택된 파일 컨텍스트를 기존 컨텍스트에 추가
-            const fullFileContentsContext = selectedFilesContext 
+            const fullFileContentsContext = selectedFilesContext
                 ? `${fileContentsContext}\n--- 사용자가 선택한 추가 파일들 ---\n${selectedFilesContext}`
                 : fileContentsContext;
 
@@ -127,11 +127,11 @@ export class LlmService {
             // 이미지가 있는 경우 추가
             if (imageData && imageMimeType) {
                 // Gemini와 Ollama 모두 이미지 데이터 전달 (Ollama는 멀티모달 모델에서 지원)
-                userParts.push({ 
-                    inlineData: { 
-                        data: imageData, 
-                        mimeType: imageMimeType 
-                    } 
+                userParts.push({
+                    inlineData: {
+                        data: imageData,
+                        mimeType: imageMimeType
+                    }
                 });
             }
 
@@ -140,15 +140,15 @@ export class LlmService {
             // 토큰 제한 확인
             const tokenCheck = checkTokenLimit(systemPrompt, userParts, this.currentModelType);
             logTokenUsage(systemPrompt, userParts, this.currentModelType);
-            
+
             if (tokenCheck.isExceeded) {
                 const errorMessage = tokenCheck.message;
                 console.error(`[LlmService] ${errorMessage}`);
                 this.notificationService.showErrorMessage(`CodePilot: ${errorMessage}`);
-                safePostMessage(webviewToRespond, { 
-                    command: 'receiveMessage', 
-                    sender: 'CodePilot', 
-                    text: errorMessage 
+                safePostMessage(webviewToRespond, {
+                    command: 'receiveMessage',
+                    sender: 'CodePilot',
+                    text: errorMessage
                 });
                 return;
             }
@@ -158,18 +158,20 @@ export class LlmService {
             if (this.currentModelType === AiModelType.GEMINI) {
                 const requestOptions = { signal: abortSignal };
                 llmResponse = await this.geminiApi.sendMessageWithSystemPrompt(
-                    systemPrompt, 
-                    userParts, 
+                    systemPrompt,
+                    userParts,
                     requestOptions
                 );
-            } else {
+            } else if (this.currentModelType === AiModelType.OLLAMA_Gemma || this.currentModelType === AiModelType.OLLAMA_DeepSeek) {
                 // Ollama API에 직접 호출 (selectedFiles는 이미 시스템 프롬프트에 포함됨)
                 const requestOptions = { signal: abortSignal };
                 llmResponse = await this.ollamaApi.sendMessageWithSystemPrompt(
-                    systemPrompt, 
-                    userParts, 
+                    systemPrompt,
+                    userParts,
                     requestOptions
                 );
+            } else {
+                throw new Error(`Unsupported model type: ${this.currentModelType}`);
             }
 
             // 컨텍스트 파일 목록에 선택된 파일들도 포함
@@ -223,6 +225,11 @@ export class LlmService {
      */
     private generateSystemPrompt(promptType: PromptType, codebaseContext: string, realTimeInfo: string): string {
         let systemPrompt = '';
+
+        // DeepSeek 모델에 대한 특별한 언어 지시사항 추가
+        const isDeepSeek = this.currentModelType === AiModelType.OLLAMA_DeepSeek;
+        const languageInstruction = isDeepSeek ?
+            '\n\n️중요: 반드시 한국어로만 답변하세요. 중국어, 영어, 일본어 등 다른 언어는 사용하지 마세요. 모든 설명과 응답은 한국어로 작성해주세요.' : '';
 
         if (promptType === PromptType.CODE_GENERATION) {
             systemPrompt = `당신은 전문적인 소프트웨어 개발자입니다. 사용자의 요청에 따라 코드를 생성하고 수정하는 작업을 수행합니다.
@@ -289,7 +296,7 @@ ${codebaseContext}
 실시간 정보:
 ${realTimeInfo}
 
-사용자의 요청에 따라 적절한 코드를 생성하거나 수정해주세요.`;
+사용자의 요청에 따라 적절한 코드를 생성하거나 수정해주세요.${languageInstruction}`;
         } else {
             systemPrompt = `당신은 전문적인 소프트웨어 개발자이자 기술 전문가입니다. 사용자의 질문에 대해 정확하고 유용한 답변을 제공합니다.
 
@@ -307,7 +314,7 @@ ${codebaseContext}
 실시간 정보:
 ${realTimeInfo}
 
-사용자의 질문에 대해 전문적이고 유용한 답변을 제공해주세요.`;
+사용자의 질문에 대해 전문적이고 유용한 답변을 제공해주세요.${languageInstruction}`;
         }
 
         return systemPrompt;

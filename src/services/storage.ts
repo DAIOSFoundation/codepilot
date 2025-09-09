@@ -6,6 +6,7 @@ import { CryptoUtils } from '../utils/cryptoUtils';
 const API_KEY_SECRET_KEY = 'codepilot.geminiApiKey';
 const OLLAMA_API_URL_SECRET_KEY = 'codepilot.ollamaApiUrl';
 const OLLAMA_ENDPOINT_SECRET_KEY = 'codepilot.ollamaEndpoint';
+const OLLAMA_MODEL_SECRET_KEY = 'codepilot.ollamaModel';
 const CURRENT_AI_MODEL_SECRET_KEY = 'codepilot.currentAiModel';
 const BANYA_LICENSE_SERIAL_SECRET_KEY = 'codepilot.banyaLicenseSerial';
 
@@ -108,6 +109,38 @@ export class StorageService {
     async deleteOllamaEndpoint(): Promise<void> {
         await this.secretStorage.delete(OLLAMA_ENDPOINT_SECRET_KEY);
         console.log('Ollama API endpoint deleted from SecretStorage.');
+    }
+
+    /**
+     * Ollama 모델을 VS Code SecretStorage에 안전하게 저장합니다.
+     * @param model 저장할 Ollama 모델명
+     */
+    async saveOllamaModel(model: string): Promise<void> {
+        await this.secretStorage.store(OLLAMA_MODEL_SECRET_KEY, model);
+        console.log('Ollama model saved to SecretStorage.');
+    }
+
+    /**
+     * SecretStorage에서 저장된 Ollama 모델을 불러옵니다.
+     * @returns 저장된 Ollama 모델명 또는 없을 경우 기본값 'gemma3:27b'
+     */
+    async getOllamaModel(): Promise<string> {
+        const model = await this.secretStorage.get(OLLAMA_MODEL_SECRET_KEY);
+        if (model) {
+            console.log('Ollama model loaded from SecretStorage.');
+            return model;
+        } else {
+            console.log('No Ollama model found in SecretStorage, using default.');
+            return 'gemma3:27b';
+        }
+    }
+
+    /**
+     * SecretStorage에서 Ollama 모델을 삭제합니다.
+     */
+    async deleteOllamaModel(): Promise<void> {
+        await this.secretStorage.delete(OLLAMA_MODEL_SECRET_KEY);
+        console.log('Ollama model deleted from SecretStorage.');
     }
 
     /**

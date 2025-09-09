@@ -46,6 +46,11 @@ const ollamaEndpointSelect = document.getElementById('ollama-endpoint-select');
 const saveOllamaEndpointButton = document.getElementById('save-ollama-endpoint-button');
 const ollamaEndpointStatus = document.getElementById('ollama-endpoint-status');
 
+// Ollama 모델 선택 관련 요소들
+const ollamaModelSelect = document.getElementById('ollama-model-select');
+const saveOllamaModelButton = document.getElementById('save-ollama-model-button');
+const ollamaModelStatus = document.getElementById('ollama-model-status');
+
 // Banya 라이센스 관련 요소들
 const banyaLicenseSerialInput = document.getElementById('banya-license-serial-input');
 const saveBanyaLicenseButton = document.getElementById('save-banya-license-button');
@@ -1108,6 +1113,23 @@ if (saveOllamaApiUrlButton) {
     });
 }
 
+// Ollama 모델 저장 이벤트 리스너
+if (saveOllamaModelButton) {
+    saveOllamaModelButton.addEventListener('click', () => {
+        const model = ollamaModelSelect.value;
+        console.log('Ollama model save button clicked, selected model:', model);
+        if (model) {
+            console.log('Sending saveOllamaModel command to extension with model:', model);
+            vscode.postMessage({ command: 'saveOllamaModel', model: model });
+            const savingText = 'Ollama 모델 저장 중...';
+            showStatus(ollamaModelStatus, savingText, 'info');
+        } else {
+            console.log('No model selected, showing error');
+            showStatus(ollamaModelStatus, '모델을 선택해주세요.', 'error');
+        }
+    });
+}
+
 // Ollama 엔드포인트 저장 이벤트 리스너
 if (saveOllamaEndpointButton) {
     saveOllamaEndpointButton.addEventListener('click', () => {
@@ -1320,6 +1342,14 @@ window.addEventListener('message', event => {
                     'Ollama 엔드포인트가 설정되지 않았습니다.';
                 showStatus(ollamaEndpointStatus, ollamaEndpointSetText, message.ollamaEndpoint ? 'success' : 'info');
             }
+            // Ollama 모델 상태 로드
+            if (ollamaModelSelect && typeof message.ollamaModel === 'string') {
+                ollamaModelSelect.value = message.ollamaModel;
+                const ollamaModelSetText = message.ollamaModel ? 
+                    `Ollama 모델이 설정되어 있습니다: ${message.ollamaModel}` :
+                    'Ollama 모델이 설정되지 않았습니다.';
+                showStatus(ollamaModelStatus, ollamaModelSetText, message.ollamaModel ? 'success' : 'info');
+            }
             // Banya 라이센스 상태 로드
             if (banyaLicenseSerialInput && typeof message.banyaLicenseSerial === 'string') {
                 // 추가 검증 - 잘못된 데이터 필터링
@@ -1471,12 +1501,18 @@ window.addEventListener('message', event => {
             break;
         case 'currentAiModel':
             if (message.model && aiModelSelect) {
-                aiModelSelect.value = message.model;
+                // 저장된 모델이 ollama-gemma 또는 ollama-deepseek인 경우 ollama로 변환
+                let displayModel = message.model;
+                if (message.model === 'ollama-gemma' || message.model === 'ollama-deepseek') {
+                    displayModel = 'ollama';
+                }
+                
+                aiModelSelect.value = displayModel;
                 // 모델 선택에 따른 UI 업데이트
-                if (message.model === 'gemini') {
+                if (displayModel === 'gemini') {
                     geminiSettingsSection.classList.remove('disabled');
                     ollamaSettingsSection.classList.add('disabled');
-                } else if (message.model === 'ollama') {
+                } else if (displayModel === 'ollama') {
                     geminiSettingsSection.classList.add('disabled');
                     ollamaSettingsSection.classList.remove('disabled');
                 } else {
@@ -1484,6 +1520,21 @@ window.addEventListener('message', event => {
                     ollamaSettingsSection.classList.add('disabled');
                 }
             }
+            break;
+        case 'currentOllamaModel':
+            if (message.model && ollamaModelSelect) {
+                ollamaModelSelect.value = message.model;
+                const ollamaModelSetText = message.model ? 
+                    `Ollama 모델이 설정되어 있습니다: ${message.model}` :
+                    'Ollama 모델이 설정되지 않았습니다.';
+                showStatus(ollamaModelStatus, ollamaModelSetText, message.model ? 'success' : 'info');
+            }
+            break;
+        case 'ollamaModelSaved':
+            showStatus(ollamaModelStatus, 'Ollama 모델이 저장되었습니다.', 'success');
+            break;
+        case 'ollamaModelError':
+            showStatus(ollamaModelStatus, `Ollama 모델 저장 실패: ${message.error}`, 'error');
             break;
         case 'languageSaved':
             const languageChangedText = languageData['languageChanged'] || '언어가';
@@ -1631,6 +1682,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // AI 모델 설정 요청
     vscode.postMessage({ command: 'loadAiModel' });
+    
+    // Ollama 모델 설정 요청
+    vscode.postMessage({ command: 'loadOllamaModel' });
     
     // 초기 상태: Gemini가 기본값이므로 Gemini 설정 섹션 활성화, Ollama 설정 섹션 비활성화
     if (geminiSettingsSection) geminiSettingsSection.classList.remove('disabled');
