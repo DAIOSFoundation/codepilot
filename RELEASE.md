@@ -2,7 +2,7 @@
 
 This document contains the complete release history for CodePilot VSCode extension.
 
-## Version 2.5.9 (2024/12/19) - CodeLlama 7B Support Added
+## Version 2.5.9 (2025/09/15) - CodeLlama 7B Support Added
 
 <details>
 <summary>New Ollama Model Support</summary>
