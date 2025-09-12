@@ -34,6 +34,15 @@
 
 </details>
 
+<details>
+<summary>패키지 릴리즈</summary>
+
+- **VSIX 패키지**: [codepilot-2.5.9.vsix](release/codepilot-2.5.9.vsix) (32.46 MB)
+- **설치 방법**: `code --install-extension codepilot-2.5.9.vsix` 또는 VS Code에서 VSIX 설치
+- **릴리즈 구성**: 더 나은 프로젝트 구조를 위해 `release/` 디렉토리에 패키지 파일 정리
+
+</details>
+
 ## Version 2.5.7 - Remote SSH 환경 파일 수정 문제 해결
 
 <details>

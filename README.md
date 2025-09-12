@@ -332,6 +332,13 @@ Calling out known issues can help limit users opening duplicate issues against y
 ## Release Notes
 Please see [RELEASE.md](RELEASE.md).
 
+### Latest Release
+- **Version 2.5.9** (2025/09/15): [Download](release/codepilot-2.5.9.vsix)
+  - Added CodeLlama 7B support via Ollama integration
+  - Improved Ollama model management with unified interface
+  - Enhanced multi-language support (7 languages)
+  - Optimized token management for code generation tasks
+
 ### For more information
 I'm seeking individuals to help me grow this source code. Please contact me at: tony@banya.ai
 

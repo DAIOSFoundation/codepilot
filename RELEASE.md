@@ -34,6 +34,15 @@ This document contains the complete release history for CodePilot VSCode extensi
 
 </details>
 
+<details>
+<summary>Package Release</summary>
+
+- **VSIX Package**: [codepilot-2.5.9.vsix](release/codepilot-2.5.9.vsix) (32.46 MB)
+- **Installation**: Use `code --install-extension codepilot-2.5.9.vsix` or install from VSIX in VS Code
+- **Release Organization**: Package files organized in `release/` directory for better project structure
+
+</details>
+
 ## Version 2.5.7 (2025/01/27) - Remote SSH Environment File Modification Issue Resolution
 
 <details>

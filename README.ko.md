@@ -329,6 +329,13 @@ npm run lint
 ## 릴리즈 노트
 릴리즈 노트는 [RELEASE.ko.md](RELEASE.ko.md)를 참조하세요.
 
+### 최신 릴리즈
+- **Version 2.5.9** (2025/09/15): [다운로드](release/codepilot-2.5.9.vsix)
+  - Ollama 통합을 통한 CodeLlama 7B 지원 추가
+  - 통합 인터페이스로 개선된 Ollama 모델 관리
+  - 향상된 다국어 지원 (7개 언어)
+  - 코드 생성 작업을 위한 최적화된 토큰 관리
+
 ### 추가 정보
 이 소스코드의 발전에 함께할 분을 찾고 있습니다. 문의: tony@banya.ai
 
