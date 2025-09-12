@@ -16,7 +16,10 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
 ### 🤖 AI 기반 코드 어시스턴스
 - **멀티모델 AI 지원**:
   - **Gemini 2.5 Pro Flash**: Google의 고급 LLM으로 지능형 코드 생성 및 분석
-  - **Ollama Gemma3:27b**: 오프라인 AI 처리를 위한 로컬 Ollama 서버 통합
+  - **Ollama 통합**: 오프라인 AI 처리를 위한 로컬 Ollama 서버 통합
+    - **Gemma3:27b**: 128K 토큰 제한으로 코드 생성 및 분석
+    - **DeepSeek R1:70B**: 200K 토큰 제한으로 한국어 최적화
+    - **CodeLlama 7B**: 8K 토큰 제한으로 코드 생성에 최적화
   - **동적 모델 선택**: 설정에서 클라우드와 로컬 AI 모델 간 전환 가능
 - **듀얼 모드 인터페이스**:
   - **CODE 탭**: 코드 생성, 수정, 프로젝트 작업에 특화
@@ -59,12 +62,15 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
 - **모델별 제한**: 
   - Gemini 2.5 Flash: 1,000,000 입력 토큰, 500,000 출력 토큰
   - Gemma3:27b: 128,000 입력/출력 토큰
+  - DeepSeek R1:70B: 200,000 입력/출력 토큰
+  - CodeLlama 7B: 8,192 입력/출력 토큰
 - **토큰 제한 경고**: 입력 토큰이 모델 제한을 초과할 때 자동 감지 및 사용자 경고
 - **사용량 모니터링**: 실시간 토큰 사용량 로깅 및 백분율 추적
 
 ### ⚙️ 포괄적 설정
 - **멀티모델 AI 설정**:
-  - **AI 모델 선택**: Gemini 2.5 Pro Flash와 Ollama Gemma3:27b 중 선택
+  - **AI 모델 선택**: Gemini 2.5 Pro Flash와 Ollama 중 선택
+  - **Ollama 모델 선택**: 특정 Ollama 모델 선택 (Gemma3:27b, DeepSeek R1:70B, CodeLlama 7B)
   - **Ollama 서버 설정**: Ollama API URL 및 엔드포인트 선택 설정
     - 로컬 Ollama: `http://localhost:11434` + `/api/generate`
     - 외부 서버: `https://your-server.com` + `/api/chat`
@@ -207,8 +213,10 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
    # Ollama 서버 시작
    ollama serve
    
-   # Gemma3:27b 모델 다운로드
+   # 모델 다운로드
    ollama pull gemma3:27b
+   ollama pull deepseek-r1:70b
+   ollama pull codellama:7b
    ```
 
 3. **선택적 외부 API**

@@ -30,14 +30,6 @@
     "Code Editor",
     "VSCode Plugin"
   ],
-  "activationEvents": [
-    "onView:codepilot.chatView",
-    "onView:codepilot.askView",
-    "onCommand:codepilot.openSettingsPanel",
-    "onCommand:codepilot.openLicensePanel",
-    "onCommand:codepilot.openChatView",
-    "onCommand:codepilot.openAskView"
-  ],
   "main": "./dist/extension.js",
   "contributes": {
     "viewContainers": {

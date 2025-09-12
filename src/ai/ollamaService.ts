@@ -44,6 +44,8 @@ export class OllamaApi {
             return 200000; // DeepSeek R1:70B는 더 많은 토큰 지원
         } else if (this.modelName.includes('gemma3:27b')) {
             return 128000; // Gemma3:27b의 토큰 제한
+        } else if (this.modelName.includes('codellama')) {
+            return 8192; // CodeLlama 7B 보수적 기본값
         } else {
             return 128000; // 기본값
         }

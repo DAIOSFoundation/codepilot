@@ -162,7 +162,11 @@ export class LlmService {
                     userParts,
                     requestOptions
                 );
-            } else if (this.currentModelType === AiModelType.OLLAMA_Gemma || this.currentModelType === AiModelType.OLLAMA_DeepSeek) {
+            } else if (
+                this.currentModelType === AiModelType.OLLAMA_Gemma ||
+                this.currentModelType === AiModelType.OLLAMA_DeepSeek ||
+                this.currentModelType === AiModelType.OLLAMA_CodeLlama
+            ) {
                 // Ollama API에 직접 호출 (selectedFiles는 이미 시스템 프롬프트에 포함됨)
                 const requestOptions = { signal: abortSignal };
                 llmResponse = await this.ollamaApi.sendMessageWithSystemPrompt(

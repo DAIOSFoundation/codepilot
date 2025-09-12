@@ -17,6 +17,12 @@ export const MODEL_TOKEN_LIMITS = {
         maxOutputTokens: 200000, // DeepSeek R1:70B의 출력 토큰 제한
         maxTotalTokens: 200000   // DeepSeek R1:70B의 총 토큰 제한
     }
+    ,
+    [AiModelType.OLLAMA_CodeLlama]: {
+        maxInputTokens: 8192,   // 보수적 기본값 (CodeLlama 7B)
+        maxOutputTokens: 8192,
+        maxTotalTokens: 8192
+    }
 };
 
 /**
@@ -85,6 +91,9 @@ export function checkTokenLimit(
                 break;
             case AiModelType.OLLAMA_DeepSeek:
                 modelName = 'DeepSeek R1:70B';
+                break;
+            case AiModelType.OLLAMA_CodeLlama:
+                modelName = 'CodeLlama 7B';
                 break;
         }
         message = `토큰 제한 초과: ${modelName}의 입력 토큰 제한(${limits.maxInputTokens.toLocaleString()}개)을 초과했습니다. 현재: ${currentTokens.toLocaleString()}개`;

@@ -2,6 +2,38 @@
 
 This document contains the complete release history for CodePilot VSCode extension.
 
+## Version 2.5.9 (2024/12/19) - CodeLlama 7B Support Added
+
+<details>
+<summary>New Ollama Model Support</summary>
+
+- **CodeLlama 7B Integration**: Added support for CodeLlama 7B model via Ollama
+- **Optimized for Code Generation**: CodeLlama 7B is specifically designed for code generation and analysis tasks
+- **Token Management**: 8,192 input/output token limit with automatic token counting and warnings
+- **Model Selection**: Added CodeLlama 7B to the Ollama model dropdown in settings
+- **Unified Interface**: Both CODE and ASK tabs can use CodeLlama 7B when selected
+
+</details>
+
+<details>
+<summary>Enhanced Model Management</summary>
+
+- **Improved UI Structure**: Simplified AI model selection with "Ollama" as main option
+- **Specific Model Selection**: Choose between Gemma3:27b, DeepSeek R1:70B, and CodeLlama 7B
+- **Automatic Model Mapping**: Backend automatically maps model selections to correct AI model types
+- **Migration Support**: Legacy settings automatically converted to new model structure
+
+</details>
+
+<details>
+<summary>Multi-Language Support Updates</summary>
+
+- **Localization Updates**: Updated all language files (Korean, English, Japanese, Chinese, German, Spanish, French)
+- **Consistent Terminology**: Standardized "Ollama" terminology across all languages
+- **UI Text Improvements**: Cleaner, more intuitive model selection interface
+
+</details>
+
 ## Version 2.5.7 (2025/01/27) - Remote SSH Environment File Modification Issue Resolution
 
 <details>

@@ -507,7 +507,7 @@
     </div>
 
     <div class="section-container">
-        <h2 id="api-key-section-title">🤖 AI 모델 설정</h2>
+        <h2 id="api-key-section-title">🤖 AI 모델 설정 (UPDATED - 2024-12-19)</h2>
         <p class="info-message">CodePilot의 AI 기능을 사용하기 위한 모델 설정입니다. 사용할 AI 모델을 선택하고 해당 설정을 구성하세요.</p>
         
         <!-- AI 모델 선택 드롭다운 -->
@@ -533,7 +533,7 @@
 
         <!-- Ollama 설정 -->
         <div class="api-key-section" id="ollama-settings-section">
-            <h3 id="ollama-api-label">🏠 Ollama 모델</h3>
+            <h3 id="ollama-api-label">🏠 Ollama</h3>
             <p class="info-message">로컬 네트워크에 설치된 Ollama 서버의 모델을 사용하여 AI 코드 생성 및 분석 기능을 활성화합니다.</p>
             <p class="info-message"><strong>설정 방법:</strong> 로컬 네트워크에서 실행 중인 Ollama 서버의 HTTP API 주소를 입력하세요. (예: http://192.168.1.100:11434)</p>
             
@@ -543,6 +543,7 @@
                 <select id="ollama-model-select" style="flex-grow: 1; padding: 8px; border: 1px solid var(--vscode-input-border); background-color: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 3px;">
                     <option value="gemma3:27b">Gemma3:27b</option>
                     <option value="deepseek-r1:70b">DeepSeek R1:70B</option>
+                    <option value="codellama:7b">CodeLlama:7B (NEW)</option>
                 </select>
                 <button id="save-ollama-model-button">모델 저장</button>
             </div>

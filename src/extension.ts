@@ -68,7 +68,13 @@ export async function activate(context: vscode.ExtensionContext) {
     // 마이그레이션: 과거 'ollama' 값이 저장된 경우, 현재 Ollama 모델을 확인하여 구체적인 타입으로 변환
     if (currentAiModel === 'ollama') {
         const storedOllamaModel = await storageService.getOllamaModel();
-        currentAiModel = storedOllamaModel === 'deepseek-r1:70b' ? 'ollama-deepseek' : 'ollama-gemma';
+        if (storedOllamaModel === 'deepseek-r1:70b') {
+            currentAiModel = 'ollama-deepseek';
+        } else if (storedOllamaModel && storedOllamaModel.startsWith('codellama')) {
+            currentAiModel = 'ollama-codellama';
+        } else {
+            currentAiModel = 'ollama-gemma';
+        }
         await storageService.saveCurrentAiModel(currentAiModel as any);
     }
     if (currentAiModel) {

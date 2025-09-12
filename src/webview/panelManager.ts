@@ -271,7 +271,13 @@ export function openSettingsPanel(
                             let modelToSave = aiModelToSave;
                             if (aiModelToSave === 'ollama') {
                                 const currentOllamaModel = await storageService.getOllamaModel();
-                                modelToSave = currentOllamaModel === 'deepseek-r1:70b' ? 'ollama-deepseek' : 'ollama-gemma';
+                                if (currentOllamaModel === 'deepseek-r1:70b') {
+                                    modelToSave = 'ollama-deepseek';
+                                } else if (currentOllamaModel && currentOllamaModel.startsWith('codellama')) {
+                                    modelToSave = 'ollama-codellama';
+                                } else {
+                                    modelToSave = 'ollama-gemma';
+                                }
                             }
 
                             await storageService.saveCurrentAiModel(modelToSave);
@@ -311,8 +317,12 @@ export function openSettingsPanel(
 
                             // 현재 AI 모델이 Ollama인 경우 AI 모델도 업데이트
                             const currentAiModel = await storageService.getCurrentAiModel();
-                            if (currentAiModel === 'ollama-gemma' || currentAiModel === 'ollama-deepseek') {
-                                const newAiModel = ollamaModelToSave === 'deepseek-r1:70b' ? 'ollama-deepseek' : 'ollama-gemma';
+                            if (currentAiModel === 'ollama-gemma' || currentAiModel === 'ollama-deepseek' || currentAiModel === 'ollama-codellama') {
+                                const newAiModel = ollamaModelToSave === 'deepseek-r1:70b'
+                                    ? 'ollama-deepseek'
+                                    : (ollamaModelToSave && ollamaModelToSave.startsWith('codellama'))
+                                        ? 'ollama-codellama'
+                                        : 'ollama-gemma';
                                 await storageService.saveCurrentAiModel(newAiModel);
                                 if (llmService) {
                                     llmService.setCurrentModel(newAiModel as any);

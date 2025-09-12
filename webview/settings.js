@@ -1503,7 +1503,7 @@ window.addEventListener('message', event => {
             if (message.model && aiModelSelect) {
                 // 저장된 모델이 ollama-gemma 또는 ollama-deepseek인 경우 ollama로 변환
                 let displayModel = message.model;
-                if (message.model === 'ollama-gemma' || message.model === 'ollama-deepseek') {
+                if (message.model === 'ollama-gemma' || message.model === 'ollama-deepseek' || message.model === 'ollama-codellama') {
                     displayModel = 'ollama';
                 }
                 
