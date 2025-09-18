@@ -36,6 +36,21 @@ export class OllamaApi {
         return this.modelName;
     }
 
+    private parseOllamaResponse(responseText: string): string {
+        try {
+            const data = JSON.parse(responseText);
+            if (data && typeof data.response === 'string') {
+                return data.response;
+            } else {
+                console.warn('Ollama response did not contain a valid \'response\' field:', data);
+                return responseText; // 'response' 필드가 없으면 원본 텍스트 반환
+            }
+        } catch (error) {
+            console.error('Failed to parse Ollama JSON response:', error);
+            return responseText; // JSON 파싱 실패 시 원본 텍스트 반환
+        }
+    }
+
     /**
      * 모델에 따른 토큰 제한을 반환합니다.
      */
@@ -55,229 +70,110 @@ export class OllamaApi {
         return !!this.apiUrl;
     }
 
-    private makeHttpRequest(url: URL, postData: string, signal?: AbortSignal): Promise<string> {
+    private makeHttpRequest(url: URL, method: string, postData?: string, signal?: AbortSignal): Promise<string> {
         return new Promise((resolve, reject) => {
-            const isHttps = url.protocol === 'https:';
-            const client = isHttps ? https : http;
-
-            const options: any = {
-                hostname: url.hostname,
-                port: url.port || (isHttps ? 443 : 80),
-                path: url.pathname + url.search,
-                method: 'POST',
+            const options = {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(postData)
-                }
+                },
+                signal: signal
             };
 
-            // HTTPS인 경우 SSL 인증서 검증을 건너뛰는 옵션 추가
-            if (isHttps) {
-                options.rejectUnauthorized = false;
-            }
-
-            const req = client.request(options, (res) => {
-                let data = '';
-
+            const req = http.request(url.toString(), options, (res) => {
+                let responseBody = '';
                 res.on('data', (chunk) => {
-                    data += chunk;
+                    responseBody += chunk;
                 });
-
                 res.on('end', () => {
                     if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                        resolve(data);
+                        resolve(responseBody);
                     } else {
-                        reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
+                        reject(new Error(`HTTP ${res.statusCode}: ${responseBody || res.statusMessage}`));
                     }
                 });
             });
 
-            req.on('error', (error) => {
-                reject(error);
+            req.on('error', (e) => {
+                reject(e);
             });
 
-            if (signal) {
-                signal.addEventListener('abort', () => {
-                    req.destroy();
-                    reject(new Error('Request aborted'));
-                });
+            if (postData && method === 'POST') {
+                req.write(postData);
             }
-
-            req.write(postData);
             req.end();
         });
     }
 
     async sendMessage(message: string, options?: { signal?: AbortSignal }): Promise<string> {
-        if (!this.isInitialized()) {
-            throw new Error("Ollama API is not initialized. Please set your Ollama API URL in the CodePilot settings.");
+        if (!this.apiUrl) {
+            throw new Error("Ollama API URL is not set.");
         }
 
-        try {
-            const url = new URL(`${this.apiUrl}${this.endpoint}`);
-
-            // 엔드포인트에 따라 다른 요청 형식 사용
-            if (this.endpoint === '/api/chat') {
-                const postData = JSON.stringify({
-                    model: this.modelName,
-                    messages: [
-                        { role: 'user', content: message }
-                    ],
-                    stream: false,
-                    options: {
-                        temperature: 0.7,
-                        top_k: 1,
-                        top_p: 1,
-                        num_predict: this.getTokenLimit(),
-                    }
-                });
-
-                const response = await this.makeHttpRequest(url, postData, options?.signal);
-                const data = JSON.parse(response) as { message: { content: string } };
-                console.log('Ollama Response (chat endpoint):', data.message.content);
-                console.log('Ollama Response length:', data.message.content.length);
-                return data.message.content;
-            } else {
-                // /api/generate 엔드포인트 사용
-                const postData = JSON.stringify({
-                    model: this.modelName,
-                    prompt: message,
-                    stream: false,
-                    options: {
-                        temperature: 0.7,
-                        top_k: 1,
-                        top_p: 1,
-                        num_predict: this.getTokenLimit(),
-                    }
-                });
-
-                const response = await this.makeHttpRequest(url, postData, options?.signal);
-                const data = JSON.parse(response) as { response: string };
-                console.log('Ollama Response (generate endpoint):', data.response);
-                console.log('Ollama Response length:', data.response.length);
-                return data.response;
+        const postData = JSON.stringify({
+            model: this.modelName,
+            prompt: message,
+            stream: false,
+            options: {
+                temperature: 0.7
             }
-        } catch (error: any) {
-            console.error('Error calling Ollama API:', error);
-            if (error.name === 'AbortError') {
-                throw error;
-            }
-            throw new Error(`Ollama API call failed: ${error.message}`);
-        }
+        });
+
+        const responseText = await this.makeHttpRequest(new URL(`${this.apiUrl}${this.endpoint}`), 'POST', postData, options?.signal);
+        return this.parseOllamaResponse(responseText);
     }
 
     async sendMessageWithSystemPrompt(systemPrompt: string, userParts: any[], options?: { signal?: AbortSignal }): Promise<string> {
-        if (!this.isInitialized()) {
-            throw new Error("Ollama API is not initialized. Please set your Ollama API URL in the CodePilot settings.");
+        if (!this.apiUrl) {
+            throw new Error("Ollama API URL is not set.");
+        }
+
+        // 시스템 프롬프트와 사용자 파트를 결합하여 단일 프롬프트로 구성
+        const fullPrompt = systemPrompt + '\n' + userParts.map((part: any) => part.text || '').join('\n');
+
+        const postData = JSON.stringify({
+            model: this.modelName,
+            prompt: fullPrompt,
+            stream: false,
+            options: {
+                temperature: 0.7
+            }
+        });
+
+        const responseText = await this.makeHttpRequest(new URL(`${this.apiUrl}${this.endpoint}`), 'POST', postData, options?.signal);
+        return this.parseOllamaResponse(responseText);
+    }
+
+    /**
+     * 현재 Ollama 서버에 다운로드된 모델 목록을 가져옵니다.
+     * @param signal AbortSignal
+     * @returns 모델 이름 문자열 배열 (예: ['llama2:latest', 'codellama:7b'])
+     */
+    public async getAvailableModels(signal?: AbortSignal): Promise<string[]> {
+        if (!this.apiUrl) {
+            console.warn('Ollama API URL is not set. Cannot fetch available models.');
+            return [];
         }
 
         try {
-            const url = new URL(`${this.apiUrl}${this.endpoint}`);
+            const url = new URL(`${this.apiUrl}/api/tags`);
+            console.log(`Fetching Ollama models from: ${url.toString()}`);
 
-            // 이미지가 포함된 경우 처리
-            const hasImage = userParts.some(part => part.inlineData);
-            let fullPrompt = `${systemPrompt}\n\n`;
+            const responseText = await this.makeHttpRequest(url, 'GET', undefined, signal);
+            const data = JSON.parse(responseText);
 
-            if (hasImage) {
-                // 이미지가 있는 경우 멀티모달 요청 시도 (Gemma3:27b는 이미지 지원)
-                const imagePart = userParts.find(part => part.inlineData);
-                const textParts = userParts.filter(part => part.text).map(part => part.text);
-
-                try {
-                    if (this.endpoint === '/api/chat') {
-                        // Chat API에서 멀티모달 요청 시도
-                        const messages = [
-                            {
-                                role: 'user',
-                                content: [
-                                    { type: 'text', text: `${systemPrompt}\n\n${textParts.join('\n')}` },
-                                    { type: 'image_url', image_url: { url: `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}` } }
-                                ]
-                            }
-                        ];
-
-                        const postData = JSON.stringify({
-                            model: this.modelName,
-                            messages: messages,
-                            stream: false,
-                            options: {
-                                temperature: 0.7,
-                                top_k: 1,
-                                top_p: 1,
-                                num_predict: this.getTokenLimit(),
-                            }
-                        });
-
-
-
-                        const response = await this.makeHttpRequest(url, postData, options?.signal);
-                        const data = JSON.parse(response) as { message: { content: string } };
-                        console.log('Ollama Response (chat endpoint, with image):', data.message.content);
-                        return data.message.content;
-                    } else {
-                        // Generate API에서는 이미지를 텍스트로 변환
-                        fullPrompt += `${textParts.join('\n')}\n[이미지 첨부됨: ${imagePart.inlineData.mimeType}]`;
-
-                    }
-                } catch (error) {
-
-                    // 멀티모달 요청 실패 시 텍스트로 변환
-                    fullPrompt += `${textParts.join('\n')}\n[이미지 첨부됨: ${imagePart.inlineData.mimeType}]`;
-                }
-            } else {
-                // 이미지가 없는 경우 기존 방식
-                fullPrompt += userParts.map(part => part.text).join('\n');
+            if (data && Array.isArray(data.models)) {
+                // 'name' 또는 'model' 필드를 사용하여 모델 이름 추출 (Python 예제 참고)
+                return data.models.map((model: any) => (model.name || model.model) as string);
             }
-
-            // 엔드포인트에 따라 다른 요청 형식 사용
-            if (this.endpoint === '/api/chat') {
-                const postData = JSON.stringify({
-                    model: this.modelName,
-                    messages: [
-                        { role: 'user', content: fullPrompt }
-                    ],
-                    stream: false,
-                    options: {
-                        temperature: 0.7,
-                        top_k: 1,
-                        top_p: 1,
-                        num_predict: this.getTokenLimit(),
-                    }
-                });
-
-
-
-                const response = await this.makeHttpRequest(url, postData, options?.signal);
-                const data = JSON.parse(response) as { message: { content: string } };
-                console.log('Ollama Response (chat endpoint, with system prompt):', data.message.content);
-                return data.message.content;
-            } else {
-                // /api/generate 엔드포인트 사용
-                const postData = JSON.stringify({
-                    model: this.modelName,
-                    prompt: fullPrompt,
-                    stream: false,
-                    options: {
-                        temperature: 0.7,
-                        top_k: 1,
-                        top_p: 1,
-                        num_predict: this.getTokenLimit(),
-                    }
-                });
-
-
-
-                const response = await this.makeHttpRequest(url, postData, options?.signal);
-                const data = JSON.parse(response) as { response: string };
-                console.log('Ollama Response (generate endpoint, with system prompt):', data.response);
-                return data.response;
+            return [];
+        } catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') {
+                console.warn('Fetching Ollama models aborted.');
+                return [];
             }
-        } catch (error: any) {
-            console.error('Error calling Ollama API (with system prompt):', error);
-            if (error.name === 'AbortError') {
-                throw error;
-            }
-            throw new Error(`Ollama API call failed: ${error.message}`);
+            console.error('Error fetching Ollama models:', error);
+            throw new Error(`Failed to fetch Ollama models: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }

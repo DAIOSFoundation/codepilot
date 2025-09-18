@@ -35,61 +35,29 @@ export function openSettingsPanel(
                         autoUpdateEnabled: await configurationService.isAutoUpdateEnabled(),
                         projectRoot: await configurationService.getProjectRoot()
                     });
+                    // Ollama 모델 목록을 먼저 로드하도록 요청
+                    panel.webview.postMessage({ command: 'loadOllamaModels' });
                     break;
-                case 'addDirectory':
-                    const uris = await vscode.window.showOpenDialog({
-                        canSelectFiles: true,
-                        canSelectFolders: true,
-                        canSelectMany: true,
-                        openLabel: 'Select Files and Folders',
-                        filters: {
-                            'All Files': ['*'],
-                            'Source Files': ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala', 'html', 'css', 'scss', 'sass', 'json', 'xml', 'yaml', 'yml', 'md', 'txt'],
-                            'Code Files': ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala'],
-                            'Web Files': ['html', 'css', 'scss', 'sass', 'js', 'ts', 'jsx', 'tsx'],
-                            'Config Files': ['json', 'xml', 'yaml', 'yml', 'md', 'txt']
+                case 'loadOllamaModels': // Ollama 모델 목록 로드 요청 처리
+                    try {
+                        let models: string[] = [];
+                        const ollamaApiUrl = await storageService.getOllamaApiUrl();
+                        const currentOllamaModel = await storageService.getOllamaModel();
+                        if (ollamaApi && typeof ollamaApi.getAvailableModels === 'function') {
+                            models = await ollamaApi.getAvailableModels();
+                            console.log('Available Ollama models (on load request):', models);
+                        } else {
+                            console.warn('OllamaApi not initialized or getAvailableModels not found.');
+                            notificationService.showErrorMessage('CodePilot: Ollama API is not initialized. Please check Ollama API URL.');
                         }
-                    });
-                    if (uris && uris.length > 0) {
-                        const newPaths = uris.map(u => u.fsPath);
-                        const current = await configurationService.getSourcePaths();
-                        const updatedPaths = Array.from(new Set([...current, ...newPaths]));
-                        await configurationService.updateSourcePaths(updatedPaths);
-                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
+                        panel.webview.postMessage({ command: 'availableOllamaModels', models: models, currentOllamaModel: currentOllamaModel || 'gemma3:27b' });
+                    } catch (error: any) {
+                        console.error('Error loading Ollama models:', error);
+                        notificationService.showErrorMessage(`Error loading Ollama models: ${error.message}`);
+                        panel.webview.postMessage({ command: 'availableOllamaModels', models: [], currentOllamaModel: await storageService.getOllamaModel() || 'gemma3:27b', error: error.message });
                     }
                     break;
-                case 'removeDirectory':
-                    const pathToRemove = data.path;
-                    if (pathToRemove) {
-                        const current = await configurationService.getSourcePaths();
-                        const updatedPaths = current.filter(p => p !== pathToRemove);
-                        await configurationService.updateSourcePaths(updatedPaths);
-                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
-                    }
-                    break;
-                case 'setAutoUpdate':
-                    if (typeof data.enabled === 'boolean') {
-                        await configurationService.updateAutoUpdateEnabled(data.enabled);
-                        panel.webview.postMessage({ command: 'autoUpdateStatusChanged', enabled: data.enabled });
-                    }
-                    break;
-                case 'setProjectRoot':
-                    const rootUris = await vscode.window.showOpenDialog({
-                        canSelectFiles: false,
-                        canSelectFolders: true,
-                        canSelectMany: false,
-                        openLabel: 'Select Project Root Directory'
-                    });
-                    if (rootUris && rootUris.length > 0) {
-                        const newRootPath = rootUris[0].fsPath;
-                        await configurationService.updateProjectRoot(newRootPath);
-                        panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: newRootPath });
-                    } else if (data.clear) {
-                        await configurationService.updateProjectRoot(undefined);
-                        panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: '' });
-                    }
-                    break;
-                case 'loadApiKeys':
+                case 'loadApiKeys': // API 키 상태 로드 (Ollama 모델 로딩 후)
                     // API 키 상태 로드
                     const weatherApiKey = await configurationService.getWeatherApiKey();
                     const newsApiKey = await configurationService.getNewsApiKey();
@@ -99,7 +67,7 @@ export function openSettingsPanel(
                     const ollamaApiUrl = await storageService.getOllamaApiUrl(); // Ollama API URL 추가
                     const ollamaEndpoint = await storageService.getOllamaEndpoint(); // Ollama 엔드포인트 추가
                     const ollamaModel = await storageService.getOllamaModel(); // Ollama 모델 추가
-                    const banyaLicenseSerial = await storageService.getBanyaLicenseSerial(); // Banya 라이센스 추가
+                    // Ollama 모델 목록은 이미 'loadOllamaModels'에서 로드되었으므로 여기서 다시 가져오지 않음
 
                     // Banya 라이센스 시리얼 검증 - 잘못된 데이터 필터링
                     let validBanyaLicenseSerial = '';
@@ -141,11 +109,61 @@ export function openSettingsPanel(
                         ollamaApiUrl: ollamaApiUrl || '', // Ollama API URL 추가
                         ollamaEndpoint: ollamaEndpoint || '', // Ollama 엔드포인트 추가
                         ollamaModel: ollamaModel || '', // Ollama 모델 추가
+                        // availableOllamaModels: availableOllamaModels, // 이미 loadOllamaModels에서 전송됨
                         banyaLicenseSerial: validBanyaLicenseSerial, // 검증된 Banya 라이센스만 전송
                         isLicenseVerified: isLicenseVerified // 라이선스 검증 상태 추가
                     };
                     console.log('Sending currentApiKeys message:', messageToSend);
                     panel.webview.postMessage(messageToSend);
+                    break;
+                case 'addDirectory':
+                    const uris = await vscode.window.showOpenDialog({
+                        canSelectFiles: true,
+                        canSelectFolders: true,
+                        canSelectMany: true,
+                        openLabel: 'Select Files and Folders',
+                        filters: {
+                            'All Files': ['*']
+                        }
+                    });
+                    if (uris && uris.length > 0) {
+                        const newPaths = uris.map(u => u.fsPath);
+                        const current = await configurationService.getSourcePaths();
+                        const updatedPaths = Array.from(new Set([...current, ...newPaths]));
+                        await configurationService.updateSourcePaths(updatedPaths);
+                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
+                    }
+                    break;
+                case 'removeDirectory':
+                    const pathToRemove = data.path;
+                    if (pathToRemove) {
+                        const current = await configurationService.getSourcePaths();
+                        const updatedPaths = current.filter(p => p !== pathToRemove);
+                        await configurationService.updateSourcePaths(updatedPaths);
+                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
+                    }
+                    break;
+                case 'setAutoUpdate':
+                    if (typeof data.enabled === 'boolean') {
+                        await configurationService.updateAutoUpdateEnabled(data.enabled);
+                        panel.webview.postMessage({ command: 'autoUpdateStatusChanged', enabled: data.enabled });
+                    }
+                    break;
+                case 'setProjectRoot':
+                    const rootUris = await vscode.window.showOpenDialog({
+                        canSelectFiles: false,
+                        canSelectFolders: true,
+                        canSelectMany: false,
+                        openLabel: 'Select Project Root Directory'
+                    });
+                    if (rootUris && rootUris.length > 0) {
+                        const newRootPath = rootUris[0].fsPath;
+                        await configurationService.updateProjectRoot(newRootPath);
+                        panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: newRootPath });
+                    } else if (data.clear) {
+                        await configurationService.updateProjectRoot(undefined);
+                        panel.webview.postMessage({ command: 'updatedProjectRoot', projectRoot: '' });
+                    }
                     break;
                 case 'saveApiKey': // Gemini API 키 저장 케이스 추가
                     const apiKeyToSave = data.apiKey;
@@ -317,15 +335,18 @@ export function openSettingsPanel(
 
                             // 현재 AI 모델이 Ollama인 경우 AI 모델도 업데이트
                             const currentAiModel = await storageService.getCurrentAiModel();
-                            if (currentAiModel === 'ollama-gemma' || currentAiModel === 'ollama-deepseek' || currentAiModel === 'ollama-codellama') {
-                                const newAiModel = ollamaModelToSave === 'deepseek-r1:70b'
-                                    ? 'ollama-deepseek'
-                                    : (ollamaModelToSave && ollamaModelToSave.startsWith('codellama'))
-                                        ? 'ollama-codellama'
-                                        : 'ollama-gemma';
-                                await storageService.saveCurrentAiModel(newAiModel);
+                            if (currentAiModel && currentAiModel.startsWith('ollama')) {
+                                let newAiModelType: string;
+                                if (ollamaModelToSave === 'deepseek-r1:70b') {
+                                    newAiModelType = 'ollama-deepseek';
+                                } else if (ollamaModelToSave.startsWith('codellama')) {
+                                    newAiModelType = 'ollama-codellama';
+                                } else {
+                                    newAiModelType = 'ollama-gemma'; // 기본값
+                                }
+                                await storageService.saveCurrentAiModel(newAiModelType);
                                 if (llmService) {
-                                    llmService.setCurrentModel(newAiModel as any);
+                                    llmService.setCurrentModel(newAiModelType as any);
                                 }
                             }
 
@@ -340,7 +361,7 @@ export function openSettingsPanel(
                         notificationService.showErrorMessage('Ollama model is empty.');
                     }
                     break;
-                case 'loadOllamaModel':
+                case 'loadOllamaModel': // 기존 loadOllamaModel 케이스 유지
                     try {
                         const currentOllamaModel = await storageService.getOllamaModel();
                         panel.webview.postMessage({ command: 'currentOllamaModel', model: currentOllamaModel || 'gemma3:27b' });

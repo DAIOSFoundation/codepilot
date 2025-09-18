@@ -187,10 +187,13 @@ export class LlmService {
                 }
             }
 
+            // NEW: 중복된 파일 경로 제거
+            const uniqueAllContextFiles = Array.from(new Map(allContextFiles.map(file => [file.fullPath, file])).values());
+
             // GENERAL_ASK 타입일 때는 파일 업데이트를 위한 컨텍스트 파일을 넘기지 않음
             await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(
                 llmResponse,
-                promptType === PromptType.CODE_GENERATION ? allContextFiles : [],
+                promptType === PromptType.CODE_GENERATION ? uniqueAllContextFiles : [],
                 webviewToRespond,
                 promptType
             );

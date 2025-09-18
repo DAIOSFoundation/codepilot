@@ -67,6 +67,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         return;
                     }
 
+                    // 선택된 파일 경로들에서 중복을 제거합니다.
+                    const uniqueSelectedFiles = Array.from(new Set(data.selectedFiles));
+
                     // 이미지 데이터와 MIME 타입도 함께 전달
                     await this.llmService.handleUserMessageAndRespond(
                         data.text,
@@ -74,7 +77,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         PromptType.CODE_GENERATION,
                         data.imageData,
                         data.imageMimeType,
-                        data.selectedFiles // 선택된 파일들 전달
+                        uniqueSelectedFiles // 중복 제거된 파일들 전달
                     );
                     break;
                 case 'openPanel':

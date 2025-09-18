@@ -538,14 +538,12 @@
             <p class="info-message"><strong>설정 방법:</strong> 로컬 네트워크에서 실행 중인 Ollama 서버의 HTTP API 주소를 입력하세요. (예: http://192.168.1.100:11434)</p>
             
             <!-- Ollama 모델 선택 -->
-            <div class="api-key-input-group" style="margin-bottom: 15px;">
-                <label for="ollama-model-select" style="margin-right: 10px; font-weight: bold;">Ollama 모델:</label>
+            <div class="setting-item" id="ollamaModelSetting">
+                <label for="ollama-model-select" style="margin-right: 10px; font-weight: bold;" data-localize="ollamaModelLabel">Ollama 모델:</label>
                 <select id="ollama-model-select" style="flex-grow: 1; padding: 8px; border: 1px solid var(--vscode-input-border); background-color: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 3px;">
-                    <option value="gemma3:27b">Gemma3:27b</option>
-                    <option value="deepseek-r1:70b">DeepSeek R1:70B</option>
-                    <option value="codellama:7b">CodeLlama:7B (NEW)</option>
+                    <!-- 모델 목록은 JavaScript에서 동적으로 채워집니다 -->
                 </select>
-                <button id="save-ollama-model-button">모델 저장</button>
+                <button id="save-ollama-model-button" class="save-button" data-localize="saveButton">모델 저장</button>
             </div>
             <p id="ollama-model-status" class="info-message"></p>
             

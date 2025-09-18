@@ -51,6 +51,9 @@ const ollamaModelSelect = document.getElementById('ollama-model-select');
 const saveOllamaModelButton = document.getElementById('save-ollama-model-button');
 const ollamaModelStatus = document.getElementById('ollama-model-status');
 
+// Ollama 모델 선택 섹션
+const ollamaModelSetting = document.getElementById('ollamaModelSetting');
+
 // Banya 라이센스 관련 요소들
 const banyaLicenseSerialInput = document.getElementById('banya-license-serial-input');
 const saveBanyaLicenseButton = document.getElementById('save-banya-license-button');
@@ -1199,22 +1202,41 @@ if (aiModelSelect) {
         const selectedModel = aiModelSelect.value;
         console.log('AI model selected:', selectedModel);
         
-        // 선택된 모델에 따라 설정 섹션 활성화/비활성화
+        // AI 모델 선택에 따른 설정 섹션 활성화/비활성화 및 Ollama 모델 목록 로드
         if (selectedModel === 'gemini') {
             geminiSettingsSection.classList.remove('disabled');
             ollamaSettingsSection.classList.add('disabled');
+            ollamaModelSetting.style.display = 'none'; // Ollama 모델 선택 숨김
         } else if (selectedModel === 'ollama') {
             geminiSettingsSection.classList.add('disabled');
             ollamaSettingsSection.classList.remove('disabled');
+            ollamaModelSetting.style.display = 'flex'; // Ollama 모델 선택 표시
+            // Ollama API URL이 비어있으면 기본값 설정
+            if (ollamaApiUrlInput && !ollamaApiUrlInput.value) {
+                ollamaApiUrlInput.value = 'http://localhost:11434';
+            }
+            // Ollama 모델 목록 다시 로드 요청
+            vscode.postMessage({ command: 'loadOllamaModels' });
         } else {
             // 모델이 선택되지 않은 경우 기본값(Gemini)으로 설정
             aiModelSelect.value = 'gemini';
             geminiSettingsSection.classList.remove('disabled');
             ollamaSettingsSection.classList.add('disabled');
+            ollamaModelSetting.style.display = 'none'; // Ollama 모델 선택 숨김
         }
         
         // 확장 프로그램에 선택된 모델 저장 요청
         vscode.postMessage({ command: 'saveAiModel', model: selectedModel });
+    });
+}
+
+// Ollama 모델 선택 드롭다운 이벤트 리스너
+if (ollamaModelSelect) {
+    ollamaModelSelect.addEventListener('change', () => {
+        const selectedOllamaModel = ollamaModelSelect.value;
+        console.log('Ollama model selected in dropdown:', selectedOllamaModel);
+        vscode.postMessage({ command: 'saveOllamaModel', model: selectedOllamaModel });
+        showStatus(ollamaModelStatus, languageData['ollamaModelSaving'] || 'Ollama 모델 저장 중...', 'info');
     });
 }
 
@@ -1342,7 +1364,7 @@ window.addEventListener('message', event => {
                     'Ollama 엔드포인트가 설정되지 않았습니다.';
                 showStatus(ollamaEndpointStatus, ollamaEndpointSetText, message.ollamaEndpoint ? 'success' : 'info');
             }
-            // Ollama 모델 상태 로드
+            // Ollama 모델 상태 로드 (기존 로직)
             if (ollamaModelSelect && typeof message.ollamaModel === 'string') {
                 ollamaModelSelect.value = message.ollamaModel;
                 const ollamaModelSetText = message.ollamaModel ? 
@@ -1350,6 +1372,20 @@ window.addEventListener('message', event => {
                     'Ollama 모델이 설정되지 않았습니다.';
                 showStatus(ollamaModelStatus, ollamaModelSetText, message.ollamaModel ? 'success' : 'info');
             }
+            
+            // --- NEW: Populate Ollama models when currentApiKeys is received ---
+            if (message.availableOllamaModels && ollamaModelSelect) {
+                populateOllamaModels(message.availableOllamaModels, message.ollamaModel);
+                const ollamaModelsLoadedText = languageData['ollamaModelsLoaded'] || 'Ollama 모델 로드 완료.';
+                showStatus(ollamaModelStatus, ollamaModelsLoadedText, 'success');
+            } else if (ollamaModelSelect) {
+                // 모델이 없는 경우에도 populateOllamaModels 호출하여 '설치된 모델 없음' 표시
+                populateOllamaModels([], message.ollamaModel);
+                const ollamaModelsLoadErrorText = languageData['ollamaModelsLoadError'] || 'Ollama 모델 로드 실패.';
+                showStatus(ollamaModelStatus, ollamaModelsLoadErrorText, 'error');
+            }
+            // --- END NEW ---
+
             // Banya 라이센스 상태 로드
             if (banyaLicenseSerialInput && typeof message.banyaLicenseSerial === 'string') {
                 // 추가 검증 - 잘못된 데이터 필터링
@@ -1439,7 +1475,7 @@ window.addEventListener('message', event => {
         case 'ollamaApiUrlSaved':
             const ollamaApiUrlSavedText = languageData['ollamaApiUrlSaved'] || 'Ollama API URL이 저장되었습니다.';
             showStatus(ollamaApiUrlStatus, ollamaApiUrlSavedText, 'success');
-            ollamaApiUrlInput.value = '';
+            // ollamaApiUrlInput.value = ''; // 이 줄을 제거하여 저장된 값이 유지되도록 함
             break;
         case 'ollamaApiUrlError':
             const ollamaApiUrlErrorText = languageData['ollamaApiUrlError'] || 'Ollama API URL 저장 실패:';
@@ -1501,23 +1537,30 @@ window.addEventListener('message', event => {
             break;
         case 'currentAiModel':
             if (message.model && aiModelSelect) {
-                // 저장된 모델이 ollama-gemma 또는 ollama-deepseek인 경우 ollama로 변환
                 let displayModel = message.model;
                 if (message.model === 'ollama-gemma' || message.model === 'ollama-deepseek' || message.model === 'ollama-codellama') {
                     displayModel = 'ollama';
                 }
                 
                 aiModelSelect.value = displayModel;
+
                 // 모델 선택에 따른 UI 업데이트
                 if (displayModel === 'gemini') {
                     geminiSettingsSection.classList.remove('disabled');
                     ollamaSettingsSection.classList.add('disabled');
+                    if (ollamaModelSetting) ollamaModelSetting.style.display = 'none'; // Ollama 모델 선택 숨김
                 } else if (displayModel === 'ollama') {
                     geminiSettingsSection.classList.add('disabled');
                     ollamaSettingsSection.classList.remove('disabled');
+                    if (ollamaModelSetting) ollamaModelSetting.style.display = 'flex'; // Ollama 모델 선택 표시
+                    // Ollama API URL이 비어있으면 기본값 설정
+                    if (ollamaApiUrlInput && !ollamaApiUrlInput.value) {
+                        ollamaApiUrlInput.value = 'http://localhost:11434';
+                    }
                 } else {
                     geminiSettingsSection.classList.add('disabled');
                     ollamaSettingsSection.classList.add('disabled');
+                    if (ollamaModelSetting) ollamaModelSetting.style.display = 'none'; // Ollama 모델 선택 숨김
                 }
             }
             break;
@@ -1530,8 +1573,22 @@ window.addEventListener('message', event => {
                 showStatus(ollamaModelStatus, ollamaModelSetText, message.model ? 'success' : 'info');
             }
             break;
+        case 'availableOllamaModels':
+            console.log('Received availableOllamaModels:', message);
+            if (message.models && ollamaModelSelect) {
+                populateOllamaModels(message.models, message.currentOllamaModel);
+                const ollamaModelsLoadedText = languageData['ollamaModelsLoaded'] || 'Ollama 모델 로드 완료.';
+                showStatus(ollamaModelStatus, ollamaModelsLoadedText, 'success');
+            } else if (ollamaModelSelect) {
+                // 모델이 없는 경우에도 populateOllamaModels 호출하여 '설치된 모델 없음' 표시
+                populateOllamaModels([], message.currentOllamaModel);
+                const ollamaModelsLoadErrorText = languageData['ollamaModelsLoadError'] || 'Ollama 모델 로드 실패.';
+                showStatus(ollamaModelStatus, ollamaModelsLoadErrorText, 'error');
+            }
+            break;
         case 'ollamaModelSaved':
-            showStatus(ollamaModelStatus, 'Ollama 모델이 저장되었습니다.', 'success');
+            const ollamaModelSavedText = languageData['ollamaModelSaved'] || 'Ollama 모델이 저장되었습니다.';
+            showStatus(ollamaModelStatus, ollamaModelSavedText, 'success');
             break;
         case 'ollamaModelError':
             showStatus(ollamaModelStatus, `Ollama 모델 저장 실패: ${message.error}`, 'error');
@@ -1667,7 +1724,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectRootLoadingText = languageData['projectRootLoading'] || '프로젝트 Root 설정 로드 중...';
     projectRootStatus.textContent = projectRootLoadingText;
     
-    // API 키 상태 요청
+    // API 키 상태 요청 (Ollama 모델 로드 요청보다 나중에)
     vscode.postMessage({ command: 'loadApiKeys' });
     const apiKeysLoadingText = languageData['apiKeysLoading'] || 'API 키 로드 중...';
     showStatus(weatherApiKeyStatus, apiKeysLoadingText, 'info');
@@ -1677,19 +1734,57 @@ document.addEventListener('DOMContentLoaded', () => {
     showStatus(ollamaApiUrlStatus, apiKeysLoadingText, 'info');
     showStatus(banyaLicenseStatus, apiKeysLoadingText, 'info');
     
-    // API 키 로드 후 저장 버튼 상태 업데이트는 currentApiKeys 메시지를 받은 후에 수행됨
-    // 여기서는 초기화만 하고, 실제 업데이트는 서버 응답 후에 수행
-    
+    // Ollama 엔드포인트 설정 요청 (추가: 이전에 누락된 부분)
+    vscode.postMessage({ command: 'loadOllamaEndpoint' });
+    showStatus(ollamaEndpointStatus, apiKeysLoadingText, 'info');
+
     // AI 모델 설정 요청
     vscode.postMessage({ command: 'loadAiModel' });
     
-    // Ollama 모델 설정 요청
+    // Ollama 모델 설정 요청 및 사용 가능한 Ollama 모델 목록 요청
+    // 이 부분은 loadApiKeys에서 availableOllamaModels를 받아서 처리하므로 별도로 호출하지 않음
+    // 하지만, currentOllamaModel을 받아서 드롭다운의 초기값을 설정하기 위해 필요할 수 있음.
     vscode.postMessage({ command: 'loadOllamaModel' });
-    
-    // 초기 상태: Gemini가 기본값이므로 Gemini 설정 섹션 활성화, Ollama 설정 섹션 비활성화
+    vscode.postMessage({ command: 'loadOllamaModels' }); // 모델 목록을 요청
+
+    // 초기 상태: `currentAiModel` 메시지를 받기 전까지는 Gemini가 선택된 것으로 간주
+    // aiModelSelect가 `gemini`로 설정되어 있다고 가정하고 초기 가시성을 설정
     if (geminiSettingsSection) geminiSettingsSection.classList.remove('disabled');
     if (ollamaSettingsSection) ollamaSettingsSection.classList.add('disabled');
+    if (ollamaModelSetting) ollamaModelSetting.style.display = 'none'; // 초기에는 숨김
+    
+    // Ollama API URL 기본값 설정
+    if (aiModelSelect && aiModelSelect.value === 'ollama' && ollamaApiUrlInput && !ollamaApiUrlInput.value) {
+        ollamaApiUrlInput.value = 'http://localhost:11434';
+    }
     
     // 초기 상태: 라이선스 검증 상태는 서버에서 받아올 때까지 대기
     // isLicenseVerified는 서버에서 전송된 값으로 설정됨
 });
+
+// Ollama 모델 드롭다운을 채우는 함수
+function populateOllamaModels(models, currentSelectedModel) {
+    if (!ollamaModelSelect) return;
+
+    ollamaModelSelect.innerHTML = ''; // 기존 옵션 모두 제거
+
+    if (models && models.length > 0) {
+        models.forEach(modelName => {
+            const option = document.createElement('option');
+            option.value = modelName;
+            option.textContent = modelName;
+            if (modelName === currentSelectedModel) {
+                option.selected = true;
+            }
+            ollamaModelSelect.appendChild(option);
+        });
+    } else {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = languageData['noOllamaModelsFound'] || '설치된 Ollama 모델 없음';
+        option.disabled = true;
+        ollamaModelSelect.appendChild(option);
+        ollamaModelSelect.disabled = true;
+        saveOllamaModelButton.disabled = true;
+    }
+}

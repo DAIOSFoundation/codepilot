@@ -105,12 +105,8 @@ const md = markdownit({
 
 // 파일 선택 관련 함수들
 function addSelectedFile(filePath, fileName) {
-    if (selectedFiles.some(file => file.path === filePath)) {
-        console.log('File already selected:', filePath);
-        return;
-    }
-
-    selectedFiles.push({ path: filePath, name: fileName });
+    // 기존 파일 목록을 초기화하고 새로 선택된 파일만 추가합니다.
+    selectedFiles = [{ path: filePath, name: fileName }];
     updateFileSelectionDisplay();
 }
 
@@ -282,7 +278,7 @@ function handleSendMessage() {
         chatInput.value = '';
         chatInput.style.height = 'auto';
         removeAttachedImage();
-        clearAllSelectedFiles(); // 선택된 파일들도 초기화
+        // clearAllSelectedFiles(); // 선택된 파일들도 초기화
         autoResizeTextarea();
         chatInput.focus();
         

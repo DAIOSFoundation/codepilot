@@ -157,6 +157,7 @@ function handleSendMessage() {
         chatInput.value = '';
         chatInput.style.height = 'auto';
         removeAttachedImage(); // 이미지 전송 후 썸네일 제거
+        // clearAllSelectedFiles(); // 이 줄을 제거합니다.
         autoResizeTextarea();
         chatInput.focus();
         
@@ -646,13 +647,8 @@ function openFilePicker() {
 
 // 선택된 파일 추가
 function addSelectedFile(filePath, fileName) {
-    // 중복 파일 체크
-    if (selectedFiles.some(file => file.path === filePath)) {
-        console.log('File already selected:', filePath);
-        return;
-    }
-
-    selectedFiles.push({ path: filePath, name: fileName });
+    // 기존 파일 목록을 초기화하고 새로 선택된 파일만 추가합니다.
+    selectedFiles = [{ path: filePath, name: fileName }];
     updateFileSelectionDisplay();
 }
 

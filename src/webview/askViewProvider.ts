@@ -66,6 +66,9 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                         return;
                     }
 
+                    // 선택된 파일 경로들에서 중복을 제거합니다.
+                    const uniqueSelectedFiles = Array.from(new Set(data.selectedFiles));
+
                     // ASK 탭에서는 GENERAL_ASK 프롬프트 타입을 사용
                     await this.llmService.handleUserMessageAndRespond(
                         data.text,
@@ -73,7 +76,7 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                         PromptType.GENERAL_ASK,
                         data.imageData,
                         data.imageMimeType,
-                        data.selectedFiles // 선택된 파일들 전달
+                        uniqueSelectedFiles // 중복 제거된 파일들 전달
                     );
                     break;
                 case 'webviewLoaded':
