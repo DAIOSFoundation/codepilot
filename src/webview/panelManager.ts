@@ -35,27 +35,14 @@ export function openSettingsPanel(
                         autoUpdateEnabled: await configurationService.isAutoUpdateEnabled(),
                         projectRoot: await configurationService.getProjectRoot()
                     });
-                    // Ollama 모델 목록을 먼저 로드하도록 요청
-                    panel.webview.postMessage({ command: 'loadOllamaModels' });
+                    // Ollama 모델 목록을 먼저 로드하도록 요청 -> loadApiKeys에서 처리하므로 여기서 제거
+                    // panel.webview.postMessage({ command: 'loadOllamaModels' });
                     break;
-                case 'loadOllamaModels': // Ollama 모델 목록 로드 요청 처리
-                    try {
-                        let models: string[] = [];
-                        const ollamaApiUrl = await storageService.getOllamaApiUrl();
-                        const currentOllamaModel = await storageService.getOllamaModel();
-                        if (ollamaApi && typeof ollamaApi.getAvailableModels === 'function') {
-                            models = await ollamaApi.getAvailableModels();
-                            console.log('Available Ollama models (on load request):', models);
-                        } else {
-                            console.warn('OllamaApi not initialized or getAvailableModels not found.');
-                            notificationService.showErrorMessage('CodePilot: Ollama API is not initialized. Please check Ollama API URL.');
-                        }
-                        panel.webview.postMessage({ command: 'availableOllamaModels', models: models, currentOllamaModel: currentOllamaModel || 'gemma3:27b' });
-                    } catch (error: any) {
-                        console.error('Error loading Ollama models:', error);
-                        notificationService.showErrorMessage(`Error loading Ollama models: ${error.message}`);
-                        panel.webview.postMessage({ command: 'availableOllamaModels', models: [], currentOllamaModel: await storageService.getOllamaModel() || 'gemma3:27b', error: error.message });
-                    }
+                case 'loadOllamaModels': // Ollama 모델 목록 로드 요청 처리 (이제 loadApiKeys에서 처리)
+                    // 이 케이스는 더 이상 직접 호출되지 않고, loadApiKeys에서 모델을 가져와서 전송합니다.
+                    // 따라서 여기서는 빈 배열을 반환하거나, 아예 제거할 수 있습니다.
+                    console.log('loadOllamaModels command received, but models are now loaded via loadApiKeys.');
+                    // 필요하다면 빈 모델 목록을 보내서 초기화할 수 있지만, loadApiKeys가 담당하므로 여기서는 생략
                     break;
                 case 'loadApiKeys': // API 키 상태 로드 (Ollama 모델 로딩 후)
                     // API 키 상태 로드
@@ -67,7 +54,20 @@ export function openSettingsPanel(
                     const ollamaApiUrl = await storageService.getOllamaApiUrl(); // Ollama API URL 추가
                     const ollamaEndpoint = await storageService.getOllamaEndpoint(); // Ollama 엔드포인트 추가
                     const ollamaModel = await storageService.getOllamaModel(); // Ollama 모델 추가
-                    // Ollama 모델 목록은 이미 'loadOllamaModels'에서 로드되었으므로 여기서 다시 가져오지 않음
+
+                    // NEW: Ollama 모델 목록을 여기서 가져와서 함께 전송
+                    let availableOllamaModels: string[] = [];
+                    if (ollamaApi && typeof ollamaApi.getAvailableModels === 'function') {
+                        try {
+                            availableOllamaModels = await ollamaApi.getAvailableModels();
+                            console.log('Available Ollama models (from loadApiKeys):', availableOllamaModels);
+                        } catch (error: any) {
+                            console.error('Error fetching Ollama models in loadApiKeys:', error);
+                            notificationService.showErrorMessage(`Error fetching Ollama models: ${error.message}`);
+                        }
+                    } else {
+                        console.warn('OllamaApi not initialized or getAvailableModels not found in loadApiKeys.');
+                    }
 
                     let banyaLicenseSerial = await licenseService.getLicenseSerial(); // Declare and initialize
 
@@ -111,7 +111,7 @@ export function openSettingsPanel(
                         ollamaApiUrl: ollamaApiUrl || '', // Ollama API URL 추가
                         ollamaEndpoint: ollamaEndpoint || '', // Ollama 엔드포인트 추가
                         ollamaModel: ollamaModel || '', // Ollama 모델 추가
-                        // availableOllamaModels: availableOllamaModels, // 이미 loadOllamaModels에서 전송됨
+                        availableOllamaModels: availableOllamaModels, // Ollama 모델 목록 추가
                         validBanyaLicenseSerial: validBanyaLicenseSerial, // 검증된 Banya 라이센스만 전송
                         isLicenseVerified: isLicenseVerified // 라이선스 검증 상태 추가
                     };
