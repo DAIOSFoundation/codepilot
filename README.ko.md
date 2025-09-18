@@ -153,7 +153,7 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
 ## 요구사항
 
 - nvm 0.39.1
-- node v21.7.1
+- node v20.18.1
 - npm install
 
 ## 설치 및 설정
@@ -330,6 +330,14 @@ npm run lint
 릴리즈 노트는 [RELEASE.ko.md](RELEASE.ko.md)를 참조하세요.
 
 ### 최신 릴리즈
+- **Version 2.6.0** (2025/09/19): [다운로드](release/codepilot-2.6.0.vsix)
+  - **Ollama 기능 강화**: 설정에서 로컬에 다운로드된 모든 Ollama 모델을 드롭다운에 표시하여 직접 선택할 수 있도록 개선되었습니다.
+  - **기본 API URL**: Ollama가 AI 모델로 선택될 때, 초기 로드 및 전환 시 Ollama API URL이 `http://localhost:11434`로 기본 설정됩니다.
+  - **API URL 입력 필드 유지**: Ollama API URL 입력 필드는 저장 후에도 값을 유지하여, 실수로 지워지는 것을 방지합니다.
+  - **일관된 출력 형식**: `qwen2.5-coder:7b`, `codegemma:7b`, `codellama:7b` 모델의 출력 형식이 Gemini 및 `gemma:27b` 모델과 동일하게 채팅 창에 표시되도록 조정되었습니다.
+  - **파일 첨부 지속성**: CODE 및 ASK 탭에서 `@`로 첨부된 파일이 LLM 전송 후에도 사라지지 않고 계속 남아 있어 재사용할 수 있습니다.
+  - **중복 파일 제거**: LLM으로 전송되기 전에 첨부된 파일 목록에서 중복된 파일 경로가 제거되도록 로직을 구현했습니다.
+  - **Windows 파일 다이얼로그 수정**: 설정 페이지의 "소스 코드 경로 지정" 섹션에서 파일 추가 버튼 클릭 시 Windows에서 폴더만 선택되고 파일은 선택되지 않던 문제가 해결되었습니다. 이제 파일을 올바르게 선택할 수 있습니다.
 - **Version 2.5.9** (2025/09/15): [다운로드](release/codepilot-2.5.9.vsix)
   - Ollama 통합을 통한 CodeLlama 7B 지원 추가
   - 통합 인터페이스로 개선된 Ollama 모델 관리

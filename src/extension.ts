@@ -34,7 +34,7 @@ export async function activate(context: vscode.ExtensionContext) {
     storageService = new StorageService(context.secrets);
     notificationService = new NotificationService();
     configurationService = new ConfigurationService();
-    licenseService = new LicenseService();
+    licenseService = new LicenseService(storageService);
 
     const initialApiKey = await storageService.getApiKey();
     if (!initialApiKey) {

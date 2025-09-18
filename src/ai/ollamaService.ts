@@ -157,14 +157,16 @@ export class OllamaApi {
 
         try {
             const url = new URL(`${this.apiUrl}/api/tags`);
-            console.log(`Fetching Ollama models from: ${url.toString()}`);
+            console.log(`[OllamaApi] Fetching Ollama models from: ${url.toString()}`);
 
             const responseText = await this.makeHttpRequest(url, 'GET', undefined, signal);
+            console.log('[OllamaApi] Raw response from /api/tags:', responseText); // Add logging for raw response
             const data = JSON.parse(responseText);
 
             if (data && Array.isArray(data.models)) {
-                // 'name' 또는 'model' 필드를 사용하여 모델 이름 추출 (Python 예제 참고)
-                return data.models.map((model: any) => (model.name || model.model) as string);
+                const models = data.models.map((model: any) => (model.name || model.model) as string);
+                console.log('[OllamaApi] Parsed models:', models); // Add logging for parsed models
+                return models;
             }
             return [];
         } catch (error) {

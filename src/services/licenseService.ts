@@ -24,6 +24,20 @@ export interface LicenseData {
 }
 
 export class LicenseService {
+  private storageService: any; // StorageService 인스턴스
+
+  constructor(storageService: any) {
+    this.storageService = storageService;
+  }
+
+  /**
+   * 저장된 Banya 라이센스 시리얼을 가져옵니다.
+   * @returns Banya 라이센스 시리얼 또는 null
+   */
+  public async getLicenseSerial(): Promise<string | null> {
+    return await this.storageService.getBanyaLicenseSerial();
+  }
+
   /**
    * 입력된 시리얼 번호가 ID 0번의 라이센스와 일치하는지 검증
    * @param serialNumber 검증할 시리얼 번호

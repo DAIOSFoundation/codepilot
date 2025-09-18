@@ -2,6 +2,36 @@
 
 This document contains the complete release history for CodePilot VSCode extension.
 
+## Version 2.6.0 (2025/09/19) - Ollama Enhancements & File Management Improvements
+
+<details>
+<summary>Ollama Enhancements</summary>
+
+- **Improved Model Selection**: Enhanced settings to display all locally downloaded Ollama models in a dropdown, allowing for direct selection.
+- **Default API URL**: Ollama API URL now defaults to `http://localhost:11434` when Ollama is selected as the AI model, both on initial load and when switching.
+- **Persistent API URL Input**: The Ollama API URL input field retains its value after saving, preventing accidental clearing.
+- **Consistent Output Formatting**: Adjusted output format for `qwen2.5-coder:7b`, `codegemma:7b`, and `codellama:7b` models to match Gemini and `gemma:27b` in the chat window.
+
+</details>
+
+<details>
+<summary>File Management Improvements</summary>
+
+- **Persistent Attached Files**: Files attached via `@` in the CODE and ASK tabs now persist after being sent to the LLM, enabling reuse across interactions.
+- **Duplicate File Deduplication**: Implemented logic to remove duplicate file paths from the list of attached files before transmission to the LLM.
+- **Windows File Dialog Fix**: Resolved an issue where the file dialog in the "Source Code Path Specification" section of the settings page only allowed selecting folders, not files, on Windows. It now correctly allows file selection.
+
+</details>
+
+<details>
+<summary>Package Release</summary>
+
+- **VSIX Package**: [codepilot-2.6.0.vsix](release/codepilot-2.6.0.vsix) (30.97 MB)
+- **Installation**: Use `code --install-extension codepilot-2.6.0.vsix` or install from VSIX in VS Code
+- **Release Organization**: Package files organized in `release/` directory for better project structure
+
+</details>
+
 ## Version 2.5.9 (2025/09/15) - CodeLlama 7B Support Added
 
 <details>

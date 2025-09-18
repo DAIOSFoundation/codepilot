@@ -77,7 +77,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         PromptType.CODE_GENERATION,
                         data.imageData,
                         data.imageMimeType,
-                        uniqueSelectedFiles // 중복 제거된 파일들 전달
+                        uniqueSelectedFiles as string[] // 중복 제거된 파일들 전달
                     );
                     break;
                 case 'openPanel':

@@ -69,6 +69,8 @@ export function openSettingsPanel(
                     const ollamaModel = await storageService.getOllamaModel(); // Ollama 모델 추가
                     // Ollama 모델 목록은 이미 'loadOllamaModels'에서 로드되었으므로 여기서 다시 가져오지 않음
 
+                    let banyaLicenseSerial = await licenseService.getLicenseSerial(); // Declare and initialize
+
                     // Banya 라이센스 시리얼 검증 - 잘못된 데이터 필터링
                     let validBanyaLicenseSerial = '';
                     if (banyaLicenseSerial &&
@@ -110,7 +112,7 @@ export function openSettingsPanel(
                         ollamaEndpoint: ollamaEndpoint || '', // Ollama 엔드포인트 추가
                         ollamaModel: ollamaModel || '', // Ollama 모델 추가
                         // availableOllamaModels: availableOllamaModels, // 이미 loadOllamaModels에서 전송됨
-                        banyaLicenseSerial: validBanyaLicenseSerial, // 검증된 Banya 라이센스만 전송
+                        validBanyaLicenseSerial: validBanyaLicenseSerial, // 검증된 Banya 라이센스만 전송
                         isLicenseVerified: isLicenseVerified // 라이선스 검증 상태 추가
                     };
                     console.log('Sending currentApiKeys message:', messageToSend);

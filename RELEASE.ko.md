@@ -2,6 +2,36 @@
 
 이 문서는 CodePilot VSCode 확장의 완전한 릴리즈 히스토리를 포함합니다.
 
+## Version 2.6.0 (2025/09/19) - Ollama 기능 강화 및 파일 관리 개선
+
+<details>
+<summary>Ollama 기능 강화</summary>
+
+- **개선된 모델 선택**: 설정에서 로컬에 다운로드된 모든 Ollama 모델을 드롭다운에 표시하여 직접 선택할 수 있도록 개선되었습니다.
+- **기본 API URL**: Ollama가 AI 모델로 선택될 때, 초기 로드 및 전환 시 Ollama API URL이 `http://localhost:11434`로 기본 설정됩니다.
+- **API URL 입력 필드 유지**: Ollama API URL 입력 필드는 저장 후에도 값을 유지하여, 실수로 지워지는 것을 방지합니다.
+- **일관된 출력 형식**: `qwen2.5-coder:7b`, `codegemma:7b`, `codellama:7b` 모델의 출력 형식이 Gemini 및 `gemma:27b` 모델과 동일하게 채팅 창에 표시되도록 조정되었습니다.
+
+</details>
+
+<details>
+<summary>파일 관리 개선</summary>
+
+- **파일 첨부 지속성**: CODE 및 ASK 탭에서 `@`로 첨부된 파일이 LLM 전송 후에도 사라지지 않고 계속 남아 있어 재사용할 수 있습니다.
+- **중복 파일 제거**: LLM으로 전송되기 전에 첨부된 파일 목록에서 중복된 파일 경로가 제거되도록 로직을 구현했습니다.
+- **Windows 파일 다이얼로그 수정**: 설정 페이지의 "소스 코드 경로 지정" 섹션에서 파일 추가 버튼 클릭 시 Windows에서 폴더만 선택되고 파일은 선택되지 않던 문제가 해결되었습니다. 이제 파일을 올바르게 선택할 수 있습니다.
+
+</details>
+
+<details>
+<summary>패키지 릴리즈</summary>
+
+- **VSIX 패키지**: [codepilot-2.6.0.vsix](release/codepilot-2.6.0.vsix) (30.97 MB)
+- **설치 방법**: `code --install-extension codepilot-2.6.0.vsix` 또는 VS Code에서 VSIX 설치
+- **릴리즈 구성**: 더 나은 프로젝트 구조를 위해 `release/` 디렉토리에 패키지 파일 정리
+
+</details>
+
 ## Version 2.5.9 (2025/09/15) - CodeLlama 7B 지원 추가
 
 <details>

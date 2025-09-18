@@ -76,7 +76,7 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                         PromptType.GENERAL_ASK,
                         data.imageData,
                         data.imageMimeType,
-                        uniqueSelectedFiles // 중복 제거된 파일들 전달
+                        uniqueSelectedFiles as string[] // 중복 제거된 파일들 전달
                     );
                     break;
                 case 'webviewLoaded':

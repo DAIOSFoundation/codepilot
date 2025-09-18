@@ -156,7 +156,7 @@ VSCode base code assistant plugin with LLM and LM support.
 ## Requirements
 
 - nvm 0.39.1
-- node v21.7.1
+- node v20.18.1
 - npm install
 
 ## Installation & Setup
@@ -333,6 +333,12 @@ Calling out known issues can help limit users opening duplicate issues against y
 Please see [RELEASE.md](RELEASE.md).
 
 ### Latest Release
+- **Version 2.6.0** (2025/09/19): [Download](release/codepilot-2.6.0.vsix)
+  - **Ollama Enhancements**: Improved model selection in settings, default API URL (`http://localhost:11434`), and consistent output formatting for `qwen2.5-coder:7b`, `codegemma:7b`, and `codellama:7b` models.
+  - **File Attachment Persistence**: Attached files now persist across LLM interactions in CODE and ASK tabs, allowing for reuse.
+  - **Duplicate File Deduplication**: Implemented logic to prevent duplicate files from being sent to the LLM when attached.
+  - **Windows File Dialog Fix**: Resolved an issue where the file dialog in settings would only allow folder selection on Windows; now supports file selection.
+  - **API Key Storage Improvements**: Ensures Ollama API URL retains its value after saving and is set to default when switching to Ollama.
 - **Version 2.5.9** (2025/09/15): [Download](release/codepilot-2.5.9.vsix)
   - Added CodeLlama 7B support via Ollama integration
   - Improved Ollama model management with unified interface

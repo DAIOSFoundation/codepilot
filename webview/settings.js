@@ -1549,10 +1549,14 @@ window.addEventListener('message', event => {
                     geminiSettingsSection.classList.remove('disabled');
                     ollamaSettingsSection.classList.add('disabled');
                     if (ollamaModelSetting) ollamaModelSetting.style.display = 'none'; // Ollama 모델 선택 숨김
+                    if (ollamaModelSelect) ollamaModelSelect.disabled = true;
+                    if (saveOllamaModelButton) saveOllamaModelButton.disabled = true;
                 } else if (displayModel === 'ollama') {
                     geminiSettingsSection.classList.add('disabled');
                     ollamaSettingsSection.classList.remove('disabled');
                     if (ollamaModelSetting) ollamaModelSetting.style.display = 'flex'; // Ollama 모델 선택 표시
+                    if (ollamaModelSelect) ollamaModelSelect.disabled = false; // Ollama 선택 시 활성화
+                    if (saveOllamaModelButton) saveOllamaModelButton.disabled = false; // Ollama 선택 시 활성화
                     // Ollama API URL이 비어있으면 기본값 설정
                     if (ollamaApiUrlInput && !ollamaApiUrlInput.value) {
                         ollamaApiUrlInput.value = 'http://localhost:11434';
@@ -1561,6 +1565,8 @@ window.addEventListener('message', event => {
                     geminiSettingsSection.classList.add('disabled');
                     ollamaSettingsSection.classList.add('disabled');
                     if (ollamaModelSetting) ollamaModelSetting.style.display = 'none'; // Ollama 모델 선택 숨김
+                    if (ollamaModelSelect) ollamaModelSelect.disabled = true;
+                    if (saveOllamaModelButton) saveOllamaModelButton.disabled = true;
                 }
             }
             break;
@@ -1752,6 +1758,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (geminiSettingsSection) geminiSettingsSection.classList.remove('disabled');
     if (ollamaSettingsSection) ollamaSettingsSection.classList.add('disabled');
     if (ollamaModelSetting) ollamaModelSetting.style.display = 'none'; // 초기에는 숨김
+    if (ollamaModelSelect) ollamaModelSelect.disabled = true; // 초기에는 비활성화
+    if (saveOllamaModelButton) saveOllamaModelButton.disabled = true; // 초기에는 비활성화
     
     // Ollama API URL 기본값 설정
     if (aiModelSelect && aiModelSelect.value === 'ollama' && ollamaApiUrlInput && !ollamaApiUrlInput.value) {
@@ -1778,13 +1786,19 @@ function populateOllamaModels(models, currentSelectedModel) {
             }
             ollamaModelSelect.appendChild(option);
         });
+        ollamaModelSelect.disabled = false; // 모델이 있으면 활성화
+        if (saveOllamaModelButton) {
+            saveOllamaModelButton.disabled = false; // 모델이 있으면 활성화
+        }
     } else {
         const option = document.createElement('option');
         option.value = '';
         option.textContent = languageData['noOllamaModelsFound'] || '설치된 Ollama 모델 없음';
         option.disabled = true;
         ollamaModelSelect.appendChild(option);
-        ollamaModelSelect.disabled = true;
-        saveOllamaModelButton.disabled = true;
+        ollamaModelSelect.disabled = true; // 모델이 없으면 비활성화
+        if (saveOllamaModelButton) {
+            saveOllamaModelButton.disabled = true; // 모델이 없으면 비활성화
+        }
     }
 }
