@@ -136,6 +136,9 @@ dist
 .pnp.*
 src/.DS_Store
 
+# AIDEV-IDE: ignore embedded assets (binaries/secrets)
+aidev-ide/assets/
+
 # License generator files
 generate_licenses.js
 README_license_generator.md
