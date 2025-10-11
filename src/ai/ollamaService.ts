@@ -340,8 +340,9 @@ export class OllamaService {
             // 실시간 정보 요청 처리
             const realTimeInfo = await this.processRealTimeInfoRequest(userQuery);
 
-            // 코드베이스 컨텍스트 수집
-            const { fileContentsContext, includedFilesForContext } = await this.codebaseContextService.getProjectCodebaseContext(
+            // 질의어 기반 관련 파일 컨텍스트 수집 (CODE/ASK 공통 적용)
+            const { fileContentsContext, includedFilesForContext } = await this.codebaseContextService.getRelevantCodebaseContextForQuery(
+                userQuery,
                 abortSignal
             );
 
@@ -397,12 +398,23 @@ export class OllamaService {
             );
 
             // GENERAL_ASK 타입일 때는 파일 업데이트를 위한 컨텍스트 파일을 넘기지 않음
-            await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(
+            const opSummary = await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(
                 llmResponse,
                 promptType === PromptType.CODE_GENERATION ? includedFilesForContext : [],
                 webviewToRespond,
                 promptType
             );
+
+            // 대화 히스토리에 파일 생성/수정/삭제 목록 저장
+            if (this.extensionContext) {
+                const historyKey = promptType === PromptType.CODE_GENERATION ? 'codeTabHistory' : 'askTabHistory';
+                const hist: { text: string, timestamp: number, files?: { created: string[]; modified: string[]; deleted: string[] } }[] = this.extensionContext.globalState.get(historyKey, []);
+                if (hist.length > 0) {
+                    const last = hist[hist.length - 1];
+                    last.files = opSummary;
+                    await this.extensionContext.globalState.update(historyKey, hist);
+                }
+            }
 
         } catch (error: any) {
             if (error.name === 'AbortError') {

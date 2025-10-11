@@ -60,7 +60,7 @@ export class LlmResponseProcessor {
         contextFiles: { name: string, fullPath: string }[],
         webview: vscode.Webview,
         promptType: PromptType // Add this parameter
-    ): Promise<void> {
+    ): Promise<{ created: string[]; modified: string[]; deleted: string[] }> {
         // GENERAL_ASK 타입일 때는 파일 생성, 수정, 삭제 및 터미널 명령어 실행을 건너뜀
         if (promptType === PromptType.GENERAL_ASK) {
 
@@ -94,7 +94,7 @@ export class LlmResponseProcessor {
                 safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: cleanedResponse });
             }
 
-            return;
+            return { created: [], modified: [], deleted: [] };
         }
 
         const fileOperations: FileOperation[] = [];
@@ -751,7 +751,7 @@ export class LlmResponseProcessor {
                 }
             }
 
-            // 작업 요약과 설명을 마지막에 출력
+        // 작업 요약과 설명을 마지막에 출력
             if (workSummary) {
                 const summaryMessage = "\n\n📋 AI 작업 요약\n" + workSummary;
                 safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: summaryMessage });
@@ -823,6 +823,12 @@ export class LlmResponseProcessor {
                 safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: descriptionMessage });
             }
         }
+
+        // 결과 요약 반환 (LLM 응답에 등장한 생성/수정/삭제 파일 목록)
+        const created = fileOperations.filter(op => op.type === 'create').map(op => op.llmSpecifiedPath);
+        const modified = fileOperations.filter(op => op.type === 'modify').map(op => op.llmSpecifiedPath);
+        const deleted = fileOperations.filter(op => op.type === 'delete').map(op => op.llmSpecifiedPath);
+        return { created, modified, deleted };
     }
 
     /**

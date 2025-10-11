@@ -1,7 +1,7 @@
 // settings.js
 const vscode = acquireVsCodeApi();
 
-// DOM 요소 참조
+// DOM 요소 참조 (소스 경로 UI 제거됨 — 참조가 없을 수 있으므로 방어 처리)
 const sourcePathsList = document.getElementById('source-paths-list');
 const addSourcePathButton = document.getElementById('add-source-path-button');
 const sourcePathStatus = document.getElementById('source-path-status');
@@ -936,22 +936,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // UI 업데이트 함수 (소스 경로)
 function updateSourcePathsList(paths) {
+    if (!sourcePathsList) return;
     sourcePathsList.innerHTML = '';
-    if (!paths || paths.length === 0) {
-        const noPathsText = languageData['noPathsSpecified'] || '지정된 경로 없음';
-        sourcePathsList.innerHTML = `<li class="path-item" style="justify-content: center; color: var(--vscode-descriptionForeground);">${noPathsText}</li>`;
-    } else {
-        paths.forEach(path => {
-            const listItem = document.createElement('li');
-            listItem.classList.add('path-item');
-            const deleteButtonText = languageData['removeSourcePathButton'] || '경로 삭제';
-            listItem.innerHTML = `
-                <span class="path-text" title="${path}">${path}</span>
-                <button class="delete-button" data-path="${path}" title="${deleteButtonText}">×</button>
-            `;
-            sourcePathsList.appendChild(listItem);
-        });
-    }
+    const noPathsText = languageData['noPathsSpecified'] || '지정된 경로 없음';
+    sourcePathsList.innerHTML = `<li class="path-item" style="justify-content: center; color: var(--vscode-descriptionForeground);">${noPathsText}</li>`;
 }
 
 // UI 업데이트 함수 (프로젝트 Root)
@@ -986,28 +974,10 @@ function showStatus(element, message, type = 'info', duration = 3000) {
 }
 
 // 이벤트 리스너: 경로 추가 버튼
-if (addSourcePathButton) {
-    addSourcePathButton.addEventListener('click', () => {
-        const pathSelectionText = languageData['pathSelectionDialog'] || '경로 선택 창 열림...';
-        showStatus(sourcePathStatus, pathSelectionText, 'info');
-        vscode.postMessage({ command: 'addDirectory' });
-    });
-}
+// 소스 경로 추가 버튼은 제거됨
 
 // 이벤트 리스너: 경로 삭제 버튼 (이벤트 위임)
-if (sourcePathsList) {
-    sourcePathsList.addEventListener('click', (event) => {
-        const target = event.target;
-        if (target && target.classList.contains('delete-button')) {
-            const pathToRemove = target.dataset.path;
-            if (pathToRemove) {
-                const removalText = languageData['pathRemovalRequest'] || '삭제 요청 중...';
-                showStatus(sourcePathStatus, `'${pathToRemove}' ${removalText}`, 'info');
-                vscode.postMessage({ command: 'removeDirectory', path: pathToRemove });
-            }
-        }
-    });
-}
+// 소스 경로 삭제 UI는 제거됨
 
 // 이벤트 리스너: 프로젝트 Root 선택 버튼
 if (selectProjectRootButton) {
@@ -1224,11 +1194,6 @@ window.addEventListener('message', event => {
     switch (message.command) {
         case 'currentSettings':
             console.log('Received currentSettings:', message);
-            if (message.sourcePaths) {
-                updateSourcePathsList(message.sourcePaths);
-                const sourcePathsLoadedText = languageData['sourcePathsLoaded'] || '소스 경로 로드 완료.';
-                showStatus(sourcePathStatus, sourcePathsLoadedText, 'success');
-            }
             if (typeof message.autoUpdateEnabled === 'boolean' && autoUpdateToggle) {
                 autoUpdateToggle.checked = message.autoUpdateEnabled;
                 const autoUpdateChangedText = languageData['autoUpdateChanged'] || '자동 업데이트';
@@ -1248,13 +1213,7 @@ window.addEventListener('message', event => {
                 updateProjectRootDisplay(null);
             }
             break;
-        case 'updatedSourcePaths':
-            if (message.sourcePaths) {
-                updateSourcePathsList(message.sourcePaths);
-                const sourcePathsUpdatedText = languageData['sourcePathsUpdated'] || '소스 경로 업데이트 완료.';
-                showStatus(sourcePathStatus, sourcePathsUpdatedText, 'success');
-            }
-            break;
+        // updatedSourcePaths: 더 이상 사용하지 않음
         case 'updatedProjectRoot':
             if (typeof message.projectRoot === 'string') {
                 updateProjectRootDisplay(message.projectRoot);

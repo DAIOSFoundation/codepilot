@@ -70,7 +70,7 @@ export class GeminiService {
 
         // --- 히스토리 관리용 키 ---
         const historyKey = promptType === PromptType.CODE_GENERATION ? 'codeTabHistory' : 'askTabHistory';
-        let history: { text: string, timestamp: number }[] = [];
+        let history: { text: string, timestamp: number, files?: { created: string[]; modified: string[]; deleted: string[] } }[] = [];
         if (this.extensionContext) {
             history = this.extensionContext.globalState.get(historyKey, []);
         }
@@ -86,9 +86,9 @@ export class GeminiService {
             let fileContentsContext = "";
             let includedFilesForContext: { name: string, fullPath: string }[] = [];
 
-            // GENERAL_ASK 타입일 때는 코드 컨텍스트를 포함하지 않음
-            if (promptType === PromptType.CODE_GENERATION) {
-                const contextResult = await this.codebaseContextService.getProjectCodebaseContext(abortSignal);
+            // 질의어 기반 관련 파일 컨텍스트 (CODE/ASK 공통 적용)
+            {
+                const contextResult = await this.codebaseContextService.getRelevantCodebaseContextForQuery(userQuery, abortSignal);
                 fileContentsContext = contextResult.fileContentsContext;
                 includedFilesForContext = contextResult.includedFilesForContext;
             }
@@ -185,13 +185,23 @@ ${projectRootInfo}
                 systemPrompt = `당신은 유용한 AI 어시스턴트입니다. 사용자의 요청에 대해 답변해주세요.`;
             }
 
-            // --- 최근 5개 질문 context 생성 ---
+            // --- 최근 5개 질문 및 파일 변경 이력 context 생성 ---
             let historyContext = '';
             if (history.length > 1) { // 현재 질문 제외, 이전 질문만
-                const prevQuestions = history.slice(0, -1).slice(-5); // 마지막(현재) 제외, 최대 5개
+                const prevQuestions = history.slice(0, -1).slice(-5);
                 if (prevQuestions.length > 0) {
-                    historyContext = '--- 최근 사용자 질문 내역 ---\n' +
-                        prevQuestions.map((h, i) => `${i+1}. ${h.text}`).join('\n') + '\n';
+                    const qLines = prevQuestions.map((h, i) => `${i+1}. ${h.text}`).join('\n');
+                    const fileLines: string[] = [];
+                    for (const h of prevQuestions) {
+                        if (h.files) {
+                            const created = (h.files.created || []).join(', ');
+                            const modified = (h.files.modified || []).join(', ');
+                            const deleted = (h.files.deleted || []).join(', ');
+                            fileLines.push(`- 생성: ${created || '없음'} | 수정: ${modified || '없음'} | 삭제: ${deleted || '없음'}`);
+                        }
+                    }
+                    const filesBlock = fileLines.length > 0 ? `\n--- 과거 작업된 파일 목록 ---\n${fileLines.join('\n')}\n` : '';
+                    historyContext = `--- 최근 사용자 질문 내역 ---\n${qLines}\n${filesBlock}`;
                 }
             }
 
@@ -273,12 +283,23 @@ ${projectRootInfo}
             ); // userParts 전달
 
             // GENERAL_ASK 타입일 때는 파일 업데이트를 위한 컨텍스트 파일을 넘기지 않음
-            await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(
+            const opSummary = await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(
                 llmResponse,
                 promptType === PromptType.CODE_GENERATION ? includedFilesForContext : [],
                 webviewToRespond,
                 promptType // promptType을 LlmResponseProcessor로 전달
             );
+
+            // 대화 히스토리에 파일 생성/수정/삭제 목록 저장
+            if (this.extensionContext) {
+                const historyKey = promptType === PromptType.CODE_GENERATION ? 'codeTabHistory' : 'askTabHistory';
+                const hist: { text: string, timestamp: number, files?: { created: string[]; modified: string[]; deleted: string[] } }[] = this.extensionContext.globalState.get(historyKey, []);
+                if (hist.length > 0) {
+                    const last = hist[hist.length - 1];
+                    last.files = opSummary;
+                    await this.extensionContext.globalState.update(historyKey, hist);
+                }
+            }
 
         } catch (error: any) {
             if (error.name === 'AbortError') {

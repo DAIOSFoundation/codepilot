@@ -31,42 +31,11 @@ export function openSettingsPanel(
                 case 'initSettings':
                     panel.webview.postMessage({
                         command: 'currentSettings',
-                        sourcePaths: await configurationService.getSourcePaths(),
                         autoUpdateEnabled: await configurationService.isAutoUpdateEnabled(),
                         projectRoot: await configurationService.getProjectRoot()
                     });
                     break;
-                case 'addDirectory':
-                    const uris = await vscode.window.showOpenDialog({
-                        canSelectFiles: true,
-                        canSelectFolders: true,
-                        canSelectMany: true,
-                        openLabel: 'Select Files and Folders',
-                        filters: {
-                            'All Files': ['*'],
-                            'Source Files': ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala', 'html', 'css', 'scss', 'sass', 'json', 'xml', 'yaml', 'yml', 'md', 'txt'],
-                            'Code Files': ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'scala'],
-                            'Web Files': ['html', 'css', 'scss', 'sass', 'js', 'ts', 'jsx', 'tsx'],
-                            'Config Files': ['json', 'xml', 'yaml', 'yml', 'md', 'txt']
-                        }
-                    });
-                    if (uris && uris.length > 0) {
-                        const newPaths = uris.map(u => u.fsPath);
-                        const current = await configurationService.getSourcePaths();
-                        const updatedPaths = Array.from(new Set([...current, ...newPaths]));
-                        await configurationService.updateSourcePaths(updatedPaths);
-                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
-                    }
-                    break;
-                case 'removeDirectory':
-                    const pathToRemove = data.path;
-                    if (pathToRemove) {
-                        const current = await configurationService.getSourcePaths();
-                        const updatedPaths = current.filter(p => p !== pathToRemove);
-                        await configurationService.updateSourcePaths(updatedPaths);
-                        panel.webview.postMessage({ command: 'updatedSourcePaths', sourcePaths: updatedPaths });
-                    }
-                    break;
+                // sourcePaths 제어는 더 이상 지원하지 않음 (자동 검색으로 대체)
                 case 'setAutoUpdate':
                     if (typeof data.enabled === 'boolean') {
                         await configurationService.updateAutoUpdateEnabled(data.enabled);

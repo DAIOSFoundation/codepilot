@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { StorageService } from '../services/storage';
+import * as path from 'path';
+import * as glob from 'glob';
 import { CodebaseContextService } from './codebaseContextService';
 import { LlmResponseProcessor } from './llmResponseProcessor';
 import { NotificationService } from '../services/notificationService';
@@ -9,6 +11,7 @@ import { safePostMessage } from '../webview/panelUtils';
 import { GeminiApi } from './gemini';
 import { OllamaApi } from './ollamaService';
 import { checkTokenLimit, logTokenUsage } from '../utils/tokenUtils';
+import { getFileType } from '../utils/fileUtils';
 import { AiModelType, PromptType } from './types';
 
 export class LlmService {
@@ -77,12 +80,32 @@ export class LlmService {
             // 실시간 정보 요청 처리
             const realTimeInfo = await this.processRealTimeInfoRequest(userQuery);
 
-            // 코드베이스 컨텍스트 수집 (GENERAL_ASK 타입일 때는 건너뜀)
+            // 대화 히스토리 저장 (최대 20개 유지)
+            let historyKey = promptType === PromptType.CODE_GENERATION ? 'codeTabHistory' : 'askTabHistory';
+            let history: { text: string, timestamp: number, files?: { created: string[]; modified: string[]; deleted: string[] } }[] = [];
+            if (this.extensionContext) {
+                history = this.extensionContext.globalState.get(historyKey, []);
+                history.push({ text: userQuery, timestamp: Date.now() });
+                if (history.length > 20) history = history.slice(-20);
+                await this.extensionContext.globalState.update(historyKey, history);
+            }
+
+            // 1) LLM에게 프로젝트 종류 및 기본 관련 파일 목록 요청 (package.json 기반)
+            // 2) 받은 파일 목록을 루트에서 찾아 컨텍스트 구성
+            // 3) 실패 시 기존 휴리스틱으로 폴백
             let fileContentsContext = '';
             let includedFilesForContext: { name: string, fullPath: string }[] = [];
 
-            if (promptType === PromptType.CODE_GENERATION) {
-                const contextResult = await this.codebaseContextService.getProjectCodebaseContext(abortSignal);
+            try {
+                const baseRoot = await this.getBaseRoot();
+                const pkgJson = await this.readPackageJson(baseRoot);
+                const suggested = await this.suggestRelevantFilesWithLlm(userQuery, pkgJson, abortSignal);
+                const built = await this.buildContextFromFileList(baseRoot, suggested, abortSignal);
+                fileContentsContext = built.fileContentsContext;
+                includedFilesForContext = built.includedFilesForContext;
+            } catch (planErr) {
+                console.warn('[LlmService] LLM 기반 파일 선정 실패. 휴리스틱으로 폴백합니다.', planErr);
+                const contextResult = await this.codebaseContextService.getRelevantCodebaseContextForQuery(userQuery, abortSignal);
                 fileContentsContext = contextResult.fileContentsContext;
                 includedFilesForContext = contextResult.includedFilesForContext;
             }
@@ -121,8 +144,26 @@ export class LlmService {
             // 시스템 프롬프트 생성
             const systemPrompt = this.generateSystemPrompt(promptType, fullFileContentsContext, realTimeInfo);
 
-            // 사용자 메시지 파트 구성
-            const userParts: any[] = [{ text: userQuery }];
+            // 사용자 메시지 파트 구성 (최근 히스토리 + 사용자 요청)
+            const userParts: any[] = [];
+            if (this.extensionContext) {
+                const prev = history.slice(0, -1).slice(-5);
+                if (prev.length > 0) {
+                    const qLines = prev.map((h, i) => `${i+1}. ${h.text}`).join('\n');
+                    const fileLines: string[] = [];
+                    for (const h of prev) {
+                        if (h.files) {
+                            const created = (h.files.created || []).join(', ');
+                            const modified = (h.files.modified || []).join(', ');
+                            const deleted = (h.files.deleted || []).join(', ');
+                            fileLines.push(`- 생성: ${created || '없음'} | 수정: ${modified || '없음'} | 삭제: ${deleted || '없음'}`);
+                        }
+                    }
+                    const filesBlock = fileLines.length > 0 ? `\n--- 과거 작업된 파일 목록 ---\n${fileLines.join('\n')}\n` : '';
+                    userParts.push({ text: `--- 최근 사용자 질문 내역 ---\n${qLines}\n${filesBlock}` });
+                }
+            }
+            userParts.push({ text: userQuery });
 
             // 이미지가 있는 경우 추가
             if (imageData && imageMimeType) {
@@ -188,12 +229,23 @@ export class LlmService {
             }
 
             // GENERAL_ASK 타입일 때는 파일 업데이트를 위한 컨텍스트 파일을 넘기지 않음
-            await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(
+            const opSummary = await this.llmResponseProcessor.processLlmResponseAndApplyUpdates(
                 llmResponse,
                 promptType === PromptType.CODE_GENERATION ? allContextFiles : [],
                 webviewToRespond,
                 promptType
             );
+
+            // 대화 히스토리에 파일 생성/수정/삭제 목록 저장
+            if (this.extensionContext) {
+                const historyKey = promptType === PromptType.CODE_GENERATION ? 'codeTabHistory' : 'askTabHistory';
+                const history: { text: string, timestamp: number, files?: { created: string[]; modified: string[]; deleted: string[] } }[] = this.extensionContext.globalState.get(historyKey, []);
+                if (history.length > 0) {
+                    const last = history[history.length - 1];
+                    last.files = opSummary;
+                    await this.extensionContext.globalState.update(historyKey, history);
+                }
+            }
 
         } catch (error: any) {
             if (error.name === 'AbortError') {
@@ -322,5 +374,131 @@ ${realTimeInfo}
         }
 
         return systemPrompt;
+    }
+
+    private async getBaseRoot(): Promise<string> {
+        const configuredRoot = await this.configurationService.getProjectRoot();
+        if (configuredRoot && configuredRoot.trim() !== '') return configuredRoot;
+        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+            return vscode.workspace.workspaceFolders[0].uri.fsPath;
+        }
+        throw new Error('프로젝트 루트를 확인할 수 없습니다. 워크스페이스를 열어주세요.');
+    }
+
+    private async readPackageJson(baseRoot: string): Promise<string | null> {
+        try {
+            const pkgPath = path.join(baseRoot, 'package.json');
+            const uri = vscode.Uri.file(pkgPath);
+            const stat = await vscode.workspace.fs.stat(uri);
+            if (stat.type === vscode.FileType.File) {
+                const bytes = await vscode.workspace.fs.readFile(uri);
+                return Buffer.from(bytes).toString('utf8');
+            }
+        } catch {
+            // ignore
+        }
+        return null;
+    }
+
+    private extractJsonArray(text: string): string[] {
+        // 코드 펜스 제거
+        let cleaned = text.trim();
+        const fenceMatch = cleaned.match(/```[a-zA-Z]*\n([\s\S]*?)```/);
+        if (fenceMatch) cleaned = fenceMatch[1].trim();
+
+        // JSON 배열 추출
+        const arrayMatch = cleaned.match(/\[([\s\S]*?)\]/);
+        if (!arrayMatch) return [];
+        const bracketed = cleaned.slice(cleaned.indexOf('['), cleaned.lastIndexOf(']') + 1);
+        try {
+            const parsed = JSON.parse(bracketed);
+            if (Array.isArray(parsed)) return parsed.filter(x => typeof x === 'string');
+        } catch {
+            // 실패 시 빈 배열
+        }
+        return [];
+    }
+
+    private async suggestRelevantFilesWithLlm(userQuery: string, packageJson: string | null, abortSignal: AbortSignal): Promise<string[]> {
+        const systemPrompt = `당신은 프로젝트 분석가입니다. 아래 정보를 기반으로, LLM 답변을 위해 가장 관련 있는 기존 파일 경로(상대경로) 목록을 JSON 배열로만 출력하세요.
+규칙:
+1) 반드시 유효한 JSON 배열 문자열만 출력합니다. 다른 설명/주석 금지.
+2) 경로는 프로젝트 루트 기준 상대경로여야 합니다.
+3) 최대 20개. 과도한 파일 포함 금지.
+4) 사용자의 요청 수행에 필요한 핵심 소스/설정/엔트리 파일 위주로 선택.
+예시 출력: ["src/index.ts","src/app.tsx","tsconfig.json"]`;
+
+        const parts: any[] = [];
+        parts.push({ text: `사용자 요청: ${userQuery}` });
+        if (packageJson) {
+            parts.push({ text: `package.json:\n\n${packageJson}` });
+        } else {
+            parts.push({ text: 'package.json이 루트에 없습니다.' });
+        }
+
+        let response: string;
+        const requestOptions = { signal: abortSignal } as any;
+        if (this.currentModelType === AiModelType.GEMINI) {
+            response = await this.geminiApi.sendMessageWithSystemPrompt(systemPrompt, parts, requestOptions);
+        } else {
+            response = await this.ollamaApi.sendMessageWithSystemPrompt(systemPrompt, parts, requestOptions);
+        }
+        const files = this.extractJsonArray(response);
+        if (files.length === 0) throw new Error('LLM이 유효한 파일 목록을 반환하지 않았습니다.');
+        return Array.from(new Set(files));
+    }
+
+    private readonly EXCLUDED_EXTENSIONS_FOR_ATTACH = [
+        '.jpg','.jpeg','.png','.gif','.bmp','.svg','.webp','.ico',
+        '.pdf','.zip','.tar','.gz','.rar','.7z',
+        '.exe','.dll','.bin',
+        '.sqlite','.db',
+        '.lock','.log','.tmp','.temp'
+    ];
+
+    private readonly MAX_TOTAL_CONTEXT_BYTES = 1000000;
+
+    private async buildContextFromFileList(
+        baseRoot: string,
+        relativeFiles: string[],
+        abortSignal: AbortSignal
+    ): Promise<{ fileContentsContext: string; includedFilesForContext: { name: string, fullPath: string }[] }> {
+        let fileContentsContext = '';
+        let total = 0;
+        const included: { name: string, fullPath: string }[] = [];
+
+        for (const rel of relativeFiles) {
+            if (abortSignal.aborted) break;
+
+            // glob 확장 허용 (예: src/**/*.ts), 일반 경로도 처리
+            const pattern = path.isAbsolute(rel) ? rel : path.join(baseRoot, rel);
+            const matches = glob.sync(pattern, { nodir: true, dot: false });
+            for (const abs of matches.length > 0 ? matches : [pattern]) {
+                if (abortSignal.aborted) break;
+                const ext = path.extname(abs).toLowerCase();
+                if (this.EXCLUDED_EXTENSIONS_FOR_ATTACH.includes(ext)) continue;
+                try {
+                    const uri = vscode.Uri.file(abs);
+                    const stat = await vscode.workspace.fs.stat(uri);
+                    if (stat.type !== vscode.FileType.File) continue;
+                    const bytes = await vscode.workspace.fs.readFile(uri);
+                    const content = Buffer.from(bytes).toString('utf8');
+                    const relPath = path.relative(baseRoot, abs).replace(/\\/g,'/');
+                    if (total + content.length > this.MAX_TOTAL_CONTEXT_BYTES) {
+                        fileContentsContext += `파일명: ${relPath}\n코드:\n[INFO] 파일 내용이 너무 길어 생략되었습니다.\n\n`;
+                        continue;
+                    }
+                    const lang = getFileType(abs);
+                    fileContentsContext += `파일명: ${relPath}\n코드:\n\`\`\`${lang}\n${content}\n\`\`\`\n\n`;
+                    total += content.length;
+                    included.push({ name: relPath, fullPath: abs });
+                } catch (e) {
+                    // skip unreadable
+                }
+            }
+            if (total >= this.MAX_TOTAL_CONTEXT_BYTES) break;
+        }
+
+        return { fileContentsContext, includedFilesForContext: included };
     }
 }
