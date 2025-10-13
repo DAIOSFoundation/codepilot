@@ -1176,6 +1176,15 @@ if (aiModelSelect) {
         } else if (selectedModel === 'ollama') {
             geminiSettingsSection.classList.add('disabled');
             ollamaSettingsSection.classList.remove('disabled');
+
+            // Ollama가 선택되면 저장된 Ollama API URL을 즉시 다시 로드하여 입력란에 표시
+            try {
+                vscode.postMessage({ command: 'loadApiKeys' });
+                const loadingText = languageData['ollamaApiUrlLoading'] || 'Ollama API URL 로드 중...';
+                showStatus(ollamaApiUrlStatus, loadingText, 'info');
+            } catch (e) {
+                console.error('Failed to request Ollama API URL reload:', e);
+            }
         } else {
             // 모델이 선택되지 않은 경우 기본값(Gemini)으로 설정
             aiModelSelect.value = 'gemini';
