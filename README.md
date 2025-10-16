@@ -20,7 +20,7 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
     - **Gemma3:27b**: 128K 토큰 제한으로 코드 생성 및 분석
     - **DeepSeek R1:70B**: 200K 토큰 제한으로 한국어 최적화
     - **CodeLlama 7B**: 8K 토큰 제한으로 코드 생성에 최적화
-    - **itc-gpt-oss:70b**: 외부 서버 모델 지원 (자동 API URL 설정)
+    - **itc-gpt-oss:120b**: 외부 서버 모델 지원 (자동 API URL 설정)
     - **로컬 모델 자동 감지**: `ollama list` 명령으로 설치된 모델 자동 목록화
   - **동적 모델 선택**: 설정에서 클라우드와 로컬 AI 모델 간 전환 가능
 - **듀얼 모드 인터페이스**:
@@ -95,11 +95,11 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
   - **AI 모델 선택**: Gemini 2.5 Pro Flash와 Ollama 중 선택
   - **Ollama 모델 선택**: 로컬 설치된 모델 자동 목록화 및 선택
     - **로컬 모델**: `ollama list` 명령으로 자동 감지된 모델들
-    - **외부 서버 모델**: itc-gpt-oss:70b 등 외부 서버 모델 지원
+    - **외부 서버 모델**: itc-gpt-oss:120b 등 외부 서버 모델 지원
     - **자동 API URL 설정**: 특정 모델 선택 시 API URL 자동 설정
   - **Ollama 서버 설정**: Ollama API URL 및 엔드포인트 선택 설정
     - 로컬 Ollama: `http://localhost:11434` + `/api/generate`
-    - 외부 서버: `http://10.202.251.21:11434` (itc-gpt-oss:70b 자동 설정)
+    - 외부 서버: `http://10.202.251.21:11434` (itc-gpt-oss:120b 자동 설정)
     - 사용자 정의 서버: `https://your-server.com` + `/api/chat`
   - **동적 설정**: 선택된 모델에 따라 관련 설정 자동 활성화/비활성화
 - **API 키 관리**: 여러 외부 API 키를 안전하게 저장

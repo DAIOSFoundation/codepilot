@@ -1086,11 +1086,16 @@ if (saveOllamaApiUrlButton) {
 // Ollama 모델 저장 이벤트 리스너
 if (saveOllamaModelButton) {
     saveOllamaModelButton.addEventListener('click', () => {
-        const model = ollamaModelSelect.value;
-        console.log('Ollama model save button clicked, selected model:', model);
-        if (model) {
-            console.log('Sending saveOllamaModel command to extension with model:', model);
-            vscode.postMessage({ command: 'saveOllamaModel', model: model });
+        const selectedOption = ollamaModelSelect.options[ollamaModelSelect.selectedIndex];
+        const displayModel = ollamaModelSelect.value;
+        const actualModel = selectedOption && selectedOption.getAttribute('data-actual-model-name') 
+            ? selectedOption.getAttribute('data-actual-model-name') 
+            : displayModel;
+        
+        console.log('Ollama model save button clicked, display model:', displayModel, 'actual model:', actualModel);
+        if (displayModel) {
+            console.log('Sending saveOllamaModel command to extension with actual model:', actualModel);
+            vscode.postMessage({ command: 'saveOllamaModel', model: actualModel });
             const savingText = 'Ollama 모델 저장 중...';
             showStatus(ollamaModelStatus, savingText, 'info');
         } else {
@@ -1691,7 +1696,7 @@ function populateOllamaModels(models) {
     
     // 특별한 모델들을 먼저 추가
     const specialModels = [
-        { name: 'itc-gpt-oss:70b', size: '70B', isSpecial: true }
+        { name: 'itc-gpt-oss:120b', size: '120B', isSpecial: true, actualModelName: 'gpt-oss:120b' }
     ];
     
     specialModels.forEach(model => {
@@ -1700,6 +1705,9 @@ function populateOllamaModels(models) {
         option.textContent = `${model.name} (${model.size}) - 외부 서버`;
         option.setAttribute('data-special', 'true');
         option.setAttribute('data-api-url', 'http://10.202.251.21:11434');
+        if (model.actualModelName) {
+            option.setAttribute('data-actual-model-name', model.actualModelName);
+        }
         ollamaModelSelect.appendChild(option);
     });
     
