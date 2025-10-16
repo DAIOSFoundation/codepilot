@@ -318,6 +318,15 @@ export function openSettingsPanel(
                         panel.webview.postMessage({ command: 'currentOllamaModel', model: 'gemma3:27b' });
                     }
                     break;
+                case 'loadOllamaModels':
+                    try {
+                        const models = await loadOllamaModelsList();
+                        panel.webview.postMessage({ command: 'ollamaModelsLoaded', models });
+                    } catch (error: any) {
+                        console.error('Failed to load Ollama models:', error);
+                        panel.webview.postMessage({ command: 'ollamaModelsLoaded', models: [] });
+                    }
+                    break;
                 case 'saveWeatherApiKey':
                     try {
                         await configurationService.updateWeatherApiKey(data.apiKey);
@@ -440,6 +449,50 @@ export function openSettingsPanel(
 }
 
 /**
+ * Ollama 모델 목록을 로드하는 함수
+ */
+async function loadOllamaModelsList(): Promise<Array<{name: string, size: string}>> {
+    try {
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+        
+        // ollama list 명령어 실행
+        const { stdout, stderr } = await execAsync('ollama list');
+        
+        if (stderr) {
+            console.error('Ollama list error:', stderr);
+            return [];
+        }
+        
+        // 출력 파싱
+        const lines = stdout.trim().split('\n');
+        const models: Array<{name: string, size: string}> = [];
+        
+        // 첫 번째 줄은 헤더이므로 건너뛰기
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line) {
+                // 공백으로 분리하여 모델명과 크기 추출
+                const parts = line.split(/\s+/);
+                if (parts.length >= 3) {
+                    const name = parts[0];
+                    const size = parts[2] || 'Unknown';
+                    models.push({ name, size });
+                }
+            }
+        }
+        
+        console.log(`Loaded ${models.length} Ollama models:`, models);
+        return models;
+        
+    } catch (error) {
+        console.error('Failed to execute ollama list:', error);
+        return [];
+    }
+}
+
+/**
  * CodePilot 라이선스 패널을 엽니다.
  */
 export function openLicensePanel(
@@ -536,3 +589,4 @@ export function openLicensePanel(
 
     return panel;
 }
+

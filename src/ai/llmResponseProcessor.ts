@@ -4,7 +4,7 @@ import { ConfigurationService } from '../services/configurationService';
 import { NotificationService } from '../services/notificationService';
 import { PromptType } from './types'; // Import PromptType
 import { safePostMessage } from '../webview/panelUtils';
-import { executeBashCommandsFromLlmResponse, hasBashCommands } from '../terminal/terminalManager';
+// import { executeBashCommandsFromLlmResponse, hasBashCommands } from '../terminal/terminalManager';
 
 // Define a type for file operations
 interface FileOperation {
@@ -19,11 +19,17 @@ export class LlmResponseProcessor {
     private context: vscode.ExtensionContext;
     private configurationService: ConfigurationService;
     private notificationService: NotificationService;
+    private llmService: any; // LlmService 인스턴스
 
     constructor(context: vscode.ExtensionContext, configurationService: ConfigurationService, notificationService: NotificationService) {
         this.context = context;
         this.configurationService = configurationService;
         this.notificationService = notificationService;
+    }
+
+    // LlmService 인스턴스를 설정하는 메서드
+    public setLlmService(llmService: any): void {
+        this.llmService = llmService;
     }
 
     /**
@@ -67,16 +73,7 @@ export class LlmResponseProcessor {
             let cleanedResponse = llmResponse;
             let hasWarnings = false;
 
-            // 터미널 명령어가 포함되어 있으면 경고 메시지 표시하고 제거
-            if (hasBashCommands(llmResponse)) {
-                const warningMsg = "ASK 탭에서는 터미널 명령어를 실행할 수 없습니다. CODE 탭을 사용해주세요.";
-                safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: warningMsg });
-                this.notificationService.showWarningMessage(`CodePilot: ${warningMsg}`);
-                hasWarnings = true;
-
-                // 터미널 명령어 부분 제거
-                cleanedResponse = this.removeBashCommands(cleanedResponse);
-            }
+            // 터미널 명령어 자동 실행 기능 제거됨
 
             // 파일 생성/수정/삭제 지시어가 포함되어 있으면 경고 메시지 표시하고 제거
             if (llmResponse.includes("새 파일:") || llmResponse.includes("수정 파일:") || llmResponse.includes("삭제 파일:")) {
@@ -102,19 +99,22 @@ export class LlmResponseProcessor {
         // Updated regex to capture the directive (group 1), the path (group 2), and the content (group 3)
         // 수정: 파일 경로를 더 정확하게 파싱하도록 정규식 개선
         // 파일 경로는 directive 다음에 오는 텍스트에서 코드 블록 시작 전까지 추출
-        const codeBlockRegex = /(?:##\s*)?(새 파일|수정 파일):\s*([^\r\n]+?)(?:\s*\r?\n\s*\r?\n|\s*\r?\n)\s*```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
+        // callout 잔재를 더 잘 처리하도록 정규식 개선 - 더 엄격한 패턴
+        const codeBlockRegex = /(?:##\s*)?(새 파일|수정 파일):\s*([^\r\n`'\"\*]+?)(?:\s*\r?\n\s*\r?\n|\s*\r?\n)\s*```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
 
         // 마크다운 파일을 위한 별도 정규식 (코드 블록 없이 마크다운 내용 직접 포함)
-        const markdownFileRegex = /(새 파일|수정 파일):\s*([^\r\n]+\.md)\r?\n([\s\S]*?)(?=\r?\n\s*(?:새 파일|수정 파일|삭제 파일|--- 작업 요약|--- 작업 수행 설명|$))/gs;
+        // callout 잔재를 더 잘 처리하도록 정규식 개선 - 더 엄격한 패턴
+        const markdownFileRegex = /(새 파일|수정 파일):\s*([^\r\n`'\"\*]+\.md)\r?\n([\s\S]*?)(?=\r?\n\s*(?:새 파일|수정 파일|삭제 파일|--- 작업 요약|--- 작업 수행 설명|$))/gs;
 
         // 더 간단한 마크다운 파일 정규식 (대안)
-        const simpleMarkdownRegex = /(새 파일|수정 파일):\s*([^\r\n]+\.md)\r?\n([\s\S]*?)(?=\r?\n\s*(?:새 파일|수정 파일|삭제 파일|$))/gs;
+        const simpleMarkdownRegex = /(새 파일|수정 파일):\s*([^\r\n`'\"\*]+\.md)\r?\n([\s\S]*?)(?=\r?\n\s*(?:새 파일|수정 파일|삭제 파일|$))/gs;
 
         // 가장 간단한 마크다운 파일 정규식 (최후의 수단)
-        const fallbackMarkdownRegex = /(새 파일|수정 파일):\s*([^\r\n]+\.md)\r?\n([\s\S]*)/gs;
+        const fallbackMarkdownRegex = /(새 파일|수정 파일):\s*([^\r\n`'\"\*]+\.md)\r?\n([\s\S]*)/gs;
 
         // 삭제 파일을 위한 별도 정규식 (코드 블록이 없음)
-        const deleteFileRegex = /삭제 파일:\s+(.+?)(?:\r?\n|$)/g;
+        // callout 잔재를 더 잘 처리하도록 정규식 개선 - 더 엄격한 패턴
+        const deleteFileRegex = /삭제 파일:\s+([^\r\n`'\"\*]+?)(?:\r?\n|$)/g;
 
         let match;
         let updateSummaryMessages: string[] = [];
@@ -123,7 +123,11 @@ export class LlmResponseProcessor {
 
         // 디버깅을 위한 로그 추가
         console.log(`[LLM Response Processor] Response contains "새 파일:": ${llmResponse.includes("새 파일:")}`);
+        console.log(`[LLM Response Processor] Response contains "수정 파일:": ${llmResponse.includes("수정 파일:")}`);
+        console.log(`[LLM Response Processor] Response contains "삭제 파일:": ${llmResponse.includes("삭제 파일:")}`);
         console.log(`[LLM Response Processor] Response contains ".md": ${llmResponse.includes(".md")}`);
+        console.log(`[LLM Response Processor] Response length: ${llmResponse.length}`);
+        console.log(`[LLM Response Processor] Response preview: ${llmResponse.substring(0, 200)}...`);
 
         // 새 파일 생성을 위한 프로젝트 루트가 없으면 경고
         if (!projectRoot && llmResponse.includes("새 파일:")) {
@@ -134,17 +138,20 @@ export class LlmResponseProcessor {
 
 
         // 코드 블록이 있는 파일 작업 처리 (생성, 수정)
+        console.log(`[LLM Response Processor] Starting codeBlockRegex matching...`);
+        let matchCount = 0;
         while ((match = codeBlockRegex.exec(llmResponse)) !== null) {
+            matchCount++;
             // Updated to correctly access captured groups
             const originalDirective = match[1].trim(); // "수정 파일" or "새 파일"
             let llmSpecifiedPath = match[2].trim();  // e.g., 'src/components/Button.tsx'
             const newContent = match[3];
 
-            console.log(`[LLM Response Processor] Found directive: "${originalDirective}", LLM path: "${llmSpecifiedPath}"`);
+            console.log(`[LLM Response Processor] Match #${matchCount} - Found directive: "${originalDirective}", LLM path: "${llmSpecifiedPath}"`);
             console.log(`[LLM Response Processor] Raw match groups:`, match.map((group, index) => `Group ${index}: "${group}"`));
 
-            // 파일명에서 ** 제거 (Ollama 응답에서 발생하는 문제 해결)
-            llmSpecifiedPath = llmSpecifiedPath.replace(/\*\*$/, '');
+            // LLM을 사용한 파일 경로 검증 및 정리
+            llmSpecifiedPath = await this.validateAndCleanFilePath(llmSpecifiedPath, originalDirective, contextFiles);
 
 
 
@@ -188,6 +195,7 @@ export class LlmResponseProcessor {
             }
 
             if (absolutePath && newContent) {
+                console.log(`[LLM Response Processor] Adding file operation: ${operationType} - ${llmSpecifiedPath} -> ${absolutePath}`);
                 fileOperations.push({
                     type: operationType,
                     originalDirective,
@@ -214,8 +222,8 @@ export class LlmResponseProcessor {
             let llmSpecifiedPath = match[2].trim();  // e.g., 'docs/README.md'
             const newContent = match[3];
 
-            // 파일명에서 ** 제거 (Ollama 응답에서 발생하는 문제 해결)
-            llmSpecifiedPath = llmSpecifiedPath.replace(/\*\*$/, '');
+            // LLM을 사용한 파일 경로 검증 및 정리
+            llmSpecifiedPath = await this.validateAndCleanFilePath(llmSpecifiedPath, originalDirective, contextFiles);
 
             let absolutePath: string | undefined;
             let operationType: 'modify' | 'create' | 'delete';
@@ -254,6 +262,7 @@ export class LlmResponseProcessor {
             }
 
             if (absolutePath && newContent) {
+                console.log(`[LLM Response Processor] Adding file operation: ${operationType} - ${llmSpecifiedPath} -> ${absolutePath}`);
                 fileOperations.push({
                     type: operationType,
                     originalDirective,
@@ -276,8 +285,8 @@ export class LlmResponseProcessor {
                 let llmSpecifiedPath = match[2].trim();  // e.g., 'docs/README.md'
                 const newContent = match[3];
 
-                // 파일명에서 ** 제거 (Ollama 응답에서 발생하는 문제 해결)
-                llmSpecifiedPath = llmSpecifiedPath.replace(/\*\*$/, '');
+                // LLM을 사용한 파일 경로 검증 및 정리
+                llmSpecifiedPath = await this.validateAndCleanFilePath(llmSpecifiedPath, originalDirective, contextFiles);
 
                 let absolutePath: string | undefined;
                 let operationType: 'modify' | 'create' | 'delete';
@@ -339,8 +348,8 @@ export class LlmResponseProcessor {
                 let llmSpecifiedPath = match[2].trim();  // e.g., 'docs/README.md'
                 const newContent = match[3];
 
-                // 파일명에서 ** 제거 (Ollama 응답에서 발생하는 문제 해결)
-                llmSpecifiedPath = llmSpecifiedPath.replace(/\*\*$/, '');
+                // LLM을 사용한 파일 경로 검증 및 정리
+                llmSpecifiedPath = await this.validateAndCleanFilePath(llmSpecifiedPath, originalDirective, contextFiles);
 
                 let absolutePath: string | undefined;
                 let operationType: 'modify' | 'create' | 'delete';
@@ -394,9 +403,12 @@ export class LlmResponseProcessor {
 
 
         // 삭제 파일 작업 처리
+        console.log(`[LLM Response Processor] Starting delete file processing...`);
+        let deleteMatchCount = 0;
         while ((match = deleteFileRegex.exec(llmResponse)) !== null) {
+            deleteMatchCount++;
             const llmSpecifiedPath = match[1].trim();  // e.g., 'src/old/obsolete.ts'
-            // console.log(`[LLM Response Processor] Found delete directive for: "${llmSpecifiedPath}"`);
+            console.log(`[LLM Response Processor] Delete match #${deleteMatchCount} - Found delete directive for: "${llmSpecifiedPath}"`);
 
             let absolutePath: string | undefined;
 
@@ -413,6 +425,7 @@ export class LlmResponseProcessor {
             }
 
             if (absolutePath) {
+                console.log(`[LLM Response Processor] Adding delete operation: ${llmSpecifiedPath} -> ${absolutePath}`);
                 fileOperations.push({
                     type: 'delete',
                     originalDirective: '삭제 파일',
@@ -737,19 +750,7 @@ export class LlmResponseProcessor {
             }
 
             // Bash 명령어 실행 처리
-            if (hasBashCommands(llmResponse)) {
-                try {
-                    const executedCommands = executeBashCommandsFromLlmResponse(llmResponse);
-                    if (executedCommands.length > 0) {
-                        const bashMessage = `\n\n🚀 Bash 명령어 실행됨:\n${executedCommands.map(cmd => `• ${cmd}`).join('\n')}`;
-                        safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: bashMessage });
-                    }
-                } catch (error: any) {
-                    console.error('[LLM Response Processor] Bash command execution error:', error);
-                    const errorMessage = `\n\n❌ Bash 명령어 실행 중 오류 발생: ${error.message}`;
-                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: errorMessage });
-                }
-            }
+            // Bash 명령어 자동 실행 기능 제거됨
 
         // 작업 요약과 설명을 마지막에 출력
             if (workSummary) {
@@ -769,19 +770,7 @@ export class LlmResponseProcessor {
             safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: infoMessage });
 
             // Bash 명령어 실행 처리
-            if (hasBashCommands(llmResponse)) {
-                try {
-                    const executedCommands = executeBashCommandsFromLlmResponse(llmResponse);
-                    if (executedCommands.length > 0) {
-                        const bashMessage = `\n\n🚀 Bash 명령어 실행됨:\n${executedCommands.map(cmd => `• ${cmd}`).join('\n')}`;
-                        safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: bashMessage });
-                    }
-                } catch (error: any) {
-                    console.error('[LLM Response Processor] Bash command execution error:', error);
-                    const errorMessage = `\n\n❌ Bash 명령어 실행 중 오류 발생: ${error.message}`;
-                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: errorMessage });
-                }
-            }
+            // Bash 명령어 자동 실행 기능 제거됨
 
             // 파일 작업이 없어도 작업 요약과 설명이 있으면 출력
             if (workSummary) {
@@ -798,19 +787,7 @@ export class LlmResponseProcessor {
             safePostMessage(webview, { command: 'hideLoading' });
 
             // Bash 명령어 실행 처리
-            if (hasBashCommands(llmResponse)) {
-                try {
-                    const executedCommands = executeBashCommandsFromLlmResponse(llmResponse);
-                    if (executedCommands.length > 0) {
-                        const bashMessage = `\n\n🚀 Bash 명령어 실행됨:\n${executedCommands.map(cmd => `• ${cmd}`).join('\n')}`;
-                        safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: bashMessage });
-                    }
-                } catch (error: any) {
-                    console.error('[LLM Response Processor] Bash command execution error:', error);
-                    const errorMessage = `\n\n❌ Bash 명령어 실행 중 오류 발생: ${error.message}`;
-                    safePostMessage(webview, { command: 'receiveMessage', sender: 'CodePilot', text: errorMessage });
-                }
-            }
+            // Bash 명령어 자동 실행 기능 제거됨
 
             // 파일 작업이 없어도 작업 요약과 설명이 있으면 출력
             if (workSummary) {
@@ -870,13 +847,7 @@ export class LlmResponseProcessor {
         return result.trim();
     }
 
-    /**
-     * 터미널 명령어를 제거합니다.
-     */
-    private removeBashCommands(response: string): string {
-        // ```bash로 시작하고 ```로 끝나는 코드 블록 제거
-        return response.replace(/```bash[\s\S]*?```/g, '');
-    }
+    // removeBashCommands 메서드 제거됨
 
     /**
      * 파일 작업 지시어를 제거합니다.
@@ -898,5 +869,193 @@ export class LlmResponseProcessor {
         cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
 
         return cleaned.trim();
+    }
+
+    /**
+     * 파일 경로를 강력하게 정리하는 함수
+     */
+    private cleanFilePath(path: string): string {
+        if (!path) return '';
+        
+        let cleaned = path.trim();
+        
+        // 1. 앞뒤 따옴표 제거 (단일, 이중 따옴표, 백틱)
+        cleaned = cleaned.replace(/^['"`]+|['"`]+$/g, '');
+        
+        // 2. 연속된 따옴표 제거
+        cleaned = cleaned.replace(/^['"`]+|['"`]+$/g, '');
+        
+        // 3. ** 제거 (앞뒤)
+        cleaned = cleaned.replace(/^\*\*|\*\*$/g, '');
+        
+        // 4. * 제거 (앞뒤)
+        cleaned = cleaned.replace(/^\*|\*$/g, '');
+        
+        // 5. 앞뒤 공백 제거
+        cleaned = cleaned.trim();
+        
+        // 6. 경로 내부의 불필요한 문자들 정리
+        cleaned = cleaned.replace(/[`'"]/g, ''); // 경로 내부의 따옴표 제거
+        cleaned = cleaned.replace(/\*+/g, ''); // 경로 내부의 * 문자들 제거
+        
+        // 7. 연속된 공백을 단일 공백으로 변경
+        cleaned = cleaned.replace(/\s+/g, ' ');
+        
+        // 8. 다시 앞뒤 공백 제거
+        cleaned = cleaned.trim();
+        
+        // 9. 추가 정리: 특수 문자 패턴 제거
+        cleaned = cleaned.replace(/^[`'"]+|[`'"]+$/g, ''); // 다시 한번 따옴표 제거
+        cleaned = cleaned.replace(/^\*+|\*+$/g, ''); // 다시 한번 * 제거
+        
+        // 10. 최종 정리
+        cleaned = cleaned.trim();
+        
+        console.log(`[LLM Response Processor] 경로 정리: "${path}" -> "${cleaned}"`);
+        
+        return cleaned;
+    }
+
+    /**
+     * LLM을 사용하여 파일 경로를 검증하고 정리하는 함수
+     */
+    private async validateAndCleanFilePath(
+        rawPath: string, 
+        directive: string, 
+        contextFiles: { name: string, fullPath: string }[]
+    ): Promise<string> {
+        try {
+            // 강력한 정리 먼저 수행
+            let cleanedPath = this.cleanFilePath(rawPath);
+            
+            // 이미 깨끗한 경로인 경우 바로 반환
+            if (this.isValidFilePath(cleanedPath)) {
+                return cleanedPath;
+            }
+
+            // LLM을 사용한 경로 검증 및 정리
+            const validationPrompt = `다음은 LLM 응답에서 추출한 파일 경로입니다. 올바른 파일 경로로 정리해주세요.
+
+지시어: ${directive}
+원본 경로: "${rawPath}"
+정리된 경로: "${cleanedPath}"
+
+사용 가능한 컨텍스트 파일들:
+${contextFiles.map(f => `- ${f.name}`).join('\n')}
+
+규칙:
+1. 파일 경로는 상대 경로여야 합니다 (프로젝트 루트 기준)
+2. 경로에서 다음 문자들을 모두 제거하세요:
+   - 백틱: \` \`\` \`\`\`
+   - 따옴표: ' "
+   - 별표: * **
+   - 기타 특수문자: [ ] ( ) { }
+3. 파일 확장자는 유지하세요
+4. 경로 구분자는 /를 사용하세요
+5. 응답은 오직 정리된 파일 경로만 반환하세요 (설명 없이)
+
+예시:
+- 입력: \`src/components/Button.tsx\` → 출력: src/components/Button.tsx
+- 입력: 'src/utils/helper.js' → 출력: src/utils/helper.js
+- 입력: **src/app/page.tsx** → 출력: src/app/page.tsx
+- 입력: \`\`\`src/index.js\`\`\` → 출력: src/index.js
+
+정리된 파일 경로:`;
+
+            // 설정된 LLM을 사용하여 경로 검증
+            if (!this.llmService) {
+                console.warn('[LLM Response Processor] LlmService가 설정되지 않았습니다. 기본 정리된 경로를 사용합니다.');
+                return cleanedPath;
+            }
+            
+            const validationResponse = await this.llmService.sendMessage(validationPrompt, PromptType.CODE_GENERATION);
+            
+            if (validationResponse && validationResponse.trim()) {
+                let validatedPath = validationResponse.trim();
+                
+                // LLM 응답에서도 추가 정리 수행
+                validatedPath = this.cleanFilePath(validatedPath);
+                
+                console.log(`[LLM Response Processor] LLM 경로 검증: "${rawPath}" -> "${validatedPath}"`);
+                
+                // 검증된 경로가 유효한지 확인
+                if (this.isValidFilePath(validatedPath)) {
+                    return validatedPath;
+                }
+            }
+            
+            // LLM 검증이 실패한 경우 강력한 정리된 경로 반환
+            console.warn(`[LLM Response Processor] LLM 경로 검증 실패, 강력한 정리된 경로 사용: "${cleanedPath}"`);
+            
+            // 정리된 경로가 유효한지 확인
+            if (this.isValidFilePath(cleanedPath)) {
+                return cleanedPath;
+            }
+            
+            // 정리된 경로도 유효하지 않으면 원본 경로 반환 (최후의 수단)
+            console.warn(`[LLM Response Processor] 정리된 경로도 유효하지 않음, 원본 경로 사용: "${rawPath}"`);
+            return rawPath;
+            
+        } catch (error) {
+            console.error(`[LLM Response Processor] 경로 검증 중 오류:`, error);
+            // 오류 발생 시 강력한 정리된 경로 반환
+            const fallbackPath = this.cleanFilePath(rawPath);
+            
+            // 정리된 경로가 유효한지 확인
+            if (this.isValidFilePath(fallbackPath)) {
+                return fallbackPath;
+            }
+            
+            // 정리된 경로도 유효하지 않으면 원본 경로 반환 (최후의 수단)
+            console.warn(`[LLM Response Processor] 오류 발생 후 정리된 경로도 유효하지 않음, 원본 경로 사용: "${rawPath}"`);
+            return rawPath;
+        }
+    }
+
+    /**
+     * 파일 경로가 유효한지 검증하는 함수
+     */
+    private isValidFilePath(path: string): boolean {
+        if (!path || path.trim().length === 0) {
+            return false;
+        }
+        
+        // 기본적인 유효성 검사
+        const trimmedPath = path.trim();
+        
+        // 빈 문자열이거나 특수문자만 있는 경우
+        if (trimmedPath.length === 0 || /^[^\w\/\.\-_]+$/.test(trimmedPath)) {
+            return false;
+        }
+        
+        // callout 잔재가 남아있는 경우
+        if (/[`'"]/.test(trimmedPath) || /\*+/.test(trimmedPath)) {
+            return false;
+        }
+        
+        // 경로에 허용되지 않는 문자들이 있는지 확인
+        if (/[<>:"|?*\x00-\x1f]/.test(trimmedPath)) {
+            return false;
+        }
+        
+        // 상대 경로인지 확인 (절대 경로는 허용하지 않음)
+        if (trimmedPath.startsWith('/') || trimmedPath.match(/^[A-Za-z]:/)) {
+            return false;
+        }
+        
+        // 파일명이 너무 짧거나 이상한 경우 (완화)
+        if (trimmedPath.length < 1 || trimmedPath === '.' || trimmedPath === '..') {
+            return false;
+        }
+        
+        // 파일 확장자 검증 완화 - 대부분의 파일을 허용
+        const fileName = trimmedPath.split('/').pop() || '';
+        
+        // 파일명이 너무 이상한 경우만 거부
+        if (fileName.length < 1 || /^[^a-zA-Z0-9]/.test(fileName)) {
+            return false;
+        }
+        
+        return true;
     }
 }

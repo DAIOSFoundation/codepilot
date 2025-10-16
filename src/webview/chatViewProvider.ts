@@ -97,6 +97,13 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     console.log('[Extension Host] Opening file picker...');
                     this.openFilePicker(webviewView.webview);
                     break;
+                case 'executeBashCommands':
+                    console.log('[Extension Host] Executing bash commands:', data.commands);
+                    if (data.commands && Array.isArray(data.commands)) {
+                        const { executeBashCommands } = await import('../terminal/terminalManager');
+                        executeBashCommands(data.commands);
+                    }
+                    break;
                 case 'displayUserMessage': // 웹뷰 자체에서 사용자 메시지 표시를 요청할 때, 이미지도 포함
                     console.log('Received command to display user message from webview:', data.text, data.imageData);
                     if (data.text !== undefined || data.imageData !== undefined) {

@@ -20,6 +20,8 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
     - **Gemma3:27b**: 128K 토큰 제한으로 코드 생성 및 분석
     - **DeepSeek R1:70B**: 200K 토큰 제한으로 한국어 최적화
     - **CodeLlama 7B**: 8K 토큰 제한으로 코드 생성에 최적화
+    - **itc-gpt-oss:70b**: 외부 서버 모델 지원 (자동 API URL 설정)
+    - **로컬 모델 자동 감지**: `ollama list` 명령으로 설치된 모델 자동 목록화
   - **동적 모델 선택**: 설정에서 클라우드와 로컬 AI 모델 간 전환 가능
 - **듀얼 모드 인터페이스**:
   - **CODE 탭**: 코드 생성, 수정, 프로젝트 작업에 특화
@@ -33,6 +35,15 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
   - **package.json 기반 프로젝트 인식**: 프로젝트 타입을 파악하여 관련 기본 파일들을 자동 선정
   - **두 단계 LLM 컨텍스트 계획**: 파일 선정 → 내용 수집의 지능적인 접근 방식
   - **휴리스틱 폴백**: LLM 기반 접근이 실패할 경우 기존 휴리스틱 방식으로 폴백
+- **프로젝트 타입별 핵심 설정 파일 자동 포함**:
+  - **Node.js/React/Vue/Angular**: `package.json`, `tsconfig.json`, `webpack.config.js` 등 항상 포함
+  - **Spring 프로젝트**: `pom.xml`, `build.gradle`, `application.properties` 등 항상 포함
+  - **Python 프로젝트**: `requirements.txt`, `pyproject.toml`, `setup.py` 등 항상 포함
+  - **Java 프로젝트**: `pom.xml`, `build.gradle`, `gradle.properties` 등 항상 포함
+  - **Go 프로젝트**: `go.mod`, `go.sum`, `Gopkg.toml` 등 항상 포함
+  - **Rust 프로젝트**: `Cargo.toml`, `Cargo.lock` 등 항상 포함
+  - **C# 프로젝트**: `*.csproj`, `*.sln`, `packages.config` 등 항상 포함
+- **3단계 우선순위 파일 수집**: 설정 파일(최고) → src 파일(높음) → 기타 파일(키워드 기반)
 - **스마트 파일 선택**: @ 버튼으로 특정 파일을 선택해 맥락에 포함
   - **CODE 탭**: 맥락 인식 코드 생성 및 수정을 위한 전체 파일 작업 기능
   - **ASK 탭**: 맥락 인식 질의를 위한 파일 선택 (읽기 전용, 파일 작업 없음)
@@ -46,6 +57,14 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
 - **이미지 지원**: 코드 분석 및 디버깅을 위한 이미지 업로드 가능
 - **드래그&드롭 인터페이스**: 클립보드 붙여넣기로 이미지 첨부 가능
 - **시각적 맥락**: AI가 스크린샷, 다이어그램, 코드 이미지를 분석
+
+### 💻 터미널 및 명령어 실행
+- **수동 명령어 실행**: AI 응답의 bash callout에 "Run" 버튼 제공
+  - **보안 강화**: 자동 실행 제거로 사용자가 명시적으로 명령어 실행 결정
+  - **주석 필터링**: `#` 주석이 포함된 라인은 자동으로 제외
+  - **순차 실행**: 여러 명령어를 순차적으로 실행하여 안정성 확보
+- **전용 터미널**: CodePilot 전용 터미널에서 명령어 실행
+- **실행 피드백**: 명령어 실행 상태 및 결과를 사용자에게 알림
 
 ### 🌐 실시간 정보 서비스
 - **날씨 정보**: 기상청 API 연동
@@ -74,11 +93,14 @@ VSCode 기반 코드 어시스턴트 플러그인 (LLM 및 LM 지원)
 ### ⚙️ 포괄적 설정
 - **멀티모델 AI 설정**:
   - **AI 모델 선택**: Gemini 2.5 Pro Flash와 Ollama 중 선택
-  - **Ollama 모델 선택**: 특정 Ollama 모델 선택 (Gemma3:27b, DeepSeek R1:70B, CodeLlama 7B)
+  - **Ollama 모델 선택**: 로컬 설치된 모델 자동 목록화 및 선택
+    - **로컬 모델**: `ollama list` 명령으로 자동 감지된 모델들
+    - **외부 서버 모델**: itc-gpt-oss:70b 등 외부 서버 모델 지원
+    - **자동 API URL 설정**: 특정 모델 선택 시 API URL 자동 설정
   - **Ollama 서버 설정**: Ollama API URL 및 엔드포인트 선택 설정
     - 로컬 Ollama: `http://localhost:11434` + `/api/generate`
-    - 외부 서버: `https://your-server.com` + `/api/chat`
-    - Vessl AI 클러스터: `https://model-service-gateway-xxx.eu.h100-cluster.vessl.ai` + `/api/chat`
+    - 외부 서버: `http://10.202.251.21:11434` (itc-gpt-oss:70b 자동 설정)
+    - 사용자 정의 서버: `https://your-server.com` + `/api/chat`
   - **동적 설정**: 선택된 모델에 따라 관련 설정 자동 활성화/비활성화
 - **API 키 관리**: 여러 외부 API 키를 안전하게 저장
   - Gemini API 키 설정

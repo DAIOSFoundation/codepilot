@@ -105,9 +105,19 @@ export class LlmService {
                 includedFilesForContext = built.includedFilesForContext;
             } catch (planErr) {
                 console.warn('[LlmService] LLM 기반 파일 선정 실패. 휴리스틱으로 폴백합니다.', planErr);
-                const contextResult = await this.codebaseContextService.getRelevantCodebaseContextForQuery(userQuery, abortSignal);
+                const contextResult = await this.codebaseContextService.getRelevantCodebaseContextForQuery(userQuery, abortSignal, history);
                 fileContentsContext = contextResult.fileContentsContext;
                 includedFilesForContext = contextResult.includedFilesForContext;
+            }
+
+            // src 파일 업데이트 확인 및 최신 파일들로 컨텍스트 재구성
+            try {
+                const baseRoot = await this.getBaseRoot();
+                const updatedSrcContext = await this.checkAndUpdateSrcFiles(baseRoot, fileContentsContext, includedFilesForContext, abortSignal);
+                fileContentsContext = updatedSrcContext.fileContentsContext;
+                includedFilesForContext = updatedSrcContext.includedFilesForContext;
+            } catch (updateErr) {
+                console.warn('[LlmService] src 파일 업데이트 확인 중 오류:', updateErr);
             }
 
             // 선택된 파일들의 내용을 읽어서 컨텍스트에 추가
@@ -299,7 +309,7 @@ export class LlmService {
 6. 기존 파일을 수정할 때는 반드시 "수정 파일: [파일경로]" 형식으로 시작하고, 그 다음에 수정된 코드 블록을 포함하세요.
 7. 파일을 삭제할 때는 "삭제 파일: [파일경로]" 형식으로 명시하세요.
 8. 마크다운 파일(.md)을 생성할 때는 코드 블록 없이 마크다운 내용을 직접 포함하세요.
-9. 터미널 명령어가 필요한 경우 "bash" 코드 블록으로 제공하세요. 이 명령어들은 자동으로 실행됩니다.
+9. 터미널 명령어가 필요한 경우 "bash" 코드 블록으로 제공하세요.
 
 파일 생성/수정 형식 예시:
 
@@ -500,5 +510,153 @@ ${realTimeInfo}
         }
 
         return { fileContentsContext, includedFilesForContext: included };
+    }
+
+    /**
+     * src 파일들의 업데이트를 확인하고 최신 파일들로 컨텍스트를 재구성합니다.
+     */
+    private async checkAndUpdateSrcFiles(
+        baseRoot: string, 
+        currentContext: string, 
+        currentFiles: { name: string, fullPath: string }[], 
+        abortSignal: AbortSignal
+    ): Promise<{ fileContentsContext: string, includedFilesForContext: { name: string, fullPath: string }[] }> {
+        
+        // src 디렉토리 패턴들
+        const srcPatterns = [
+            'src/**/*',
+            'app/**/*',
+            'lib/**/*',
+            'components/**/*',
+            'pages/**/*',
+            'views/**/*',
+            'controllers/**/*',
+            'services/**/*',
+            'models/**/*',
+            'utils/**/*',
+            'helpers/**/*'
+        ];
+
+        // 현재 컨텍스트에서 src 파일들 추출
+        const currentSrcFiles = currentFiles.filter(file => {
+            const relativePath = file.name.replace(/\\/g, '/');
+            return relativePath.startsWith('src/') || 
+                   relativePath.startsWith('app/') || 
+                   relativePath.startsWith('lib/') ||
+                   relativePath.startsWith('components/') ||
+                   relativePath.startsWith('pages/') ||
+                   relativePath.startsWith('views/') ||
+                   relativePath.startsWith('controllers/') ||
+                   relativePath.startsWith('services/') ||
+                   relativePath.startsWith('models/') ||
+                   relativePath.startsWith('utils/') ||
+                   relativePath.startsWith('helpers/');
+        });
+
+        // 최신 src 파일들 수집
+        const latestSrcFiles: string[] = [];
+        for (const pattern of srcPatterns) {
+            const patternFiles = glob.sync(pattern, {
+                cwd: baseRoot,
+                nodir: true,
+                dot: false
+            }).filter((f: string) => {
+                const fullPath = path.join(baseRoot, f);
+                const ext = path.extname(f).toLowerCase();
+                if (this.EXCLUDED_EXTENSIONS_FOR_ATTACH.includes(ext)) return false;
+                return getFileType(fullPath) !== '';
+            });
+            latestSrcFiles.push(...patternFiles.map(f => path.join(baseRoot, f)));
+        }
+
+        const uniqueLatestSrcFiles = [...new Set(latestSrcFiles)];
+        
+        // 현재 src 파일들과 최신 src 파일들 비교
+        const currentSrcPaths = new Set(currentSrcFiles.map(f => f.fullPath));
+        const latestSrcPaths = new Set(uniqueLatestSrcFiles);
+        
+        // 추가되거나 변경된 파일들 확인
+        const newOrChangedFiles = uniqueLatestSrcFiles.filter(filePath => {
+            if (!currentSrcPaths.has(filePath)) {
+                return true; // 새 파일
+            }
+            
+            // 기존 파일의 수정 시간 확인
+            try {
+                const currentFile = currentSrcFiles.find(f => f.fullPath === filePath);
+                if (currentFile) {
+                    // 파일이 이미 컨텍스트에 포함되어 있으면 최신 상태로 간주
+                    return false;
+                }
+            } catch (e) {
+                // 파일 접근 오류 시 새로 읽기
+                return true;
+            }
+            
+            return false;
+        });
+
+        if (newOrChangedFiles.length === 0) {
+            console.log('[LlmService] src 파일에 변경사항이 없습니다.');
+            return { fileContentsContext: currentContext, includedFilesForContext: currentFiles };
+        }
+
+        console.log(`[LlmService] ${newOrChangedFiles.length}개의 src 파일이 업데이트되었습니다. 컨텍스트를 재구성합니다.`);
+
+        // 기존 컨텍스트에서 src 파일 부분 제거
+        let updatedContext = currentContext;
+        const updatedFiles = currentFiles.filter(file => {
+            const relativePath = file.name.replace(/\\/g, '/');
+            return !(relativePath.startsWith('src/') || 
+                     relativePath.startsWith('app/') || 
+                     relativePath.startsWith('lib/') ||
+                     relativePath.startsWith('components/') ||
+                     relativePath.startsWith('pages/') ||
+                     relativePath.startsWith('views/') ||
+                     relativePath.startsWith('controllers/') ||
+                     relativePath.startsWith('services/') ||
+                     relativePath.startsWith('models/') ||
+                     relativePath.startsWith('utils/') ||
+                     relativePath.startsWith('helpers/'));
+        });
+
+        // 최신 src 파일들로 컨텍스트 재구성
+        let srcContext = '';
+        let totalContentLength = 0;
+        const MAX_CONTENT_LENGTH = 1000000; // 1MB 제한
+
+        for (const filePath of uniqueLatestSrcFiles) {
+            if (abortSignal.aborted) break;
+            if (totalContentLength >= MAX_CONTENT_LENGTH) {
+                srcContext += `\n[INFO] src 파일 컨텍스트 길이 제한으로 일부 파일이 생략되었습니다.\n`;
+                break;
+            }
+
+            try {
+                const fileUri = vscode.Uri.file(filePath);
+                const contentBytes = await vscode.workspace.fs.readFile(fileUri);
+                const content = Buffer.from(contentBytes).toString('utf8');
+                const relativePath = path.relative(baseRoot, filePath).replace(/\\/g, '/');
+                const lang = getFileType(filePath);
+
+                if (totalContentLength + content.length <= MAX_CONTENT_LENGTH) {
+                    srcContext += `파일명: ${relativePath}\n코드:\n\`\`\`${lang}\n${content}\n\`\`\`\n\n`;
+                    totalContentLength += content.length;
+                    updatedFiles.push({ name: relativePath, fullPath: filePath });
+                } else {
+                    srcContext += `파일명: ${relativePath}\n코드:\n[INFO] 파일 내용이 너무 길어 생략되었습니다.\n\n`;
+                }
+            } catch (err: any) {
+                console.error(`[LlmService] src 파일 읽기 오류 ${filePath}:`, err);
+            }
+        }
+
+        // 업데이트된 컨텍스트 조합
+        const finalContext = srcContext + updatedContext;
+
+        return { 
+            fileContentsContext: finalContext, 
+            includedFilesForContext: updatedFiles 
+        };
     }
 }

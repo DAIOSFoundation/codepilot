@@ -659,6 +659,11 @@ function displayCodePilotMessage(markdownText) {
         preElement.appendChild(codeElement);
         codeContainer.appendChild(preElement);
         
+        // bash callout인 경우 run 버튼을 나중에 추가하기 위해 플래그 설정
+        if (lang && lang.toLowerCase() === 'bash') {
+            codeBlockContainer.setAttribute('data-bash-content', cleanCodeContent);
+        }
+        
         codeBlockContainer.appendChild(codeHeader);
         codeBlockContainer.appendChild(codeContainer);
         
@@ -678,6 +683,9 @@ function displayCodePilotMessage(markdownText) {
     messageContainer.appendChild(bubbleElement);
 
     addCopyButtonsToCodeBlocks(bubbleElement);
+    
+    // bash callout에 run 버튼 추가 (Copy 버튼 좌측에)
+    addBashRunButtons(bubbleElement);
 
     chatMessages.appendChild(messageContainer);
 
@@ -701,6 +709,97 @@ window.displayUserMessage = displayUserMessage;
 window.showLoading = showLoading;
 window.hideLoading = hideLoading;
 window.displayCodePilotMessage = displayCodePilotMessage;
+
+// bash 명령어 실행 함수
+function executeBashCommands(bashContent) {
+    // 주석이 아닌 명령어만 추출하고, 명령어 뒤의 주석도 제거
+    const commands = bashContent
+        .split('\n')
+        .map(line => {
+            // 줄 앞뒤 공백 제거
+            const trimmedLine = line.trim();
+            
+            // 빈 줄이거나 #으로 시작하는 주석 줄은 제외
+            if (!trimmedLine || trimmedLine.startsWith('#')) {
+                return null;
+            }
+            
+            // 명령어 뒤의 주석 제거 (# 앞의 내용만 추출)
+            const commandPart = trimmedLine.split('#')[0].trim();
+            
+            return commandPart.length > 0 ? commandPart : null;
+        })
+        .filter(command => command !== null);
+    
+    if (commands.length === 0) {
+        vscode.postMessage({ 
+            command: 'showMessage', 
+            type: 'warning', 
+            text: '실행할 명령어가 없습니다.' 
+        });
+        return;
+    }
+    
+    // VS Code 확장에 명령어 실행 요청
+    vscode.postMessage({ 
+        command: 'executeBashCommands', 
+        commands: commands 
+    });
+    
+    // 사용자에게 실행 중임을 알림
+    vscode.postMessage({ 
+        command: 'showMessage', 
+        type: 'info', 
+        text: `🚀 ${commands.length}개의 명령어를 실행합니다...` 
+    });
+}
+
+// bash callout에 run 버튼 추가 함수
+function addBashRunButtons(bubbleElement) {
+    if (!bubbleElement) return;
+    
+    // bash 콘텐츠가 있는 코드 블록 컨테이너 찾기
+    const bashContainers = bubbleElement.querySelectorAll('.code-block-container[data-bash-content]');
+    
+    bashContainers.forEach(container => {
+        const bashContent = container.getAttribute('data-bash-content');
+        if (!bashContent) return;
+        
+        // run 버튼 생성
+        const runButton = document.createElement('button');
+        runButton.textContent = '▶ Run';
+        runButton.className = 'bash-run-button';
+        runButton.style.cssText = `
+            margin-top: 5px;
+            margin-right: 8px;
+            padding: 6px 12px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: 1px solid var(--vscode-button-border);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: var(--vscode-font-family);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        runButton.addEventListener('click', () => {
+            executeBashCommands(bashContent);
+        });
+        
+        // Copy 버튼 찾기 (코드 블록 컨테이너 다음에 있는 버튼)
+        const copyButton = container.nextElementSibling;
+        if (copyButton && copyButton.classList.contains('copy-code-button')) {
+            // Copy 버튼 앞에 run 버튼 삽입
+            copyButton.parentNode.insertBefore(runButton, copyButton);
+        } else {
+            // Copy 버튼이 없으면 컨테이너 뒤에 삽입
+            container.insertAdjacentElement('afterend', runButton);
+        }
+    });
+}
 
 // 메시지 수신 핸들러 (파일 선택 및 기타 명령)
 window.addEventListener('message', event => {

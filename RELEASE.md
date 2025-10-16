@@ -2,7 +2,67 @@
 
 이 문서는 CodePilot VSCode 확장의 완전한 릴리즈 히스토리를 포함합니다.
 
-## Version 2.7.0 (2025/01/15) - 자동 파일 컨텍스트 및 대화 히스토리 파일 추적
+## Version 3.0.0 (2025/10/16) - 프로젝트 타입별 설정 파일 자동 포함 및 터미널 명령어 실행
+
+<details>
+<summary>프로젝트 타입별 핵심 설정 파일 자동 포함</summary>
+
+- **3단계 우선순위 파일 수집 시스템**: 설정 파일(최고) → src 파일(높음) → 기타 파일(키워드 기반)
+- **Node.js/React/Vue/Angular 프로젝트**: `package.json`, `tsconfig.json`, `webpack.config.js` 등 항상 포함
+- **Spring 프로젝트**: `pom.xml`, `build.gradle`, `application.properties` 등 항상 포함
+- **Python 프로젝트**: `requirements.txt`, `pyproject.toml`, `setup.py` 등 항상 포함
+- **Java 프로젝트**: `pom.xml`, `build.gradle`, `gradle.properties` 등 항상 포함
+- **Go 프로젝트**: `go.mod`, `go.sum`, `Gopkg.toml` 등 항상 포함
+- **Rust 프로젝트**: `Cargo.toml`, `Cargo.lock` 등 항상 포함
+- **C# 프로젝트**: `*.csproj`, `*.sln`, `packages.config` 등 항상 포함
+- **포괄적 프레임워크 지원**: 7개 주요 프로그래밍 언어/프레임워크의 핵심 설정 파일 자동 감지
+
+</details>
+
+<details>
+<summary>수동 터미널 명령어 실행</summary>
+
+- **보안 강화**: AI 응답의 bash callout 자동 실행 제거
+- **수동 실행 버튼**: AI 응답의 bash callout에 "Run" 버튼 제공
+- **주석 필터링**: `#` 주석이 포함된 라인은 자동으로 제외
+- **순차 실행**: 여러 명령어를 순차적으로 실행하여 안정성 확보
+- **전용 터미널**: CodePilot 전용 터미널에서 명령어 실행
+- **실행 피드백**: 명령어 실행 상태 및 결과를 사용자에게 알림
+
+</details>
+
+<details>
+<summary>Ollama 로컬 모델 자동 감지</summary>
+
+- **로컬 모델 자동 목록화**: `ollama list` 명령으로 설치된 모델 자동 감지
+- **외부 서버 모델 지원**: itc-gpt-oss:70b 등 외부 서버 모델 지원
+- **자동 API URL 설정**: 특정 모델 선택 시 API URL 자동 설정
+- **동적 모델 선택**: 설정에서 로컬 설치된 모델들을 드롭다운으로 선택 가능
+
+</details>
+
+<details>
+<summary>강화된 파일 경로 검증 시스템</summary>
+
+- **4단계 방어 시스템**: 정규식 → 강화된 정리 → LLM 검증+이중정리 → 강화된 유효성 검사
+- **Callout 잔재 완전 제거**: `'`, `"`, `` ` ``, `*`, `**` 문자 완전 제거
+- **설정된 LLM 사용**: 경로 검증에 설정된 LLM 사용 (Gemini 직접 호출 제거)
+- **순환 의존성 해결**: `setLlmService()` 메서드로 안전한 의존성 주입
+- **안전한 Fallback**: 모든 단계에서 실패해도 강화된 정리된 경로 반환
+
+</details>
+
+<details>
+<summary>디버깅 시스템 강화</summary>
+
+- **상세한 로깅**: 파일 처리 과정의 모든 단계에 대한 상세한 로그
+- **정규식 매칭 추적**: 각 정규식 패턴의 매칭 결과 추적
+- **파일 작업 실행 추적**: 파일 생성/수정/삭제 작업의 실행 과정 추적
+- **오류 진단**: 파일 작업이 실패하는 원인을 쉽게 파악할 수 있는 로그 제공
+
+</details>
+
+## Version 2.7.0 (2025/10/15) - 자동 파일 컨텍스트 및 대화 히스토리 파일 추적
 
 <details>
 <summary>자동 파일 컨텍스트 시스템</summary>

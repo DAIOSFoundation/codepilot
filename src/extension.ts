@@ -12,7 +12,7 @@ import { AiModelType } from './ai/types';
 import { OllamaApi } from './ai/ollamaService';
 import { ChatViewProvider } from './webview/chatViewProvider';
 import { AskViewProvider } from './webview/askViewProvider'; // 새로 추가된 AskViewProvider 임포트
-import { getCodePilotTerminal } from './terminal/terminalManager';
+import { executeBashCommands, disposeTerminal } from './terminal/terminalManager';
 import { openSettingsPanel, openLicensePanel } from './webview/panelManager';
 import { LicenseService } from './services/licenseService';
 
@@ -62,6 +62,9 @@ export async function activate(context: vscode.ExtensionContext) {
         configurationService,
         context // extension context 전달
     );
+    
+    // LlmResponseProcessor에 LlmService 설정 (순환 의존성 해결)
+    llmResponseProcessor.setLlmService(llmService);
 
     // 현재 AI 모델 설정 로드
     let currentAiModel = await storageService.getCurrentAiModel();
@@ -133,19 +136,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // 언어 변경 브로드캐스트 명령어 등록
     context.subscriptions.push(vscode.commands.registerCommand('codepilot.broadcastLanguageChange', (language: string) => {
-        // 모든 활성 webview에 언어 변경 메시지 브로드캐스트
-        vscode.window.terminals.forEach(terminal => {
-            if (terminal.name.includes('CodePilot')) {
-                terminal.sendText(`echo "Language changed to: ${language}"`);
-            }
-        });
-
-        // 모든 활성 webview 패널에 언어 변경 메시지 전송
-        vscode.window.terminals.forEach(terminal => {
-            if (terminal.name.includes('CodePilot')) {
-                terminal.sendText(`echo "Language changed to: ${language}"`);
-            }
-        });
+        // 터미널 관련 기능 제거됨
+        console.log(`Language changed to: ${language}`);
     }));
 
     console.log('CodePilot activated and commands registered.');
@@ -153,8 +145,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
     // 터미널 정리
-    const terminal = getCodePilotTerminal();
-    if (terminal) {
-        terminal.dispose();
-    }
+    disposeTerminal();
+    console.log('CodePilot deactivated.');
 }

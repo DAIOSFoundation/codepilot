@@ -88,6 +88,13 @@ export class AskViewProvider implements vscode.WebviewViewProvider {
                     console.log('[Extension Host] Opening file picker from Ask tab...');
                     this.openFilePicker(webviewView.webview);
                     break;
+                case 'executeBashCommands':
+                    console.log('[Extension Host] Executing bash commands from Ask tab:', data.commands);
+                    if (data.commands && Array.isArray(data.commands)) {
+                        const { executeBashCommands } = await import('../terminal/terminalManager');
+                        executeBashCommands(data.commands);
+                    }
+                    break;
             }
         });
         webviewView.onDidDispose(() => {

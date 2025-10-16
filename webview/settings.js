@@ -1489,6 +1489,15 @@ window.addEventListener('message', event => {
                 showStatus(ollamaModelStatus, ollamaModelSetText, message.model ? 'success' : 'info');
             }
             break;
+        case 'ollamaModelsLoaded':
+            if (message.models) {
+                populateOllamaModels(message.models);
+                const modelsLoadedText = `${message.models.length}개의 Ollama 모델을 로드했습니다.`;
+                showStatus(ollamaModelStatus, modelsLoadedText, 'success');
+            } else {
+                showStatus(ollamaModelStatus, 'Ollama 모델을 로드할 수 없습니다.', 'error');
+            }
+            break;
         case 'ollamaModelSaved':
             showStatus(ollamaModelStatus, 'Ollama 모델이 저장되었습니다.', 'success');
             break;
@@ -1645,6 +1654,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ollama 모델 설정 요청
     vscode.postMessage({ command: 'loadOllamaModel' });
     
+    // Ollama 모델 목록 로드 요청
+    loadOllamaModels();
+    
     // 초기 상태: Gemini가 기본값이므로 Gemini 설정 섹션 활성화, Ollama 설정 섹션 비활성화
     if (geminiSettingsSection) geminiSettingsSection.classList.remove('disabled');
     if (ollamaSettingsSection) ollamaSettingsSection.classList.add('disabled');
@@ -1652,3 +1664,58 @@ document.addEventListener('DOMContentLoaded', () => {
     // 초기 상태: 라이선스 검증 상태는 서버에서 받아올 때까지 대기
     // isLicenseVerified는 서버에서 전송된 값으로 설정됨
 });
+
+// Ollama 모델 목록을 로드하는 함수
+function loadOllamaModels() {
+    console.log('Loading Ollama models...');
+    vscode.postMessage({ command: 'loadOllamaModels' });
+}
+
+// Ollama 모델 목록을 드롭다운에 추가하는 함수
+function populateOllamaModels(models) {
+    if (!ollamaModelSelect || !models) return;
+    
+    // 기존 옵션들 제거
+    while (ollamaModelSelect.children.length > 0) {
+        ollamaModelSelect.removeChild(ollamaModelSelect.firstChild);
+    }
+    
+    // 특별한 모델들을 먼저 추가
+    const specialModels = [
+        { name: 'itc-gpt-oss:70b', size: '70B', isSpecial: true }
+    ];
+    
+    specialModels.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.name;
+        option.textContent = `${model.name} (${model.size}) - 외부 서버`;
+        option.setAttribute('data-special', 'true');
+        option.setAttribute('data-api-url', 'http://10.202.251.21:11434');
+        ollamaModelSelect.appendChild(option);
+    });
+    
+    // 로컬 모델 목록을 드롭다운에 추가
+    models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.name;
+        option.textContent = `${model.name} (${model.size || 'Unknown size'}) - 로컬`;
+        option.setAttribute('data-special', 'false');
+        ollamaModelSelect.appendChild(option);
+    });
+    
+    console.log(`Populated ${specialModels.length} special models and ${models.length} local Ollama models`);
+    
+    // 모델 선택 시 API URL 자동 설정 이벤트 리스너 추가
+    if (ollamaModelSelect) {
+        ollamaModelSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.getAttribute('data-special') === 'true') {
+                const apiUrl = selectedOption.getAttribute('data-api-url');
+                if (apiUrl && ollamaApiUrlInput) {
+                    ollamaApiUrlInput.value = apiUrl;
+                    console.log(`Auto-set API URL to: ${apiUrl} for model: ${selectedOption.value}`);
+                }
+            }
+        });
+    }
+}
