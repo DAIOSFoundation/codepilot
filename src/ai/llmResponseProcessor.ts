@@ -100,7 +100,8 @@ export class LlmResponseProcessor {
         // 수정: 파일 경로를 더 정확하게 파싱하도록 정규식 개선
         // 파일 경로는 directive 다음에 오는 텍스트에서 코드 블록 시작 전까지 추출
         // callout 잔재를 더 잘 처리하도록 정규식 개선 - 더 엄격한 패턴
-        const codeBlockRegex = /(?:##\s*)?(새 파일|수정 파일):\s*([^\r\n`'\"\*]+?)(?:\s*\r?\n\s*\r?\n|\s*\r?\n)\s*```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
+        // **파일명** 형식도 처리할 수 있도록 개선
+        const codeBlockRegex = /(?:##\s*)?(새 파일|수정 파일):\s*(?:\*\*)?([^\r\n`'\"\*]+?)(?:\*\*)?(?:\s*\r?\n\s*\r?\n|\s*\r?\n)\s*```[^\n]*\r?\n([\s\S]*?)\r?\n```/g;
 
         // 마크다운 파일을 위한 별도 정규식 (코드 블록 없이 마크다운 내용 직접 포함)
         // callout 잔재를 더 잘 처리하도록 정규식 개선 - 더 엄격한 패턴
@@ -114,7 +115,8 @@ export class LlmResponseProcessor {
 
         // 삭제 파일을 위한 별도 정규식 (코드 블록이 없음)
         // callout 잔재를 더 잘 처리하도록 정규식 개선 - 더 엄격한 패턴
-        const deleteFileRegex = /삭제 파일:\s+([^\r\n`'\"\*]+?)(?:\r?\n|$)/g;
+        // **파일명** 형식도 처리할 수 있도록 개선
+        const deleteFileRegex = /삭제 파일:\s+(?:\*\*)?([^\r\n`'\"\*]+?)(?:\*\*)?(?:\r?\n|$)/g;
 
         let match;
         let updateSummaryMessages: string[] = [];

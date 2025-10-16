@@ -1014,12 +1014,12 @@ export class CodebaseContextService {
                 nodir: true,
                 dot: false
             }).filter((f: string) => {
-                const fullPath = path.join(baseRoot, f);
+                const fullPath = path.isAbsolute(f) ? f : path.join(baseRoot, f);
                 const ext = path.extname(f).toLowerCase();
                 if (this.EXCLUDED_EXTENSIONS.includes(ext)) return false;
                 return getFileType(fullPath) !== '';
             });
-            configFiles.push(...patternFiles.map(f => path.join(baseRoot, f)));
+            configFiles.push(...patternFiles.map(f => path.isAbsolute(f) ? f : path.join(baseRoot, f)));
         }
         
         console.log(`[CodebaseContextService] 프로젝트 타입별 설정 파일: ${configFiles.length}개`);
@@ -1047,12 +1047,12 @@ export class CodebaseContextService {
                 dot: false,
                 ignore: this.getIgnorePatternsForProjectType(projectType)
             }).filter((f: string) => {
-                const fullPath = path.join(baseRoot, f);
+                const fullPath = path.isAbsolute(f) ? f : path.join(baseRoot, f);
                 const ext = path.extname(f).toLowerCase();
                 if (this.EXCLUDED_EXTENSIONS.includes(ext)) return false;
                 return getFileType(fullPath) !== '';
             });
-            srcFiles.push(...patternFiles.map(f => path.join(baseRoot, f)));
+            srcFiles.push(...patternFiles.map(f => path.isAbsolute(f) ? f : path.join(baseRoot, f)));
         }
         
         // 2단계: src 외부 파일들을 키워드 기반으로 검색
@@ -1066,7 +1066,7 @@ export class CodebaseContextService {
                 dot: false,
                 ignore: this.getIgnorePatternsForProjectType(projectType)
             }).filter((f: string) => {
-                const fullPath = path.join(baseRoot, f);
+                const fullPath = path.isAbsolute(f) ? f : path.join(baseRoot, f);
                 const ext = path.extname(f).toLowerCase();
                 if (this.EXCLUDED_EXTENSIONS.includes(ext)) return false;
                 if (getFileType(fullPath) === '') return false;
@@ -1089,7 +1089,7 @@ export class CodebaseContextService {
                 
                 return true;
             });
-            otherFiles.push(...patternFiles.map(f => path.join(baseRoot, f)));
+            otherFiles.push(...patternFiles.map(f => path.isAbsolute(f) ? f : path.join(baseRoot, f)));
         }
         
         // 중복 제거
